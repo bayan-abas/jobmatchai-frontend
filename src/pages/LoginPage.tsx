@@ -1,8 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import "./Auth.css";
+import { useLanguage } from "../context/LanguageContext";
+import { translations } from "../translations";
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { language, setLanguage } = useLanguage();
+  const t = translations[language];
 
   return (
     <div className="auth-page">
@@ -10,42 +14,64 @@ function LoginPage() {
       <div className="background-blur blur-two"></div>
       <div className="background-grid"></div>
 
+      <div className="language-switcher">
+        <button
+          type="button"
+          className={language === "en" ? "lang-btn active-lang" : "lang-btn"}
+          onClick={() => setLanguage("en")}
+        >
+          {t.common.english}
+        </button>
+        <button
+          type="button"
+          className={language === "ar" ? "lang-btn active-lang" : "lang-btn"}
+          onClick={() => setLanguage("ar")}
+        >
+          {t.common.arabic}
+        </button>
+        <button
+          type="button"
+          className={language === "he" ? "lang-btn active-lang" : "lang-btn"}
+          onClick={() => setLanguage("he")}
+        >
+          {t.common.hebrew}
+        </button>
+      </div>
+
       <div className="auth-container">
         <button className="auth-back" onClick={() => navigate(-1)}>
-          ← Back
+          ← {t.common.back}
         </button>
 
         <div className="auth-card">
-          <div className="auth-badge">Secure Login • JobMatchAI</div>
+          <div className="auth-badge">{t.loginPage.badge}</div>
 
           <h1 className="auth-title">
-            Welcome back to <span>JobMatchAI</span>
+            {t.loginPage.title1} <span>{t.loginPage.title2}</span>
           </h1>
 
-          <p className="auth-subtitle">
-            Sign in to continue your smart hiring journey.
-          </p>
+          <p className="auth-subtitle">{t.loginPage.subtitle}</p>
 
           <form className="auth-form">
-            <label>Email Address</label>
-            <input type="email" placeholder="Enter your email" />
+            <label>{t.common.email}</label>
+            <input type="email" placeholder={t.common.enterEmail} />
 
-            <label>Password</label>
-            <input type="password" placeholder="Enter your password" />
+            <label>{t.common.password}</label>
+            <input type="password" placeholder={t.common.enterPassword} />
 
             <div className="auth-row">
               <label className="remember-box">
                 <input type="checkbox" />
-                Remember me
+                {t.common.rememberMe}
               </label>
 
               <button type="button" className="auth-text-btn">
-                Forgot password?
+                {t.common.forgotPassword}
               </button>
             </div>
 
             <button type="submit" className="auth-primary-btn">
-              Sign In
+              {t.common.login}
             </button>
 
             <button
@@ -53,7 +79,7 @@ function LoginPage() {
               className="auth-secondary-btn"
               onClick={() => navigate("/register")}
             >
-              Create New Account
+              {t.common.createAccount}
             </button>
           </form>
         </div>

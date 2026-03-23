@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../App.css";
+import { useLanguage } from "../context/LanguageContext";
 
 type Language = "en" | "ar" | "he";
 
@@ -264,14 +264,9 @@ const translations = {
 
 function HomePage() {
   const navigate = useNavigate();
-  const [language, setLanguage] = useState<Language>("en");
-  const t = translations[language];
+  const { language, setLanguage } = useLanguage();
+  const t = translations[language as Language];
   const isRTL = language === "ar" || language === "he";
-
-  useEffect(() => {
-    document.documentElement.lang = language;
-    document.documentElement.dir = isRTL ? "rtl" : "ltr";
-  }, [language, isRTL]);
 
   const scrollToSection = (id: string) => {
     const section = document.getElementById(id);
@@ -301,21 +296,24 @@ function HomePage() {
         </div>
 
         <div className="nav-actions">
-          <div className="language-switcher">
+          <div className="home-language-switcher">
             <button
-              className={language === "en" ? "active-lang" : ""}
+              type="button"
+              className={language === "en" ? "home-lang-btn active-home-lang" : "home-lang-btn"}
               onClick={() => setLanguage("en")}
             >
               EN
             </button>
             <button
-              className={language === "ar" ? "active-lang" : ""}
+              type="button"
+              className={language === "ar" ? "home-lang-btn active-home-lang" : "home-lang-btn"}
               onClick={() => setLanguage("ar")}
             >
               AR
             </button>
             <button
-              className={language === "he" ? "active-lang" : ""}
+              type="button"
+              className={language === "he" ? "home-lang-btn active-home-lang" : "home-lang-btn"}
               onClick={() => setLanguage("he")}
             >
               HE

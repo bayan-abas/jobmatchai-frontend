@@ -1,10 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import "./Auth.css";
+import { useLanguage } from "../context/LanguageContext";
+import { translations } from "../translations";
 
 function RegisterPage() {
   const navigate = useNavigate();
   const [role, setRole] = useState("candidate");
+  const { language, setLanguage } = useLanguage();
+  const t = translations[language];
 
   return (
     <div className="auth-page">
@@ -12,21 +16,43 @@ function RegisterPage() {
       <div className="background-blur blur-two"></div>
       <div className="background-grid"></div>
 
+      <div className="language-switcher">
+        <button
+          type="button"
+          className={language === "en" ? "lang-btn active-lang" : "lang-btn"}
+          onClick={() => setLanguage("en")}
+        >
+          {t.common.english}
+        </button>
+        <button
+          type="button"
+          className={language === "ar" ? "lang-btn active-lang" : "lang-btn"}
+          onClick={() => setLanguage("ar")}
+        >
+          {t.common.arabic}
+        </button>
+        <button
+          type="button"
+          className={language === "he" ? "lang-btn active-lang" : "lang-btn"}
+          onClick={() => setLanguage("he")}
+        >
+          {t.common.hebrew}
+        </button>
+      </div>
+
       <div className="auth-container">
         <button className="auth-back" onClick={() => navigate(-1)}>
-          ← Back
+          ← {t.common.back}
         </button>
 
         <div className="auth-card">
-          <div className="auth-badge">Create Account • JobMatchAI</div>
+          <div className="auth-badge">{t.registerPage.badge}</div>
 
           <h1 className="auth-title">
-            Start with <span>JobMatchAI</span>
+            {t.registerPage.title1} <span>{t.registerPage.title2}</span>
           </h1>
 
-          <p className="auth-subtitle">
-            Create your profile and begin your journey.
-          </p>
+          <p className="auth-subtitle">{t.registerPage.subtitle}</p>
 
           <div className="role-switch">
             <button
@@ -34,7 +60,7 @@ function RegisterPage() {
               className={role === "candidate" ? "role-btn active-role" : "role-btn"}
               onClick={() => setRole("candidate")}
             >
-              Candidate
+              {t.common.candidate}
             </button>
 
             <button
@@ -42,30 +68,34 @@ function RegisterPage() {
               className={role === "company" ? "role-btn active-role" : "role-btn"}
               onClick={() => setRole("company")}
             >
-              Company
+              {t.common.company}
             </button>
           </div>
 
           <form className="auth-form">
-            <label>{role === "candidate" ? "Full Name" : "Company Name"}</label>
+            <label>
+              {role === "candidate" ? t.common.fullName : t.common.companyName}
+            </label>
             <input
               type="text"
               placeholder={
-                role === "candidate" ? "Enter your full name" : "Enter company name"
+                role === "candidate"
+                  ? t.registerPage.enterFullName
+                  : t.registerPage.enterCompanyName
               }
             />
 
-            <label>Email Address</label>
-            <input type="email" placeholder="Enter your email" />
+            <label>{t.common.email}</label>
+            <input type="email" placeholder={t.common.enterEmail} />
 
-            <label>Password</label>
-            <input type="password" placeholder="Create your password" />
+            <label>{t.common.password}</label>
+            <input type="password" placeholder={t.common.createPassword} />
 
-            <label>Confirm Password</label>
-            <input type="password" placeholder="Confirm your password" />
+            <label>{t.common.confirmPassword}</label>
+            <input type="password" placeholder={t.common.confirmYourPassword} />
 
             <button type="submit" className="auth-primary-btn">
-              Register
+              {t.common.register}
             </button>
 
             <button
@@ -73,7 +103,7 @@ function RegisterPage() {
               className="auth-secondary-btn"
               onClick={() => navigate("/login")}
             >
-              Already Have an Account?
+              {t.common.alreadyHaveAccount}
             </button>
           </form>
         </div>
