@@ -24,6 +24,7 @@ function RegisterPage() {
         >
           {t.common.english}
         </button>
+
         <button
           type="button"
           className={language === "ar" ? "lang-btn active-lang" : "lang-btn"}
@@ -31,6 +32,7 @@ function RegisterPage() {
         >
           {t.common.arabic}
         </button>
+
         <button
           type="button"
           className={language === "he" ? "lang-btn active-lang" : "lang-btn"}
@@ -72,10 +74,22 @@ function RegisterPage() {
             </button>
           </div>
 
-          <form className="auth-form">
+          <form
+            className="auth-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+
+              if (role === "candidate") {
+                navigate("/candidate-dashboard");
+              } else {
+                navigate("/candidate-dashboard");
+              }
+            }}
+          >
             <label>
               {role === "candidate" ? t.common.fullName : t.common.companyName}
             </label>
+
             <input
               type="text"
               placeholder={

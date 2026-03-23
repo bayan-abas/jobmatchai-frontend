@@ -22,6 +22,7 @@ function LoginPage() {
         >
           {t.common.english}
         </button>
+
         <button
           type="button"
           className={language === "ar" ? "lang-btn active-lang" : "lang-btn"}
@@ -29,6 +30,7 @@ function LoginPage() {
         >
           {t.common.arabic}
         </button>
+
         <button
           type="button"
           className={language === "he" ? "lang-btn active-lang" : "lang-btn"}
@@ -39,7 +41,7 @@ function LoginPage() {
       </div>
 
       <div className="auth-container">
-        <button className="auth-back" onClick={() => navigate(-1)}>
+        <button type="button" className="auth-back" onClick={() => navigate(-1)}>
           ← {t.common.back}
         </button>
 
@@ -52,7 +54,13 @@ function LoginPage() {
 
           <p className="auth-subtitle">{t.loginPage.subtitle}</p>
 
-          <form className="auth-form">
+          <form
+            className="auth-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              navigate("/candidate-dashboard");
+            }}
+          >
             <label>{t.common.email}</label>
             <input type="email" placeholder={t.common.enterEmail} />
 
