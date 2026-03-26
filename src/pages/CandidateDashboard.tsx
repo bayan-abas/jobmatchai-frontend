@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import CandidateLayout from "../components/CandidateLayout";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
@@ -9,25 +8,16 @@ import {
   FileText,
   CalendarDays,
   Sparkles,
-  Search,
-  Bell,
   ChevronRight,
-  ArrowLeft,
   Bot,
 } from "lucide-react";
 
 function CandidateDashboard() {
-  const navigate = useNavigate();
   const { language } = useLanguage();
   const t = translations[language];
   const isRTL = language === "ar" || language === "he";
 
   const userName = localStorage.getItem("name") || "User";
-  const savedRole = localStorage.getItem("role") || "candidate";
-  const userRole =
-    savedRole === "company"
-      ? t.dashboard.roles.company
-      : t.dashboard.roles.candidate;
   const isFirstLogin = localStorage.getItem("isFirstLogin") === "true";
 
   useEffect(() => {
@@ -111,74 +101,6 @@ function CandidateDashboard() {
           isRTL ? "text-right" : "text-left"
         }`}
       >
-        <div
-          className={`sticky top-0 z-40 flex h-[78px] items-center justify-between border-b border-white/10 bg-[rgba(10,14,50,0.72)] px-6 backdrop-blur-[14px] ${
-            isRTL ? "flex-row-reverse" : ""
-          }`}
-        >
-          <div
-            className={`flex items-center gap-4 ${
-              isRTL ? "flex-row-reverse" : ""
-            }`}
-          >
-            <button
-              type="button"
-              onClick={() => navigate("/")}
-              className="flex h-[42px] w-[42px] items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-[#cfd3f6] transition hover:bg-white/[0.08] hover:text-white"
-            >
-              <ArrowLeft size={20} />
-            </button>
-
-            <div
-              className={`flex h-[46px] w-[430px] max-w-full items-center gap-3 rounded-[16px] border border-white/10 bg-white/[0.04] px-4 text-[#8d94bd] transition focus-within:border-[#7f4cff] focus-within:bg-white/[0.06] ${
-                isRTL ? "flex-row-reverse" : ""
-              }`}
-            >
-              <Search size={18} />
-              <input
-                type="text"
-                placeholder={t.dashboard.searchPlaceholder}
-                className={`w-full bg-transparent text-[15px] text-white outline-none placeholder:text-[#8d94bd] ${
-                  isRTL ? "text-right" : "text-left"
-                }`}
-              />
-            </div>
-          </div>
-
-          <div
-            className={`flex items-center gap-4 ${
-              isRTL ? "flex-row-reverse" : ""
-            }`}
-          >
-            <div className="relative">
-              <div className="relative flex h-[44px] w-[44px] items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-[#e2e6ff] transition hover:bg-white/[0.08] hover:text-white">
-                <Bell size={20} />
-                <span className="absolute -right-1 -top-1 flex h-[20px] w-[20px] items-center justify-center rounded-full bg-[#ff4b8b] text-[11px] font-bold text-white shadow-lg">
-                  3
-                </span>
-              </div>
-            </div>
-
-            <div className="h-9 w-px bg-white/10" />
-
-            <div
-              className={`flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 ${
-                isRTL ? "flex-row-reverse" : ""
-              }`}
-            >
-              <div className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-[16px] font-bold text-white shadow-[0_8px_18px_rgba(127,76,255,0.35)]">
-                {userName.charAt(0).toUpperCase()}
-              </div>
-              <div className={`leading-tight ${isRTL ? "text-right" : "text-left"}`}>
-                <p className="text-[14px] font-semibold text-white">
-                  {userName}
-                </p>
-                <p className="text-[12px] text-[#aeb4d6]">{userRole}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <div className="px-8 py-5">
           <div className="mb-8">
             <h1 className="mb-2 text-[48px] font-extrabold leading-none text-white">
@@ -403,7 +325,9 @@ function CandidateDashboard() {
 
         <button
           type="button"
-          className="fixed bottom-5 right-7 z-[9999] flex h-[72px] w-[72px] items-center justify-center rounded-full bg-gradient-to-br from-[#7f4cff] to-[#c026d3] text-white shadow-[0_14px_34px_rgba(127,76,255,0.38)] transition hover:scale-105"
+          className={`fixed bottom-5 z-[9999] flex h-[72px] w-[72px] items-center justify-center rounded-full bg-gradient-to-br from-[#7f4cff] to-[#c026d3] text-white shadow-[0_14px_34px_rgba(127,76,255,0.38)] transition hover:scale-105 ${
+            isRTL ? "left-7" : "right-7"
+          }`}
         >
           <Bot size={30} />
         </button>

@@ -96,11 +96,13 @@ export const translations: Record<Language, any> = {
         item2: "Your application to Fiverr is under review",
         item3: "Your profile score improved to 78%",
       },
+      
 
       roles: {
         candidate: "Candidate",
         company: "Company",
       },
+      
     },
   },
 
