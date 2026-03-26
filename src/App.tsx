@@ -5,7 +5,7 @@ import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import CandidateDashboard from "./pages/CandidateDashboard";
-
+import NotificationsPage from "./pages/NotificationsPage";
 
 function App() {
   const { language } = useLanguage();
@@ -22,7 +22,7 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/candidate-dashboard" element={<CandidateDashboard />} />
-
+      <Route path="/notifications" element={<NotificationsPage />} />
     </Routes>
   );
 }
