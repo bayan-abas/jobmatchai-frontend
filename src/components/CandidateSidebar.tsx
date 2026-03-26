@@ -1,0 +1,129 @@
+import { useNavigate, useLocation } from "react-router-dom";
+import { useLanguage } from "../context/LanguageContext";
+import { translations } from "../translations";
+import {
+  LayoutDashboard,
+  BriefcaseBusiness,
+  FileText,
+  User,
+  FileBadge,
+  Bell,
+  LogOut,
+  Sparkles,
+  ChevronLeft,
+} from "lucide-react";
+
+function CandidateSidebar() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { language, setLanguage } = useLanguage();
+  const isRTL = language === "ar" || language === "he";
+  const t = translations[language];
+
+  const menuItems = [
+    { label: t.sidebar.dashboard, path: "/candidate-dashboard", icon: LayoutDashboard },
+    { label: t.sidebar.jobMatches, path: "/jobs", icon: BriefcaseBusiness },
+    { label: t.sidebar.applications, path: "/applications", icon: FileText },
+    { label: t.sidebar.myProfile, path: "/profile", icon: User },
+    { label: t.sidebar.myResume, path: "/resume", icon: FileBadge },
+    { label: t.sidebar.notifications, path: "/notifications", icon: Bell },
+  ];
+
+  return (
+    <aside
+      className={`fixed top-0 z-50 flex h-screen w-[320px] flex-col justify-between overflow-hidden border-white/10 bg-[linear-gradient(180deg,#15184c_0%,#111444_60%,#0d1038_100%)] text-white ${
+        isRTL ? "right-0 border-l" : "left-0 border-r"
+      } max-[980px]:hidden`}
+    >
+      <div>
+        <div
+          className={`flex items-center justify-between border-b border-white/10 px-6 pb-5 pt-5 ${
+            isRTL ? "flex-row-reverse" : ""
+          }`}
+        >
+          <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
+            <div className="flex h-[46px] w-[46px] items-center justify-center rounded-[16px] bg-gradient-to-br from-[#7c4dff] to-[#a855f7] shadow-[0_12px_28px_rgba(124,77,255,0.35)]">
+              <Sparkles size={20} />
+            </div>
+
+            <div className={isRTL ? "text-right" : "text-left"}>
+              <h2 className="text-[23px] font-extrabold leading-none">JobMatch</h2>
+              <p className="mt-2 text-[14px] text-[#8ea2ff]">{t.sidebar.brandSubtitle}</p>
+            </div>
+          </div>
+
+          <button className="text-[#8a8fbe] transition hover:text-white">
+            <ChevronLeft size={18} />
+          </button>
+        </div>
+
+        <div className="px-4 pt-5">
+          <div className="flex flex-col gap-2">
+            {menuItems.map((item) => {
+              const active = location.pathname === item.path;
+              const Icon = item.icon;
+
+              return (
+                <button
+                  key={item.path}
+                  type="button"
+                  onClick={() => navigate(item.path)}
+                  className={`flex w-full items-center justify-between rounded-[22px] px-5 py-4 transition ${
+                    isRTL ? "text-right flex-row-reverse" : "text-left"
+                  } ${
+                    active
+                      ? "bg-[rgba(99,102,241,0.28)] text-white"
+                      : "bg-transparent text-[#9ca3c5] hover:bg-white/[0.04] hover:text-white"
+                  }`}
+                >
+                  <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
+                    <Icon size={22} strokeWidth={2.1} />
+                    <span className="text-[17px] font-semibold">{item.label}</span>
+                  </div>
+
+                  {active && <span className="h-2.5 w-2.5 rounded-full bg-[#8ea2ff]" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-white/10 px-4 pb-5 pt-4">
+        <div className="mb-4 flex rounded-[18px] border border-white/10 bg-white/[0.03] p-1">
+          {[
+            { key: "he", label: "עברית IL" },
+            { key: "ar", label: "العربية IL" },
+            { key: "en", label: "GB English" },
+          ].map((lang) => (
+            <button
+              key={lang.key}
+              type="button"
+              onClick={() => setLanguage(lang.key as "en" | "ar" | "he")}
+              className={`flex-1 rounded-[14px] px-3 py-2.5 text-[13px] font-semibold transition ${
+                language === lang.key
+                  ? "bg-[rgba(99,102,241,0.45)] text-[#dce3ff]"
+                  : "text-[#9ca3c5]"
+              }`}
+            >
+              {lang.label}
+            </button>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => navigate("/login")}
+          className={`flex w-full items-center gap-3 rounded-[18px] px-4 py-3 text-[17px] font-semibold text-[#b7bddb] transition hover:bg-white/[0.04] hover:text-white ${
+            isRTL ? "text-right flex-row-reverse" : "text-left"
+          }`}
+        >
+          <LogOut size={21} />
+          {t.common.logout}
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+export default CandidateSidebar;

@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import "../App.css";
+import { useState } from "react";
 import { useLanguage } from "../context/LanguageContext";
 
 type Language = "en" | "ar" | "he";
@@ -89,6 +89,12 @@ const translations = {
       "JobMatchAI is a professional prototype that demonstrates how design, structure, and smart matching concepts can improve the hiring process for both job seekers and employers.",
     contactPrimary: "Contact Us",
     contactSecondary: "Learn More",
+
+    modalTitle: "Contact Us",
+    modalPlaceholder: "Write your message here...",
+    modalSend: "Send Message",
+    modalClose: "Close",
+    modalSuccess: "Message sent successfully!",
   },
 
   ar: {
@@ -174,6 +180,12 @@ const translations = {
       "JobMatchAI هو نموذج أولي احترافي يوضح كيف يمكن للتصميم والتنظيم ومفاهيم المطابقة الذكية أن تحسن عملية التوظيف للباحثين عن عمل وأصحاب العمل.",
     contactPrimary: "تواصل معنا",
     contactSecondary: "اعرف أكثر",
+
+    modalTitle: "تواصل معنا",
+    modalPlaceholder: "اكتب رسالتك هنا...",
+    modalSend: "إرسال الرسالة",
+    modalClose: "إغلاق",
+    modalSuccess: "تم إرسال الرسالة بنجاح!",
   },
 
   he: {
@@ -259,6 +271,12 @@ const translations = {
       "JobMatchAI הוא אבטיפוס מקצועי שמדגים כיצד עיצוב, מבנה ורעיונות של התאמה חכמה יכולים לשפר את תהליך הגיוס עבור מחפשי עבודה ומעסיקים.",
     contactPrimary: "צור קשר",
     contactSecondary: "למד עוד",
+
+    modalTitle: "צור קשר",
+    modalPlaceholder: "כתבו את ההודעה שלכם כאן...",
+    modalSend: "שלח הודעה",
+    modalClose: "סגור",
+    modalSuccess: "ההודעה נשלחה בהצלחה!",
   },
 };
 
@@ -268,267 +286,354 @@ function HomePage() {
   const t = translations[language as Language];
   const isRTL = language === "ar" || language === "he";
 
+  const [isContactOpen, setIsContactOpen] = useState(false);
+  const [message, setMessage] = useState("");
+
   const scrollToSection = (id: string) => {
     const section = document.getElementById(id);
-    if (section) {
-      section.scrollIntoView({ behavior: "smooth" });
-    }
+    if (section) section.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const sectionTextAlign = isRTL ? "text-right" : "text-left";
+  const sectionDir = isRTL ? "rtl" : "ltr";
+
+  const handleSendMessage = () => {
+    if (!message.trim()) return;
+    alert(t.modalSuccess);
+    setMessage("");
+    setIsContactOpen(false);
   };
 
   return (
-    <div className={`page ${isRTL ? "rtl" : "ltr"}`}>
-      <div className="background-blur blur-one"></div>
-      <div className="background-blur blur-two"></div>
-      <div className="background-grid"></div>
+    <div
+      dir={sectionDir}
+      className="relative min-h-screen overflow-x-hidden bg-[linear-gradient(135deg,#17184a_0%,#1a1b56_40%,#17234f_100%)] text-white"
+    >
+      <div className="pointer-events-none fixed left-[-80px] top-[60px] z-0 h-[320px] w-[320px] rounded-full bg-[rgba(105,66,255,0.18)] blur-[120px]" />
+      <div className="pointer-events-none fixed bottom-[40px] right-[-100px] z-0 h-[360px] w-[360px] rounded-full bg-[rgba(36,122,255,0.14)] blur-[120px]" />
+      <div className="pointer-events-none fixed inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:linear-gradient(to_bottom,rgba(255,255,255,0.7),transparent)]" />
 
-      <nav className="navbar">
-        <div className="logo-area">
-          <div className="logo-dot"></div>
-          <span className="logo-text">JobMatchAI</span>
+      <nav className="sticky top-0 z-50 flex h-[84px] items-center justify-between border-b border-white/10 bg-[rgba(5,10,20,0.7)] px-16 backdrop-blur-[18px] max-[900px]:h-auto max-[900px]:flex-col max-[900px]:gap-4 max-[900px]:px-5 max-[900px]:py-[18px]">
+        <div className="flex items-center gap-3">
+          <div className="h-[14px] w-[14px] rounded-full bg-gradient-to-br from-[#38bdf8] to-[#8b5cf6] shadow-[0_0_18px_rgba(56,189,248,0.6)]" />
+          <span className="text-2xl font-extrabold tracking-[-0.5px]">
+            JobMatchAI
+          </span>
         </div>
 
-        <div className="nav-links">
-          <button onClick={() => scrollToSection("home")}>{t.home}</button>
-          <button onClick={() => scrollToSection("about")}>{t.about}</button>
-          <button onClick={() => scrollToSection("how-it-works")}>{t.how}</button>
-          <button onClick={() => scrollToSection("features")}>{t.features}</button>
-          <button onClick={() => scrollToSection("contact")}>{t.contact}</button>
+        <div className="flex gap-2 max-[900px]:flex-wrap max-[900px]:justify-center">
+          {[
+            ["home", t.home],
+            ["about", t.about],
+            ["how-it-works", t.how],
+            ["features", t.features],
+            ["contact", t.contact],
+          ].map(([id, label]) => (
+            <button
+              key={id}
+              onClick={() => scrollToSection(id)}
+              className="h-[42px] rounded-xl px-4 text-sm font-medium text-[#d8e5ff] transition hover:bg-white/5 hover:text-white"
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
-        <div className="nav-actions">
-          <div className="home-language-switcher">
-            <button
-              type="button"
-              className={language === "en" ? "home-lang-btn active-home-lang" : "home-lang-btn"}
-              onClick={() => setLanguage("en")}
-            >
-              EN
-            </button>
-            <button
-              type="button"
-              className={language === "ar" ? "home-lang-btn active-home-lang" : "home-lang-btn"}
-              onClick={() => setLanguage("ar")}
-            >
-              AR
-            </button>
-            <button
-              type="button"
-              className={language === "he" ? "home-lang-btn active-home-lang" : "home-lang-btn"}
-              onClick={() => setLanguage("he")}
-            >
-              HE
-            </button>
+        <div className="flex items-center gap-[10px] max-[900px]:flex-wrap max-[900px]:justify-center">
+          <div className="flex items-center gap-[6px] rounded-[14px] bg-white/5 p-1">
+            {(["en", "ar", "he"] as Language[]).map((lang) => (
+              <button
+                key={lang}
+                type="button"
+                onClick={() => setLanguage(lang)}
+                className={`h-[34px] min-w-[44px] rounded-[10px] px-[10px] text-xs font-bold transition ${
+                  language === lang
+                    ? "bg-gradient-to-r from-[#38bdf8] to-[#6366f1] text-white"
+                    : "bg-transparent text-[#d8e5ff] hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                {lang.toUpperCase()}
+              </button>
+            ))}
           </div>
 
-          <button className="nav-login" onClick={() => navigate("/login")}>
+          <button
+            className="h-[42px] rounded-xl px-4 text-sm font-medium text-[#d8e5ff] transition hover:bg-white/5 hover:text-white"
+            onClick={() => navigate("/login")}
+          >
             {t.login}
           </button>
-          <button className="nav-started" onClick={() => navigate("/register")}>
+
+          <button
+            className="h-[44px] whitespace-nowrap rounded-[14px] bg-gradient-to-r from-[#38bdf8] to-[#6366f1] px-[18px] text-sm font-bold text-white shadow-[0_12px_28px_rgba(56,189,248,0.25)] transition hover:-translate-y-0.5"
+            onClick={() => navigate("/register")}
+          >
             {t.started}
           </button>
         </div>
       </nav>
 
-      <section id="home" className="hero-section">
-        <div className="hero-left">
-          <div className="hero-badge">{t.heroBadge}</div>
+      <section
+        id="home"
+        className="relative z-10 flex min-h-[calc(100vh-84px)] items-center justify-between gap-14 px-16 pb-10 pt-[70px] max-[1200px]:flex-col max-[1200px]:items-start max-[900px]:px-5 max-[900px]:pt-10"
+      >
+        <div className={`max-w-[720px] flex-1 ${sectionTextAlign}`}>
+          <div className="mb-6 inline-flex min-h-[42px] items-center rounded-full border border-[rgba(125,211,252,0.22)] bg-[rgba(125,211,252,0.12)] px-4 text-[13px] font-semibold text-[#9bdcff]">
+            {t.heroBadge}
+          </div>
 
-          <h1 className="hero-title">
+          <h1 className="mb-6 text-[72px] font-extrabold leading-[1.03] tracking-[-2.6px] max-[900px]:text-5xl max-[900px]:tracking-[-1.4px]">
             {t.heroTitle1}
             <br />
             {t.heroTitle2}
-            <span>{t.heroTitle3}</span>
+            <span className="bg-gradient-to-r from-[#7dd3fc] to-[#a78bfa] bg-clip-text text-transparent">
+              {t.heroTitle3}
+            </span>
           </h1>
 
-          <p className="hero-description">{t.heroDescription}</p>
+          <p className="mb-[34px] max-w-[640px] text-[17px] leading-[1.95] text-[#c9d6ed]">
+            {t.heroDescription}
+          </p>
 
-          <div className="hero-buttons">
-            <button className="primary-btn" onClick={() => navigate("/register")}>
+          <div className="mb-[38px] flex flex-wrap gap-4">
+            <button
+              className="min-h-[52px] rounded-2xl bg-gradient-to-r from-[#38bdf8] to-[#6366f1] px-6 text-[15px] font-bold text-white shadow-[0_14px_30px_rgba(56,189,248,0.22)] transition hover:-translate-y-0.5"
+              onClick={() => navigate("/register")}
+            >
               {t.heroPrimary}
             </button>
+
             <button
-              className="secondary-btn"
+              className="min-h-[52px] rounded-2xl border border-white/15 bg-white/[0.03] px-6 text-[15px] font-bold text-white transition hover:bg-white/[0.07]"
               onClick={() => scrollToSection("about")}
             >
               {t.heroSecondary}
             </button>
           </div>
 
-          <div className="hero-stats">
-            <div className="hero-stat">
-              <h3>92%</h3>
-              <p>{t.stat1}</p>
-            </div>
-            <div className="hero-stat">
-              <h3>1200+</h3>
-              <p>{t.stat2}</p>
-            </div>
-            <div className="hero-stat">
-              <h3>350+</h3>
-              <p>{t.stat3}</p>
-            </div>
+          <div className="flex flex-wrap gap-[18px]">
+            {[
+              ["92%", t.stat1],
+              ["1200+", t.stat2],
+              ["350+", t.stat3],
+            ].map(([value, label]) => (
+              <div
+                key={value}
+                className="min-w-[160px] rounded-[20px] border border-white/[0.06] bg-white/[0.045] px-5 py-[18px]"
+              >
+                <h3 className="mb-2 text-[28px] font-extrabold text-[#9bdcff]">
+                  {value}
+                </h3>
+                <p className="text-[13px] leading-[1.6] text-[#d6e1f6]">
+                  {label}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="hero-right">
-          <div className="dashboard-card">
-            <div className="dashboard-top">
-              <div className="dashboard-lights">
-                <span></span>
-                <span></span>
-                <span></span>
+        <div className="flex flex-1 justify-center max-[1200px]:w-full">
+          <div className="w-full max-w-[520px] rounded-[30px] border border-white/[0.09] bg-white/[0.055] p-6 shadow-[0_22px_70px_rgba(0,0,0,0.3)] backdrop-blur-[20px] max-[1200px]:max-w-full">
+            <div className="mb-[22px] flex items-center justify-between">
+              <div className="flex gap-2">
+                <span className="h-[10px] w-[10px] rounded-full bg-[#fb7185]" />
+                <span className="h-[10px] w-[10px] rounded-full bg-[#facc15]" />
+                <span className="h-[10px] w-[10px] rounded-full bg-[#4ade80]" />
               </div>
-              <p>{t.dashboardTitle}</p>
+              <p className="text-sm font-semibold text-[#d3def5]">
+                {t.dashboardTitle}
+              </p>
             </div>
 
-            <div className="dashboard-panel main-panel">
+            <div className="mb-[18px] flex items-center justify-between rounded-[24px] border border-white/[0.07] bg-white/[0.045] p-6">
               <div>
-                <span className="panel-label">{t.fitLabel}</span>
-                <h2>94%</h2>
+                <span className="mb-[10px] block text-[13px] font-medium text-[#9fb2d4]">
+                  {t.fitLabel}
+                </span>
+                <h2 className="m-0 text-[44px] font-extrabold">94%</h2>
               </div>
-              <div className="score-ring">AI</div>
+              <div className="flex h-[78px] w-[78px] items-center justify-center rounded-full bg-gradient-to-br from-[#38bdf8] to-[#8b5cf6] text-[22px] font-extrabold shadow-[0_10px_30px_rgba(56,189,248,0.2)]">
+                AI
+              </div>
             </div>
 
-            <div className="dashboard-grid">
-              <div className="dashboard-panel small-panel">
-                <span className="panel-label">{t.skillsLabel}</span>
-                <ul>
+            <div className="mb-[18px] grid grid-cols-2 gap-[18px] max-[900px]:grid-cols-1">
+              <div className="rounded-[24px] border border-white/[0.07] bg-white/[0.045] p-5">
+                <span className="mb-[10px] block text-[13px] font-medium text-[#9fb2d4]">
+                  {t.skillsLabel}
+                </span>
+                <ul
+                  className={`${isRTL ? "pr-[18px]" : "pl-[18px]"} m-0 text-sm leading-[1.9] text-[#e8f0ff]`}
+                >
                   <li>Java</li>
                   <li>Python</li>
                   <li>SQL</li>
                 </ul>
               </div>
 
-              <div className="dashboard-panel small-panel">
-                <span className="panel-label">{t.statusLabel}</span>
-                <h4>{t.matched}</h4>
-                <p>{t.matchedText}</p>
+              <div className="rounded-[24px] border border-white/[0.07] bg-white/[0.045] p-5">
+                <span className="mb-[10px] block text-[13px] font-medium text-[#9fb2d4]">
+                  {t.statusLabel}
+                </span>
+                <h4 className="mb-[10px] text-[22px] font-bold">
+                  {t.matched}
+                </h4>
+                <p className="text-sm leading-[1.8] text-[#c9d6ed]">
+                  {t.matchedText}
+                </p>
               </div>
             </div>
 
-            <div className="dashboard-panel bottom-panel">
-              <span className="panel-label">{t.insightLabel}</span>
-              <p>{t.insightText}</p>
+            <div className="rounded-[24px] border border-white/[0.07] bg-white/[0.045] p-[22px]">
+              <span className="mb-[10px] block text-[13px] font-medium text-[#9fb2d4]">
+                {t.insightLabel}
+              </span>
+              <p className="text-sm leading-[1.9] text-[#d0dbf1]">
+                {t.insightText}
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      <section id="about" className="section">
-        <div className="section-heading">
-          <p className="section-tag">{t.aboutTag}</p>
-          <h2>{t.aboutTitle}</h2>
-          <span className="section-line"></span>
+      <section id="about" className="relative z-10 px-16 py-[110px] max-[900px]:px-5">
+        <div className="mx-auto mb-14 max-w-[860px] text-center">
+          <p className="mb-3 text-[13px] font-bold uppercase tracking-[1.5px] text-[#7dd3fc]">
+            {t.aboutTag}
+          </p>
+          <h2 className="text-[42px] font-extrabold leading-[1.35] tracking-[-1px] max-[900px]:text-[30px]">
+            {t.aboutTitle}
+          </h2>
+          <span className="mt-[18px] inline-block h-1 w-[90px] rounded-full bg-gradient-to-r from-[#38bdf8] to-[#8b5cf6]" />
         </div>
 
-        <div className="about-grid">
-          <div className="glass-card">
-            <div className="card-icon">01</div>
-            <h3>{t.about1Title}</h3>
-            <p>{t.about1Text}</p>
-          </div>
-
-          <div className="glass-card">
-            <div className="card-icon">02</div>
-            <h3>{t.about2Title}</h3>
-            <p>{t.about2Text}</p>
-          </div>
-
-          <div className="glass-card">
-            <div className="card-icon">03</div>
-            <h3>{t.about3Title}</h3>
-            <p>{t.about3Text}</p>
-          </div>
+        <div className="grid grid-cols-3 gap-6 max-[1200px]:grid-cols-2 max-[900px]:grid-cols-1">
+          {[
+            ["01", t.about1Title, t.about1Text],
+            ["02", t.about2Title, t.about2Text],
+            ["03", t.about3Title, t.about3Text],
+          ].map(([num, title, text]) => (
+            <div
+              key={num}
+              className={`rounded-[28px] border border-white/[0.075] bg-white/[0.045] p-[30px] transition hover:-translate-y-1.5 hover:bg-white/[0.06] ${sectionTextAlign}`}
+            >
+              <div className="mb-[18px] flex h-[58px] w-[58px] items-center justify-center rounded-[18px] bg-gradient-to-br from-[#38bdf8] to-[#8b5cf6] text-[18px] font-extrabold">
+                {num}
+              </div>
+              <h3 className="mb-[14px] text-[22px] font-bold">{title}</h3>
+              <p className="text-[15px] leading-[1.95] text-[#d4def2]">
+                {text}
+              </p>
+            </div>
+          ))}
         </div>
       </section>
 
-      <section id="how-it-works" className="section">
-        <div className="section-heading">
-          <p className="section-tag">{t.howTag}</p>
-          <h2>{t.howTitle}</h2>
-          <span className="section-line"></span>
+      <section
+        id="how-it-works"
+        className="relative z-10 px-16 py-[110px] max-[900px]:px-5"
+      >
+        <div className="mx-auto mb-14 max-w-[860px] text-center">
+          <p className="mb-3 text-[13px] font-bold uppercase tracking-[1.5px] text-[#7dd3fc]">
+            {t.howTag}
+          </p>
+          <h2 className="text-[42px] font-extrabold leading-[1.35] tracking-[-1px] max-[900px]:text-[30px]">
+            {t.howTitle}
+          </h2>
+          <span className="mt-[18px] inline-block h-1 w-[90px] rounded-full bg-gradient-to-r from-[#38bdf8] to-[#8b5cf6]" />
         </div>
 
-        <div className="timeline">
-          <div className="timeline-card">
-            <div className="timeline-number">01</div>
-            <div>
-              <h3>{t.step1Title}</h3>
-              <p>{t.step1Text}</p>
+        <div className="mx-auto grid max-w-[980px] gap-5">
+          {[
+            ["01", t.step1Title, t.step1Text],
+            ["02", t.step2Title, t.step2Text],
+            ["03", t.step3Title, t.step3Text],
+            ["04", t.step4Title, t.step4Text],
+          ].map(([num, title, text]) => (
+            <div
+              key={num}
+              className={`flex gap-[18px] rounded-[24px] border border-white/[0.075] bg-white/[0.045] px-[26px] py-6 max-[900px]:flex-col ${sectionTextAlign}`}
+            >
+              <div className="flex h-[62px] min-w-[62px] items-center justify-center rounded-[20px] bg-gradient-to-br from-[#38bdf8] to-[#8b5cf6] text-[18px] font-extrabold">
+                {num}
+              </div>
+              <div>
+                <h3 className="mb-[10px] mt-1 text-[22px] font-bold">
+                  {title}
+                </h3>
+                <p className="text-[15px] leading-[1.9] text-[#d2dcf0]">
+                  {text}
+                </p>
+              </div>
             </div>
-          </div>
-
-          <div className="timeline-card">
-            <div className="timeline-number">02</div>
-            <div>
-              <h3>{t.step2Title}</h3>
-              <p>{t.step2Text}</p>
-            </div>
-          </div>
-
-          <div className="timeline-card">
-            <div className="timeline-number">03</div>
-            <div>
-              <h3>{t.step3Title}</h3>
-              <p>{t.step3Text}</p>
-            </div>
-          </div>
-
-          <div className="timeline-card">
-            <div className="timeline-number">04</div>
-            <div>
-              <h3>{t.step4Title}</h3>
-              <p>{t.step4Text}</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="features" className="section">
-        <div className="section-heading">
-          <p className="section-tag">{t.featuresTag}</p>
-          <h2>{t.featuresTitle}</h2>
-          <span className="section-line"></span>
-        </div>
-
-        <div className="features-grid">
-          <div className="feature-card wide-feature">
-            <h3>{t.feature1Title}</h3>
-            <p>{t.feature1Text}</p>
-          </div>
-
-          <div className="feature-card">
-            <h3>{t.feature2Title}</h3>
-            <p>{t.feature2Text}</p>
-          </div>
-
-          <div className="feature-card">
-            <h3>{t.feature3Title}</h3>
-            <p>{t.feature3Text}</p>
-          </div>
-
-          <div className="feature-card">
-            <h3>{t.feature4Title}</h3>
-            <p>{t.feature4Text}</p>
-          </div>
-
-          <div className="feature-card">
-            <h3>{t.feature5Title}</h3>
-            <p>{t.feature5Text}</p>
-          </div>
+          ))}
         </div>
       </section>
 
-      <section id="contact" className="section contact-section">
-        <div className="contact-box">
-          <p className="section-tag">{t.contactTag}</p>
-          <h2>{t.contactTitle}</h2>
-          <p className="contact-text">{t.contactText}</p>
+      <section id="features" className="relative z-10 px-16 py-[110px] max-[900px]:px-5">
+        <div className="mx-auto mb-14 max-w-[860px] text-center">
+          <p className="mb-3 text-[13px] font-bold uppercase tracking-[1.5px] text-[#7dd3fc]">
+            {t.featuresTag}
+          </p>
+          <h2 className="text-[42px] font-extrabold leading-[1.35] tracking-[-1px] max-[900px]:text-[30px]">
+            {t.featuresTitle}
+          </h2>
+          <span className="mt-[18px] inline-block h-1 w-[90px] rounded-full bg-gradient-to-r from-[#38bdf8] to-[#8b5cf6]" />
+        </div>
 
-          <div className="contact-buttons">
-            <button className="primary-btn">{t.contactPrimary}</button>
+        <div className="grid grid-cols-3 gap-[22px] max-[1200px]:grid-cols-2 max-[900px]:grid-cols-1">
+          <div
+            className={`col-span-2 flex min-h-[220px] flex-col justify-center rounded-[24px] border border-white/[0.075] bg-white/[0.045] p-7 max-[900px]:col-span-1 ${sectionTextAlign}`}
+          >
+            <h3 className="mb-[14px] text-[21px] font-bold">
+              {t.feature1Title}
+            </h3>
+            <p className="text-[15px] leading-[1.9] text-[#d4def2]">
+              {t.feature1Text}
+            </p>
+          </div>
+
+          {[
+            [t.feature2Title, t.feature2Text],
+            [t.feature3Title, t.feature3Text],
+            [t.feature4Title, t.feature4Text],
+            [t.feature5Title, t.feature5Text],
+          ].map(([title, text]) => (
+            <div
+              key={title}
+              className={`rounded-[24px] border border-white/[0.075] bg-white/[0.045] p-7 ${sectionTextAlign}`}
+            >
+              <h3 className="mb-[14px] text-[21px] font-bold">{title}</h3>
+              <p className="text-[15px] leading-[1.9] text-[#d4def2]">
+                {text}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section id="contact" className="relative z-10 px-16 pb-[100px] pt-10 max-[900px]:px-5">
+        <div className="mx-auto max-w-[900px] rounded-[32px] border border-white/[0.08] bg-white/[0.05] px-[30px] py-[42px] text-center">
+          <p className="mb-3 text-[13px] font-bold uppercase tracking-[1.5px] text-[#7dd3fc]">
+            {t.contactTag}
+          </p>
+          <h2 className="mb-[18px] text-[40px] font-extrabold leading-[1.3] tracking-[-1px] max-[900px]:text-[30px]">
+            {t.contactTitle}
+          </h2>
+          <p className="mx-auto mb-7 max-w-[700px] text-base leading-[1.95] text-[#d1dcef]">
+            {t.contactText}
+          </p>
+
+          <div className="flex flex-wrap justify-center gap-4">
             <button
-              className="secondary-btn"
+              className="min-h-[52px] rounded-2xl bg-gradient-to-r from-[#38bdf8] to-[#6366f1] px-6 text-[15px] font-bold text-white shadow-[0_14px_30px_rgba(56,189,248,0.22)] transition hover:-translate-y-0.5"
+              onClick={() => setIsContactOpen(true)}
+            >
+              {t.contactPrimary}
+            </button>
+
+            <button
+              className="min-h-[52px] rounded-2xl border border-white/15 bg-white/[0.03] px-6 text-[15px] font-bold text-white transition hover:bg-white/[0.07]"
               onClick={() => scrollToSection("about")}
             >
               {t.contactSecondary}
@@ -536,6 +641,54 @@ function HomePage() {
           </div>
         </div>
       </section>
+
+      {isContactOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
+          <div
+            className={`w-full max-w-[520px] rounded-[28px] border border-white/10 bg-[#0f172a] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.45)] ${
+              isRTL ? "text-right" : "text-left"
+            }`}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-[24px] font-bold text-white">
+                {t.modalTitle}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setIsContactOpen(false)}
+                className="flex h-[36px] w-[36px] items-center justify-center rounded-full bg-white/5 text-white/70 transition hover:bg-white/10 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder={t.modalPlaceholder}
+              className="min-h-[150px] w-full resize-none rounded-[18px] border border-white/10 bg-white/[0.04] p-4 text-[15px] text-white outline-none placeholder:text-[#92a1bf]"
+            />
+
+            <div className={`mt-5 flex gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+              <button
+                type="button"
+                onClick={handleSendMessage}
+                className="flex-1 rounded-[16px] bg-gradient-to-r from-[#38bdf8] to-[#6366f1] px-5 py-3 text-[15px] font-bold text-white shadow-[0_14px_30px_rgba(56,189,248,0.22)] transition hover:-translate-y-0.5"
+              >
+                {t.modalSend}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsContactOpen(false)}
+                className="rounded-[16px] border border-white/15 bg-white/[0.03] px-5 py-3 text-[15px] font-bold text-white transition hover:bg-white/[0.07]"
+              >
+                {t.modalClose}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
