@@ -22,7 +22,7 @@ function CandidateSidebar() {
 
   const menuItems = [
     { label: t.sidebar.dashboard, path: "/candidate-dashboard", icon: LayoutDashboard },
-    { label: t.sidebar.jobMatches, path: "/jobs", icon: BriefcaseBusiness },
+    { label: t.sidebar.jobMatches, path: "/job-matches", icon: BriefcaseBusiness },
     { label: t.sidebar.applications, path: "/applications", icon: FileText },
     { label: t.sidebar.myProfile, path: "/profile", icon: User },
     { label: t.sidebar.myResume, path: "/resume", icon: FileBadge },

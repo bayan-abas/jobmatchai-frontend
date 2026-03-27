@@ -8,6 +8,7 @@ import RegisterPage from "./pages/RegisterPage";
 import CandidateDashboard from "./pages/CandidateDashboard";
 import NotificationsPage from "./pages/NotificationsPage";
 import JobMatches from "./pages/JobMatches";
+import Applications from "./pages/Applications";
 
 import CandidateLayout from "./components/CandidateLayout";
 
@@ -22,10 +23,12 @@ function App() {
 
   return (
     <Routes>
+      {/* Public Pages */}
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
 
+      {/* Candidate Pages with Layout */}
       <Route
         path="/candidate-dashboard"
         element={
@@ -45,13 +48,22 @@ function App() {
       />
 
       <Route
-        path="/jobs"
+        path="/job-matches"
         element={
           <CandidateLayout>
             <JobMatches />
           </CandidateLayout>
         }
       />
+      <Route
+        path="/applications"
+        element={
+          <CandidateLayout>
+            <Applications />
+          </CandidateLayout>
+        }
+      />
+
     </Routes>
   );
 }
