@@ -104,6 +104,47 @@ export const translations: Record<Language, any> = {
       },
       
     },
+    jobMatches: {
+  title: "Job Matches",
+  subtitle: "Find jobs tailored to your profile",
+
+  smartFilters: "Smart Filters",
+  activeFilters: "active filters",
+  clearAll: "Clear all",
+
+  industry: "Industry",
+  seniorityLevel: "Seniority Level",
+  minSalary: "Min Salary",
+  minMatch: "Min Match",
+
+  allIndustries: "All industries",
+  allLevels: "All levels",
+
+  entry: "Entry Level",
+  mid: "Mid Level",
+  senior: "Senior",
+  lead: "Lead / Manager",
+
+  tech: "Technology",
+  finance: "Finance",
+  healthcare: "Healthcare",
+  marketing: "Marketing",
+  education: "Education",
+  engineering: "Engineering",
+  retail: "Retail",
+  hospitality: "Hospitality",
+  logistics: "Logistics",
+
+  remote: "Remote",
+  statusActive: "Active",
+  noScore: "No score",
+
+  jobsMatchCriteria: "jobs match your criteria",
+
+  fairMatchingTitle: "Fair AI Matching:",
+  fairMatchingText:
+    "Matches are based solely on skills, experience, and qualifications.",
+},
   },
 
   ar: {
@@ -206,7 +247,48 @@ export const translations: Record<Language, any> = {
         candidate: "مرشح",
         company: "شركة",
       },
+      
     },
+    jobMatches: {
+  title: "الوظائف المطابقة",
+  subtitle: "اعثر على وظائف مناسبة لك",
+
+  smartFilters: "فلاتر ذكية",
+  activeFilters: "فلاتر مفعلة",
+  clearAll: "مسح الكل",
+
+  industry: "المجال",
+  seniorityLevel: "المستوى المهني",
+  minSalary: "أقل راتب",
+  minMatch: "أقل تطابق",
+
+  allIndustries: "كل المجالات",
+  allLevels: "كل المستويات",
+
+  entry: "مبتدئ",
+  mid: "متوسط",
+  senior: "خبير",
+  lead: "مدير",
+
+  tech: "تكنولوجيا",
+  finance: "مالية",
+  healthcare: "صحة",
+  marketing: "تسويق",
+  education: "تعليم",
+  engineering: "هندسة",
+  retail: "تجزئة",
+  hospitality: "ضيافة",
+  logistics: "لوجستيات",
+
+  remote: "عن بعد",
+  statusActive: "نشط",
+  noScore: "بدون تقييم",
+
+  jobsMatchCriteria: "وظيفة مطابقة",
+
+  fairMatchingTitle: "مطابقة عادلة:",
+  fairMatchingText: "تعتمد فقط على المهارات والخبرة.",
+},
   },
 
   he: {
@@ -310,5 +392,45 @@ export const translations: Record<Language, any> = {
         company: "חברה",
       },
     },
+    jobMatches: {
+  title: "משרות מתאימות",
+  subtitle: "מצא משרות שמתאימות לך",
+
+  smartFilters: "סינון חכם",
+  activeFilters: "פילטרים פעילים",
+  clearAll: "נקה הכל",
+
+  industry: "תחום",
+  seniorityLevel: "רמת ותק",
+  minSalary: "שכר מינימלי",
+  minMatch: "התאמה מינימלית",
+
+  allIndustries: "כל התחומים",
+  allLevels: "כל הרמות",
+
+  entry: "ג׳וניור",
+  mid: "ביניים",
+  senior: "סניור",
+  lead: "מנהל",
+
+  tech: "טכנולוגיה",
+  finance: "פיננסים",
+  healthcare: "בריאות",
+  marketing: "שיווק",
+  education: "חינוך",
+  engineering: "הנדסה",
+  retail: "קמעונאות",
+  hospitality: "אירוח",
+  logistics: "לוגיסטיקה",
+
+  remote: "מרחוק",
+  statusActive: "פעיל",
+  noScore: "ללא ציון",
+
+  jobsMatchCriteria: "משרות תואמות",
+
+  fairMatchingTitle: "התאמה הוגנת:",
+  fairMatchingText: "מבוסס רק על כישורים וניסיון.",
+},
   },
 };

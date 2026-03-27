@@ -29,7 +29,7 @@ function CandidateLayout({ children }: CandidateLayoutProps) {
 
       <div
         className={`min-h-screen ${
-          isRTL ? "mr-[320px]" : "ml-[320px]"
+          isRTL ? "mr-[200px]" : "ml-[200px]"
         } max-[980px]:mr-0 max-[980px]:ml-0`}
       >
         <header
@@ -49,7 +49,7 @@ function CandidateLayout({ children }: CandidateLayoutProps) {
               onClick={() => navigate(-1)}
               className="flex h-[42px] w-[42px] items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-[#cfd3f6] transition hover:bg-white/[0.08] hover:text-white"
             >
-              <ArrowLeft size={20} />
+              <ArrowLeft size={20} className={isRTL ? "rotate-180" : ""} />
             </button>
 
             <div
@@ -79,7 +79,11 @@ function CandidateLayout({ children }: CandidateLayoutProps) {
               className="relative flex h-[44px] w-[44px] items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-[#e2e6ff] transition hover:bg-white/[0.08] hover:text-white"
             >
               <Bell size={20} />
-              <span className="absolute -right-1 -top-1 flex h-[20px] w-[20px] items-center justify-center rounded-full bg-[#ff4b8b] text-[11px] font-bold text-white shadow-lg">
+              <span
+                className={`absolute -top-1 flex h-[20px] w-[20px] items-center justify-center rounded-full bg-[#ff4b8b] text-[11px] font-bold text-white shadow-lg ${
+                  isRTL ? "-left-1" : "-right-1"
+                }`}
+              >
                 3
               </span>
             </button>
@@ -94,6 +98,7 @@ function CandidateLayout({ children }: CandidateLayoutProps) {
               <div className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-[16px] font-bold text-white shadow-[0_8px_18px_rgba(127,76,255,0.35)]">
                 {userName.charAt(0).toUpperCase()}
               </div>
+
               <div className={isRTL ? "text-right" : "text-left"}>
                 <p className="text-[14px] font-semibold text-white">
                   {userName}

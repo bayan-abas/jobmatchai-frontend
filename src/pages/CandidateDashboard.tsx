@@ -9,7 +9,6 @@ import {
   CalendarDays,
   Sparkles,
   ChevronRight,
-  Bot,
 } from "lucide-react";
 
 function CandidateDashboard() {
@@ -131,7 +130,10 @@ function CandidateDashboard() {
                     {stat.icon}
                   </div>
                   <span className="text-[#747caf]">
-                    <ChevronRight size={22} />
+                    <ChevronRight
+                      size={22}
+                      className={isRTL ? "rotate-180" : ""}
+                    />
                   </span>
                 </div>
 
@@ -176,7 +178,10 @@ function CandidateDashboard() {
                   }`}
                 >
                   {t.dashboard.topMatches.viewAll}
-                  <ChevronRight size={18} />
+                  <ChevronRight
+                    size={18}
+                    className={isRTL ? "rotate-180" : ""}
+                  />
                 </button>
               </div>
 
@@ -208,7 +213,10 @@ function CandidateDashboard() {
                     </div>
 
                     <span className="text-[#7076a6]">
-                      <ChevronRight size={24} />
+                      <ChevronRight
+                        size={24}
+                        className={isRTL ? "rotate-180" : ""}
+                      />
                     </span>
                   </div>
                 ))}
@@ -322,15 +330,6 @@ function CandidateDashboard() {
             </div>
           </div>
         </div>
-
-        <button
-          type="button"
-          className={`fixed bottom-5 z-[9999] flex h-[72px] w-[72px] items-center justify-center rounded-full bg-gradient-to-br from-[#7f4cff] to-[#c026d3] text-white shadow-[0_14px_34px_rgba(127,76,255,0.38)] transition hover:scale-105 ${
-            isRTL ? "left-7" : "right-7"
-          }`}
-        >
-          <Bot size={30} />
-        </button>
       </div>
     </CandidateLayout>
   );
