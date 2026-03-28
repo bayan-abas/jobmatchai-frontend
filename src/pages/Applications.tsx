@@ -1,4 +1,11 @@
 import { useNavigate } from "react-router-dom";
+import {
+  BriefcaseBusiness,
+  MapPin,
+  ArrowLeft,
+  ChevronRight,
+  FileText,
+} from "lucide-react";
 
 type ApplicationItem = {
   percent: string;
@@ -10,6 +17,60 @@ type ApplicationItem = {
   pending?: string;
   progress: number;
 };
+
+function CircleProgress({ percent }: { percent: string }) {
+  const value = parseInt(percent.replace("%", ""));
+  const size = 76;
+  const stroke = 6;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (value / 100) * circumference;
+
+  const getColor = (num: number) => {
+    if (num >= 90) return "#8b93ff";
+    if (num >= 75) return "#7f4cff";
+    return "#22d3ee";
+  };
+
+  return (
+    <div className="relative h-[76px] w-[76px] shrink-0">
+      <svg
+        width={size}
+        height={size}
+        className="-rotate-90"
+        viewBox={`0 0 ${size} ${size}`}
+      >
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="rgba(255,255,255,0.10)"
+          strokeWidth={stroke}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={getColor(value)}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          className="transition-all duration-700 ease-out"
+          style={{
+            filter: "drop-shadow(0 0 10px rgba(139,147,255,0.28))",
+          }}
+        />
+      </svg>
+
+      <div className="absolute inset-0 flex items-center justify-center text-[18px] font-extrabold text-white">
+        {percent}
+      </div>
+    </div>
+  );
+}
 
 function Applications() {
   const navigate = useNavigate();
@@ -72,12 +133,12 @@ function Applications() {
     return (
       <div key={index} className="flex items-center">
         <div
-          className={`flex h-12 w-12 items-center justify-center rounded-full border text-lg transition ${
+          className={`flex h-[44px] w-[44px] items-center justify-center rounded-full border text-[16px] transition ${
             done
               ? "border-cyan-400/30 bg-cyan-400/15 text-cyan-300"
               : current
-              ? "border-indigo-400 bg-indigo-500/20 text-indigo-300 shadow-[0_0_20px_rgba(99,102,241,0.25)]"
-              : "border-white/10 bg-white/5 text-white/30"
+                ? "border-indigo-400 bg-indigo-500/20 text-indigo-300 shadow-[0_0_20px_rgba(99,102,241,0.25)]"
+                : "border-white/10 bg-white/5 text-white/30"
           }`}
         >
           {icon}
@@ -85,7 +146,7 @@ function Applications() {
 
         {index !== 5 && (
           <div
-            className={`mx-3 h-[2px] w-10 md:w-14 ${
+            className={`mx-2 h-[2px] w-8 lg:w-10 ${
               index < progress ? "bg-cyan-400/70" : "bg-white/10"
             }`}
           />
@@ -95,104 +156,111 @@ function Applications() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-78px)] bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.18),transparent_30%),linear-gradient(90deg,#15154a_0%,#1b1d5b_45%,#18234f_100%)] px-6 py-8 md:px-10 text-white">
-      <section>
-        <button
-          onClick={() => navigate("/candidate-dashboard")}
-          className="mb-10 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-7 py-4 text-[18px] font-semibold text-white/80 transition hover:bg-white/10"
-        >
-          <span className="text-2xl">←</span>
-          Back
-        </button>
+    <div className="min-h-[calc(100vh-78px)] bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.12),transparent_25%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.10),transparent_24%),linear-gradient(135deg,#17184a_0%,#1a1b56_42%,#17234f_100%)] px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-[1180px]">
+        <section>
+          <button
+            onClick={() => navigate("/candidate-dashboard")}
+            className="mb-8 flex items-center gap-3 rounded-[18px] border border-white/10 bg-white/[0.05] px-6 py-3 text-[18px] font-semibold text-white/80 transition hover:bg-white/[0.08] hover:text-white"
+          >
+            <ArrowLeft size={20} />
+            Back
+          </button>
 
-        <div className="mb-8 flex items-center gap-5">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-b from-sky-500 to-blue-600 text-3xl shadow-[0_0_30px_rgba(59,130,246,0.35)]">
-            ▤
+          <div className="mb-8 flex items-center gap-4">
+            <div className="flex h-[56px] w-[56px] items-center justify-center rounded-[18px] bg-gradient-to-b from-sky-500 to-blue-600 shadow-[0_0_30px_rgba(59,130,246,0.35)]">
+              <FileText size={28} className="text-white" />
+            </div>
+
+            <div>
+              <h1 className="text-[34px] font-extrabold text-white sm:text-[42px]">
+                My Applications
+              </h1>
+              <p className="mt-1 text-[18px] text-white/60">
+                Track and manage your job applications
+              </p>
+            </div>
           </div>
 
-          <div>
-            <h1 className="text-4xl font-bold md:text-5xl">My Applications</h1>
-            <p className="mt-2 text-xl text-white/60">
-              Track and manage your job applications
-            </p>
+          <div className="mb-10 inline-flex rounded-[18px] border border-white/10 bg-white/[0.05] p-1">
+            <button className="rounded-[14px] bg-indigo-500/25 px-5 py-2.5 text-[16px] font-semibold text-indigo-200">
+              All
+            </button>
+            <button className="rounded-[14px] px-5 py-2.5 text-[16px] font-semibold text-white/60 transition hover:text-white">
+              Active
+            </button>
+            <button className="rounded-[14px] px-5 py-2.5 text-[16px] font-semibold text-white/60 transition hover:text-white">
+              Completed
+            </button>
           </div>
-        </div>
 
-        <div className="mb-10 inline-flex rounded-2xl border border-white/10 bg-white/5 p-1">
-          <button className="rounded-xl bg-indigo-500/25 px-6 py-3 text-lg font-semibold text-indigo-200">
-            All
-          </button>
-          <button className="rounded-xl px-6 py-3 text-lg font-semibold text-white/60">
-            Active
-          </button>
-          <button className="rounded-xl px-6 py-3 text-lg font-semibold text-white/60">
-            Completed
-          </button>
-        </div>
+          <div className="space-y-5">
+            {applications.map((app, index) => (
+              <div
+                key={index}
+                className="rounded-[28px] border border-white/10 bg-white/[0.07] px-5 py-6 shadow-[0_8px_30px_rgba(0,0,0,0.15)] backdrop-blur-sm transition hover:bg-white/[0.09] lg:px-7"
+              >
+                <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+                  <div className="flex min-w-0 items-center gap-5">
+                    <CircleProgress percent={app.percent} />
 
-        <div className="space-y-6">
-          {applications.map((app, index) => (
-            <div
-              key={index}
-              className="rounded-[28px] border border-white/10 bg-white/[0.07] px-6 py-8 shadow-[0_8px_30px_rgba(0,0,0,0.15)] backdrop-blur-sm"
-            >
-              <div className="flex flex-col gap-8 xl:flex-row xl:items-center xl:justify-between">
-                <div className="flex min-w-[320px] items-center gap-6">
-                  <div className="flex h-24 w-24 items-center justify-center rounded-full border-[6px] border-indigo-300 text-2xl font-bold text-white shadow-[0_0_25px_rgba(129,140,248,0.2)]">
-                    {app.percent}
-                  </div>
+                    <div className="min-w-0">
+                      <h3 className="truncate text-[24px] font-extrabold text-white lg:text-[28px]">
+                        {app.title}
+                      </h3>
 
-                  <div>
-                    <h3 className="text-2xl font-bold md:text-[38px]">
-                      {app.title}
-                    </h3>
+                      <div className="mt-2 flex flex-wrap items-center gap-4 text-[16px] text-white/55">
+                        <span className="flex items-center gap-2">
+                          <BriefcaseBusiness size={16} />
+                          {app.company}
+                        </span>
 
-                    <div className="mt-3 flex flex-wrap gap-5 text-lg text-white/55">
-                      <span>▤ {app.company}</span>
-                      <span>⌖ {app.location}</span>
-                    </div>
-
-                    <p className="mt-3 text-lg text-white/40">
-                      Applied {app.date}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-start xl:justify-center">
-                  {[1, 2, 3, 4, 5].map((step) =>
-                    renderStep(step, app.progress)
-                  )}
-                </div>
-
-                <div className="flex min-w-[180px] items-center justify-between gap-5 xl:justify-end">
-                  <div className="text-right">
-                    {app.pending ? (
-                      <div className="rounded-full bg-yellow-500/20 px-5 py-3 text-lg font-semibold text-yellow-300">
-                        {app.pending}
+                        <span className="flex items-center gap-2">
+                          <MapPin size={16} />
+                          {app.location}
+                        </span>
                       </div>
-                    ) : (
-                      <>
-                        <h2 className="text-4xl font-bold">{app.score}</h2>
-                        <p className="text-lg text-white/50">
-                          Interview Score
-                        </p>
-                      </>
+
+                      <p className="mt-2 text-[15px] text-white/40">
+                        Applied {app.date}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center xl:justify-center">
+                    {[1, 2, 3, 4, 5].map((step) =>
+                      renderStep(step, app.progress)
                     )}
                   </div>
 
-                  <button className="text-4xl text-white/35 transition hover:text-white">
-                    ›
-                  </button>
+                  <div className="flex min-w-[170px] items-center justify-between gap-4 xl:justify-end">
+                    <div className="text-right">
+                      {app.pending ? (
+                        <div className="rounded-full bg-yellow-500/20 px-4 py-2 text-[14px] font-semibold text-yellow-300">
+                          {app.pending}
+                        </div>
+                      ) : (
+                        <>
+                          <h2 className="text-[26px] font-extrabold text-white lg:text-[30px]">
+                            {app.score}
+                          </h2>
+                          <p className="text-[14px] text-white/50">
+                            Interview Score
+                          </p>
+                        </>
+                      )}
+                    </div>
+
+                    <button className="text-white/35 transition hover:text-white">
+                      <ChevronRight size={28} />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <button className="fixed bottom-6 right-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-fuchsia-500 to-indigo-500 text-3xl shadow-[0_0_35px_rgba(168,85,247,0.45)]">
-        ◔
-      </button>
+            ))}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
