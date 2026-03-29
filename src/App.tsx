@@ -11,6 +11,7 @@ import JobMatches from "./pages/JobMatches";
 import Applications from "./pages/Applications";
 import ProfilePage from "./pages/ProfilePage";
 import ResumeManager from "./pages/ResumeManager";
+import ScrollToTop from "./components/ScrollToTop"; 
 
 import CandidateLayout from "./components/CandidateLayout";
 
@@ -24,67 +25,71 @@ function App() {
   }, [language]);
 
   return (
-    <Routes>
-      {/* Public Pages */}
-      <Route path="/" element={<HomePage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
+    <>
+      <ScrollToTop />
 
-      {/* Candidate Pages with Layout */}
-      <Route
-        path="/candidate-dashboard"
-        element={
-          <CandidateLayout>
-            <CandidateDashboard />
-          </CandidateLayout>
-        }
-      />
+      <Routes>
+        {/* Public Pages */}
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
-      <Route
-        path="/notifications"
-        element={
-          <CandidateLayout>
-            <NotificationsPage />
-          </CandidateLayout>
-        }
-      />
+        {/* Candidate Pages with Layout */}
+        <Route
+          path="/candidate-dashboard"
+          element={
+            <CandidateLayout>
+              <CandidateDashboard />
+            </CandidateLayout>
+          }
+        />
 
-      <Route
-        path="/job-matches"
-        element={
-          <CandidateLayout>
-            <JobMatches />
-          </CandidateLayout>
-        }
-      />
+        <Route
+          path="/notifications"
+          element={
+            <CandidateLayout>
+              <NotificationsPage />
+            </CandidateLayout>
+          }
+        />
 
-      <Route
-        path="/applications"
-        element={
-          <CandidateLayout>
-            <Applications />
-          </CandidateLayout>
-        }
-      />
+        <Route
+          path="/job-matches"
+          element={
+            <CandidateLayout>
+              <JobMatches />
+            </CandidateLayout>
+          }
+        />
 
-      <Route
-        path="/profile"
-        element={
-          <CandidateLayout>
-            <ProfilePage />
-          </CandidateLayout>
-        }
-      />
+        <Route
+          path="/applications"
+          element={
+            <CandidateLayout>
+              <Applications />
+            </CandidateLayout>
+          }
+        />
 
-      <Route
-        path="/resume"
-        element={
-          <CandidateLayout>
-            <ResumeManager />
-          </CandidateLayout>
-        }
-      />
-    </Routes>
+        <Route
+          path="/profile"
+          element={
+            <CandidateLayout>
+              <ProfilePage />
+            </CandidateLayout>
+          }
+        />
+
+        <Route
+          path="/resume"
+          element={
+            <CandidateLayout>
+              <ResumeManager />
+            </CandidateLayout>
+          }
+        />
+      </Routes>
+    </>
   );
 }
 
