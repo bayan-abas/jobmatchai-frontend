@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import {
   BriefcaseBusiness,
   MapPin,
@@ -6,6 +7,8 @@ import {
   ChevronRight,
   FileText,
 } from "lucide-react";
+
+type FilterType = "all" | "active" | "completed";
 
 type ApplicationItem = {
   percent: string;
@@ -16,6 +19,7 @@ type ApplicationItem = {
   score?: string;
   pending?: string;
   progress: number;
+  status: "active" | "completed";
 };
 
 function CircleProgress({ percent }: { percent: string }) {
@@ -74,6 +78,7 @@ function CircleProgress({ percent }: { percent: string }) {
 
 function Applications() {
   const navigate = useNavigate();
+  const [filter, setFilter] = useState<FilterType>("all");
 
   const applications: ApplicationItem[] = [
     {
@@ -84,6 +89,7 @@ function Applications() {
       date: "15/01/2024",
       score: "85%",
       progress: 3,
+      status: "active",
     },
     {
       percent: "87%",
@@ -93,6 +99,7 @@ function Applications() {
       date: "18/01/2024",
       score: "78%",
       progress: 2,
+      status: "active",
     },
     {
       percent: "85%",
@@ -102,6 +109,7 @@ function Applications() {
       date: "10/01/2024",
       score: "90%",
       progress: 4,
+      status: "completed",
     },
     {
       percent: "80%",
@@ -111,6 +119,7 @@ function Applications() {
       date: "20/01/2024",
       pending: "Pre-interview pending",
       progress: 1,
+      status: "active",
     },
     {
       percent: "88%",
@@ -120,8 +129,14 @@ function Applications() {
       date: "05/01/2024",
       score: "92%",
       progress: 5,
+      status: "active",
     },
   ];
+
+  const filteredApplications = applications.filter((app) => {
+    if (filter === "all") return true;
+    return app.status === filter;
+  });
 
   const renderStep = (index: number, progress: number) => {
     const done = index < progress;
@@ -155,6 +170,13 @@ function Applications() {
     );
   };
 
+  const filterButtonClass = (value: FilterType) =>
+    `rounded-[14px] px-5 py-2.5 text-[16px] font-semibold transition ${
+      filter === value
+        ? "bg-indigo-500/25 text-indigo-200 shadow-[0_0_0_1px_rgba(129,140,248,0.18)]"
+        : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+    }`;
+
   return (
     <div className="min-h-[calc(100vh-78px)] bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.12),transparent_25%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.10),transparent_24%),linear-gradient(135deg,#17184a_0%,#1a1b56_42%,#17234f_100%)] px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-[1180px]">
@@ -183,19 +205,28 @@ function Applications() {
           </div>
 
           <div className="mb-10 inline-flex rounded-[18px] border border-white/10 bg-white/[0.05] p-1">
-            <button className="rounded-[14px] bg-indigo-500/25 px-5 py-2.5 text-[16px] font-semibold text-indigo-200">
+            <button
+              onClick={() => setFilter("all")}
+              className={filterButtonClass("all")}
+            >
               All
             </button>
-            <button className="rounded-[14px] px-5 py-2.5 text-[16px] font-semibold text-white/60 transition hover:text-white">
+            <button
+              onClick={() => setFilter("active")}
+              className={filterButtonClass("active")}
+            >
               Active
             </button>
-            <button className="rounded-[14px] px-5 py-2.5 text-[16px] font-semibold text-white/60 transition hover:text-white">
+            <button
+              onClick={() => setFilter("completed")}
+              className={filterButtonClass("completed")}
+            >
               Completed
             </button>
           </div>
 
           <div className="space-y-5">
-            {applications.map((app, index) => (
+            {filteredApplications.map((app, index) => (
               <div
                 key={index}
                 className="rounded-[28px] border border-white/10 bg-white/[0.07] px-5 py-6 shadow-[0_8px_30px_rgba(0,0,0,0.15)] backdrop-blur-sm transition hover:bg-white/[0.09] lg:px-7"
@@ -258,6 +289,17 @@ function Applications() {
                 </div>
               </div>
             ))}
+
+            {filteredApplications.length === 0 && (
+              <div className="rounded-[28px] border border-white/10 bg-white/[0.05] px-8 py-12 text-center">
+                <h3 className="text-[24px] font-bold text-white">
+                  No applications found
+                </h3>
+                <p className="mt-2 text-white/55">
+                  There are no applications in this section yet.
+                </p>
+              </div>
+            )}
           </div>
         </section>
       </div>
