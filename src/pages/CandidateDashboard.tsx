@@ -27,38 +27,39 @@ function CandidateDashboard() {
 
   const profilePercent = 78;
 
-  const stats = [
-    {
-      icon: <Briefcase size={22} />,
-      value: "24",
-      label: t.dashboard.stats.jobMatches,
-      iconBg: "bg-[rgba(99,102,241,0.24)]",
-      iconColor: "text-[#8ea2ff]",
-      onClick: () => navigate("/job-matches"),
-    },
-    {
-      icon: <FileText size={22} />,
-      value: "8",
-      label: t.dashboard.stats.applications,
-      iconBg: "bg-[rgba(34,211,238,0.18)]",
-      iconColor: "text-[#22d3ee]",
-      onClick: () => navigate("/applications"),
-    },
-    {
-      icon: <CalendarDays size={22} />,
-      value: "3",
-      label: t.dashboard.stats.interviews,
-      iconBg: "bg-[rgba(52,211,153,0.18)]",
-      iconColor: "text-[#34d399]",
-    },
-    {
-      icon: <Sparkles size={22} />,
-      value: "78%",
-      label: t.dashboard.stats.profileScore,
-      iconBg: "bg-[rgba(168,85,247,0.18)]",
-      iconColor: "text-[#c084fc]",
-    },
-  ];
+const stats = [
+  {
+    icon: <Briefcase size={22} />,
+    value: "24",
+    label: t.dashboard.stats.jobMatches,
+    iconBg: "bg-[rgba(99,102,241,0.24)]",
+    iconColor: "text-[#8ea2ff]",
+    onClick: () => navigate("/job-matches"),
+  },
+  {
+    icon: <FileText size={22} />,
+    value: "8",
+    label: t.dashboard.stats.applications,
+    iconBg: "bg-[rgba(34,211,238,0.18)]",
+    iconColor: "text-[#22d3ee]",
+    onClick: () => navigate("/applications"),
+  },
+  {
+    icon: <CalendarDays size={22} />,
+    value: "3",
+    label: t.dashboard.stats.interviews,
+    iconBg: "bg-[rgba(52,211,153,0.18)]",
+    iconColor: "text-[#34d399]",
+  },
+  {
+    icon: <Sparkles size={22} />,
+    value: "78%",
+    label: t.dashboard.stats.profileScore,
+    iconBg: "bg-[rgba(168,85,247,0.18)]",
+    iconColor: "text-[#c084fc]",
+    onClick: () => navigate("/profile"), // 🔥 هذا المهم
+  },
+];
 
   const topMatches = [
     {
