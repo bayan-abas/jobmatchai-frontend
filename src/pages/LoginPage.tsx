@@ -11,6 +11,62 @@ function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (!email.trim()) {
+      setError("Please enter your email.");
+      return;
+    }
+
+    if (!password.trim()) {
+      setError("Please enter your password.");
+      return;
+    }
+
+    const savedUserRaw = localStorage.getItem("registeredUser");
+
+    if (!savedUserRaw) {
+      setError("No account found. Please register first.");
+      return;
+    }
+
+    const savedUser = JSON.parse(savedUserRaw);
+
+    if (email !== savedUser.email) {
+      setError("This email is not registered.");
+      return;
+    }
+
+    if (password !== savedUser.password) {
+      setError("Incorrect password.");
+      return;
+    }
+
+    localStorage.setItem("name", savedUser.name);
+    localStorage.setItem("email", savedUser.email);
+    localStorage.setItem("role", savedUser.role);
+    localStorage.setItem("phone", savedUser.phone || "");
+    localStorage.setItem("location", savedUser.location || "");
+    localStorage.setItem("currentTitle", savedUser.currentTitle || "");
+    localStorage.setItem("experience", savedUser.experience || "");
+    localStorage.setItem("skills", JSON.stringify(savedUser.skills || []));
+    localStorage.setItem(
+      "summary",
+      savedUser.summary ||
+        "Passionate professional looking for great opportunities and continuous growth."
+    );
+    localStorage.setItem("isFirstLogin", "false");
+
+    if (savedUser.role === "company") {
+      navigate("/company-dashboard");
+    } else {
+      navigate("/candidate-dashboard");
+    }
+  };
 
   return (
     <div
@@ -98,29 +154,7 @@ function LoginPage() {
             {t.loginPage.subtitle}
           </p>
 
-          <form
-            className="flex flex-col gap-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-
-              const savedName =
-                localStorage.getItem("name") ||
-                email.split("@")[0] ||
-                "User";
-
-              const savedRole = localStorage.getItem("role") || "candidate";
-
-              localStorage.setItem("name", savedName);
-              localStorage.setItem("role", savedRole);
-              localStorage.setItem("isFirstLogin", "false");
-
-              if (savedRole === "company") {
-                navigate("/company-dashboard");
-              } else {
-                navigate("/candidate-dashboard");
-              }
-            }}
-          >
+          <form className="flex flex-col gap-3" onSubmit={handleLogin}>
             <label className="text-sm font-semibold text-[#dce7fb]">
               {t.common.email}
             </label>
@@ -166,6 +200,12 @@ function LoginPage() {
                 {t.common.forgotPassword}
               </button>
             </div>
+
+            {error && (
+              <div className="rounded-2xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                {error}
+              </div>
+            )}
 
             <button
               type="submit"

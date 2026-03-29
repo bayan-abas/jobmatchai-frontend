@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CandidateSidebar from "./CandidateSidebar";
 import AIChatButton from "./AIChatButton";
@@ -16,6 +17,10 @@ function CandidateLayout({ children }: CandidateLayoutProps) {
   const t = translations[language];
   const isRTL = language === "ar" || language === "he";
 
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const sidebarWidth = isCollapsed ? 96 : 320;
+
   const userName = localStorage.getItem("name") || "User";
   const savedRole = localStorage.getItem("role") || "candidate";
   const userRole =
@@ -25,19 +30,28 @@ function CandidateLayout({ children }: CandidateLayoutProps) {
 
   return (
     <div className="min-h-screen bg-[linear-gradient(135deg,#17184a_0%,#1a1b56_40%,#17234f_100%)]">
-      <CandidateSidebar />
+      <CandidateSidebar
+        isCollapsed={isCollapsed}
+        setIsCollapsed={setIsCollapsed}
+      />
 
       <div
-        className={`min-h-screen ${
-          isRTL ? "mr-[200px]" : "ml-[200px]"
-        } max-[980px]:mr-0 max-[980px]:ml-0`}
+        className="min-h-screen transition-all duration-300 max-[980px]:ml-0 max-[980px]:mr-0"
+        style={
+          isRTL
+            ? { marginRight: `${sidebarWidth}px` }
+            : { marginLeft: `${sidebarWidth}px` }
+        }
       >
         <header
-          className={`fixed top-0 z-40 flex h-[78px] items-center justify-between border-b border-white/10 bg-[rgba(10,14,50,0.88)] px-6 backdrop-blur-[14px] ${
+          className={`fixed top-0 z-40 flex h-[78px] items-center justify-between border-b border-white/10 bg-[rgba(10,14,50,0.88)] px-6 backdrop-blur-[14px] transition-all duration-300 max-[980px]:left-0 max-[980px]:right-0 ${
+            isRTL ? "left-0 flex-row-reverse" : "right-0"
+          }`}
+          style={
             isRTL
-              ? "right-[320px] left-0 flex-row-reverse"
-              : "left-[320px] right-0"
-          } max-[980px]:left-0 max-[980px]:right-0`}
+              ? { right: `${sidebarWidth}px` }
+              : { left: `${sidebarWidth}px` }
+          }
         >
           <div
             className={`flex items-center gap-4 ${

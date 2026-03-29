@@ -9,6 +9,8 @@ import CandidateDashboard from "./pages/CandidateDashboard";
 import NotificationsPage from "./pages/NotificationsPage";
 import JobMatches from "./pages/JobMatches";
 import Applications from "./pages/Applications";
+import ProfilePage from "./pages/ProfilePage";
+import ResumeManager from "./pages/ResumeManager";
 
 import CandidateLayout from "./components/CandidateLayout";
 
@@ -55,6 +57,7 @@ function App() {
           </CandidateLayout>
         }
       />
+
       <Route
         path="/applications"
         element={
@@ -64,6 +67,23 @@ function App() {
         }
       />
 
+      <Route
+        path="/profile"
+        element={
+          <CandidateLayout>
+            <ProfilePage />
+          </CandidateLayout>
+        }
+      />
+
+      <Route
+        path="/resume"
+        element={
+          <CandidateLayout>
+            <ResumeManager />
+          </CandidateLayout>
+        }
+      />
     </Routes>
   );
 }
