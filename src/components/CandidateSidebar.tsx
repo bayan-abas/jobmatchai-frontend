@@ -33,7 +33,7 @@ function CandidateSidebar({
     { label: t.sidebar.jobMatches, path: "/job-matches", icon: BriefcaseBusiness },
     { label: t.sidebar.applications, path: "/applications", icon: FileText },
     { label: t.sidebar.myProfile, path: "/profile", icon: User },
-    { label: t.sidebar.myResume, path: "/resume", icon: FileBadge },
+    { label: t.sidebar.myResume, path: "/resume-manager", icon: FileBadge },
     { label: t.sidebar.notifications, path: "/notifications", icon: Bell },
   ];
 

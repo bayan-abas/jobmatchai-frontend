@@ -11,8 +11,8 @@ import JobMatches from "./pages/JobMatches";
 import Applications from "./pages/Applications";
 import ProfilePage from "./pages/ProfilePage";
 import ResumeManager from "./pages/ResumeManager";
-import ScrollToTop from "./components/ScrollToTop"; 
 
+import ScrollToTop from "./components/ScrollToTop";
 import CandidateLayout from "./components/CandidateLayout";
 
 function App() {
@@ -34,21 +34,12 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* Candidate Pages with Layout */}
+        {/* Candidate Pages */}
         <Route
           path="/candidate-dashboard"
           element={
-            <CandidateLayout>
+            <CandidateLayout role="candidate">
               <CandidateDashboard />
-            </CandidateLayout>
-          }
-        />
-
-        <Route
-          path="/notifications"
-          element={
-            <CandidateLayout>
-              <NotificationsPage />
             </CandidateLayout>
           }
         />
@@ -56,7 +47,7 @@ function App() {
         <Route
           path="/job-matches"
           element={
-            <CandidateLayout>
+            <CandidateLayout role="candidate">
               <JobMatches />
             </CandidateLayout>
           }
@@ -65,7 +56,7 @@ function App() {
         <Route
           path="/applications"
           element={
-            <CandidateLayout>
+            <CandidateLayout role="candidate">
               <Applications />
             </CandidateLayout>
           }
@@ -74,17 +65,26 @@ function App() {
         <Route
           path="/profile"
           element={
-            <CandidateLayout>
+            <CandidateLayout role="candidate">
               <ProfilePage />
             </CandidateLayout>
           }
         />
 
         <Route
-          path="/resume"
+          path="/resume-manager"
           element={
-            <CandidateLayout>
+            <CandidateLayout role="candidate">
               <ResumeManager />
+            </CandidateLayout>
+          }
+        />
+
+        <Route
+          path="/notifications"
+          element={
+            <CandidateLayout role="candidate">
+              <NotificationsPage />
             </CandidateLayout>
           }
         />

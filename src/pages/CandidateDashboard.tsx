@@ -395,7 +395,7 @@ const stats = [
           >
             <button
               type="button"
-              onClick={() => navigate("/resume")}   // بودي على My Resume
+              onClick={() => navigate("/resume-manager")}   // بودي على My Resume
               className="rounded-[12px] border border-cyan-400 px-5 py-2 text-cyan-300 transition hover:bg-cyan-400/10 max-[600px]:w-full"
             >
               {t.dashboard.profileBox.uploadResume}
