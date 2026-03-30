@@ -1,68 +1,78 @@
+import React from "react";
 import { useNavigate } from "react-router-dom";
 
-export default function CompanySidebar() {
+type CompanySidebarProps = {
+  isCollapsed: boolean;
+  setIsCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
+};
+
+function CompanySidebar({
+  isCollapsed,
+  setIsCollapsed,
+}: CompanySidebarProps) {
   const navigate = useNavigate();
 
   return (
-    <div className="candidate-sidebar"> {/* نفس الكلاس تبعك */}
-      
-      {/* Logo */}
-      <div className="candidate-logo">
-        <h2>JobMatch</h2>
-        <p>AI-Powered Recruitment</p>
-      </div>
-
-      {/* Menu */}
-      <div className="candidate-sidebar-menu">
+    <aside
+      className={`fixed top-0 z-50 h-screen border-r border-white/10 bg-[rgba(10,14,50,0.96)] backdrop-blur-[14px] transition-all duration-300 ${
+        isCollapsed ? "w-[96px]" : "w-[320px]"
+      }`}
+    >
+      <div className="flex h-[78px] items-center justify-between border-b border-white/10 px-6">
+        {!isCollapsed && (
+          <div>
+            <h2 className="text-[20px] font-bold text-white">JobMatch</h2>
+            <p className="text-[13px] text-[#aeb4d6]">AI-Powered Recruitment</p>
+          </div>
+        )}
 
         <button
-          className="candidate-menu-item"
+          type="button"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="text-white/70 transition hover:text-white"
+        >
+          {isCollapsed ? "›" : "‹"}
+        </button>
+      </div>
+
+      <div className="flex flex-col gap-3 p-4">
+        <button
+          className="rounded-[16px] px-4 py-3 text-left text-white hover:bg-white/10"
           onClick={() => navigate("/company-dashboard")}
         >
-          <span>◫</span>
           Dashboard
         </button>
 
         <button
-          className="candidate-menu-item"
+          className="rounded-[16px] px-4 py-3 text-left text-white hover:bg-white/10"
           onClick={() => navigate("/candidates")}
         >
-          <span>👥</span>
           Candidates
         </button>
 
         <button
-          className="candidate-menu-item"
+          className="rounded-[16px] px-4 py-3 text-left text-white hover:bg-white/10"
           onClick={() => navigate("/company-applications")}
         >
-          <span>📄</span>
           Applications
         </button>
 
         <button
-          className="candidate-menu-item"
+          className="rounded-[16px] px-4 py-3 text-left text-white hover:bg-white/10"
           onClick={() => navigate("/company-profile")}
         >
-          <span>👤</span>
           Company Profile
         </button>
 
         <button
-          className="candidate-menu-item"
+          className="rounded-[16px] px-4 py-3 text-left text-white hover:bg-white/10"
           onClick={() => navigate("/notifications")}
         >
-          <span>🔔</span>
           Notifications
         </button>
-
       </div>
-
-      {/* Logout */}
-      <div className="candidate-logout">
-        <button onClick={() => navigate("/")}>
-          Logout
-        </button>
-      </div>
-    </div>
+    </aside>
   );
 }
+
+export default CompanySidebar;
