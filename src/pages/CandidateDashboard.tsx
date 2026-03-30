@@ -402,6 +402,7 @@ const stats = [
 
             <button
               type="button"
+              onClick={() => navigate("/profile")}   //بودي على My Profile
               className="rounded-[12px] bg-gradient-to-r from-[#7f4cff] to-[#a855f7] px-5 py-2 font-semibold text-white transition hover:opacity-90 max-[600px]:w-full"
             >
               {t.dashboard.profileBox.editProfile}
