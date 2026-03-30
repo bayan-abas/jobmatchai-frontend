@@ -17,6 +17,10 @@ import {
   ChevronDown,
   ChevronUp,
   ArrowLeft,
+  Send,
+  Zap,
+  CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
@@ -37,6 +41,13 @@ type Job = {
   industry?: string;
 };
 
+type JobDetailExtra = {
+  about: string;
+  requirements: string[];
+  niceToHave: string[];
+  improvementSuggestions: string[];
+};
+
 function JobMatches() {
   const navigate = useNavigate();
 
@@ -45,6 +56,8 @@ function JobMatches() {
   const [seniority, setSeniority] = useState("");
   const [minSalary, setMinSalary] = useState(40);
   const [minMatch, setMinMatch] = useState(15);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [savedScrollY, setSavedScrollY] = useState(0);
 
   const [industryOpen, setIndustryOpen] = useState(false);
   const [seniorityOpen, setSeniorityOpen] = useState(false);
@@ -72,6 +85,12 @@ function JobMatches() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (selectedJob) {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+    }
+  }, [selectedJob]);
 
   const jobs: Job[] = [
     {
@@ -346,6 +365,58 @@ function JobMatches() {
     },
   ];
 
+  const jobDetailsMap: Record<string, JobDetailExtra> = {
+    "Senior Frontend Developer": {
+      about:
+        "We're looking for a Senior Frontend Developer to join our growing team at Check Point. You'll work on modern security-focused web applications and collaborate closely with product, design, and engineering teams.",
+      requirements: [
+        "5+ years of experience in frontend development",
+        "Strong proficiency in React and TypeScript",
+        "Experience building scalable UI architecture",
+        "Understanding of modern CSS and responsive design",
+        "Excellent problem-solving and communication skills",
+      ],
+      niceToHave: ["Next.js", "Testing", "CI/CD"],
+      improvementSuggestions: [
+        "Highlight your matched skills clearly in your resume",
+        "Show examples of scalable frontend projects",
+        "Mention collaboration with product or design teams",
+      ],
+    },
+    "Full Stack Engineer": {
+      about:
+        "Join Wix as a Full Stack Engineer and help build powerful product experiences across both frontend and backend systems.",
+      requirements: [
+        "3+ years of software development experience",
+        "Strong React and backend knowledge",
+        "Experience with databases and cloud systems",
+        "Ability to build production-ready features",
+      ],
+      niceToHave: ["System Design", "Docker", "CI/CD"],
+      improvementSuggestions: [
+        "Emphasize your backend experience",
+        "Show hands-on cloud and deployment work",
+        "Add full-stack project examples",
+      ],
+    },
+    "Civil Engineer – Infrastructure": {
+      about:
+        "Solel Boneh is looking for an infrastructure-focused Civil Engineer to support planning, analysis, and project coordination for large-scale projects.",
+      requirements: [
+        "Civil engineering background",
+        "Experience in infrastructure projects",
+        "Strong structural and AutoCAD skills",
+        "Ability to manage project execution",
+      ],
+      niceToHave: ["Site Reporting", "Tender Experience", "Regulation Knowledge"],
+      improvementSuggestions: [
+        "Show real project execution experience",
+        "Highlight structural analysis work",
+        "Add supervision or field coordination examples",
+      ],
+    },
+  };
+
   const industryOptions = [
     "allIndustries",
     "tech",
@@ -406,468 +477,898 @@ function JobMatches() {
   const dropdownAnimationClosed =
     "pointer-events-none -translate-y-1 opacity-0 scale-[0.98]";
 
+  const selectedDetails =
+    selectedJob ? jobDetailsMap[selectedJob.title] : undefined;
+
+  const selectedNumericMatch = selectedJob
+    ? getNumericMatch(selectedJob.percent, selectedJob.noScore)
+    : null;
+
+  const derivedExperienceYears = (experience: string) => {
+    const match = experience.match(/(\d+)/);
+    return match ? Number(match[1]) : 0;
+  };
+
   return (
     <div
       dir={isRTL ? "rtl" : "ltr"}
       className="min-h-[calc(100vh-78px)] bg-[radial-gradient(circle_at_top_left,rgba(86,45,255,0.16),transparent_24%),radial-gradient(circle_at_bottom_right,rgba(32,146,255,0.13),transparent_22%),linear-gradient(135deg,#0a0d2e_0%,#101548_45%,#181b58_100%)] px-4 py-7 lg:px-8"
     >
       <div className="mx-auto w-full max-w-[1080px]">
-        <section className="mb-8">
-          <div
-            className={`mb-5 flex items-center ${
-              isRTL ? "justify-end" : "justify-start"
-            }`}
-          >
-            <button
-              type="button"
-              onClick={() => navigate("/candidate-dashboard")}
-              className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white ${
-                isRTL ? "flex-row-reverse" : ""
-              }`}
-            >
-              <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
-              <span>{t.common?.back || "Back"}</span>
-            </button>
-          </div>
-
-          <div className="mb-6 flex items-start gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
-              <BriefcaseBusiness size={26} />
-            </div>
-
-            <div>
-              <h1 className="text-[42px] font-extrabold leading-tight text-white">
-                {t.jobMatches.title}
-              </h1>
-              <p className="mt-2 text-[17px] text-[#aeb4d6]">
-                {t.jobMatches.subtitle}
-              </p>
-            </div>
-          </div>
-
-          <div className="mb-5 overflow-visible rounded-[28px] border border-white/10 bg-white/[0.05] px-5 py-5 shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
-            <div
-              className={`flex items-start justify-between gap-4 ${
-                isRTL ? "flex-row-reverse" : ""
-              }`}
-            >
+        {!selectedJob ? (
+          <>
+            <section className="mb-8">
               <div
-                className={`flex items-center gap-4 ${
-                  isRTL ? "flex-row-reverse" : ""
+                className={`mb-5 flex items-center ${
+                  isRTL ? "justify-end" : "justify-start"
                 }`}
               >
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#5e66ff1f] text-[#7c88ff]">
-                  <SlidersHorizontal size={24} />
+                <button
+                  type="button"
+                  onClick={() => navigate("/candidate-dashboard")}
+                  className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white ${
+                    isRTL ? "flex-row-reverse" : ""
+                  }`}
+                >
+                  <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
+                  <span>{t.common?.back || "Back"}</span>
+                </button>
+              </div>
+
+              <div className="mb-6 flex items-start gap-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
+                  <BriefcaseBusiness size={26} />
                 </div>
 
-                <div className={isRTL ? "text-right" : "text-left"}>
-                  <h3 className="text-[20px] font-extrabold text-white">
-                    {t.jobMatches.smartFilters}
-                  </h3>
-                  <p className="mt-1 text-[15px] text-[#aeb4d6]">
-                    {activeFiltersCount} {t.jobMatches.activeFilters}
+                <div>
+                  <h1 className="text-[42px] font-extrabold leading-tight text-white">
+                    {t.jobMatches.title}
+                  </h1>
+                  <p className="mt-2 text-[17px] text-[#aeb4d6]">
+                    {t.jobMatches.subtitle}
                   </p>
                 </div>
               </div>
 
+              <div className="mb-5 overflow-visible rounded-[28px] border border-white/10 bg-white/[0.05] px-5 py-5 shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
+                <div
+                  className={`flex items-start justify-between gap-4 ${
+                    isRTL ? "flex-row-reverse" : ""
+                  }`}
+                >
+                  <div
+                    className={`flex items-center gap-4 ${
+                      isRTL ? "flex-row-reverse" : ""
+                    }`}
+                  >
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#5e66ff1f] text-[#7c88ff]">
+                      <SlidersHorizontal size={24} />
+                    </div>
+
+                    <div className={isRTL ? "text-right" : "text-left"}>
+                      <h3 className="text-[20px] font-extrabold text-white">
+                        {t.jobMatches.smartFilters}
+                      </h3>
+                      <p className="mt-1 text-[15px] text-[#aeb4d6]">
+                        {activeFiltersCount} {t.jobMatches.activeFilters}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div
+                    className={`flex items-center gap-5 ${
+                      isRTL ? "flex-row-reverse" : ""
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      className="text-[15px] font-semibold text-[#c8ccee] transition hover:text-white"
+                      onClick={() => {
+                        setIndustry("");
+                        setSeniority("");
+                        setMinSalary(40);
+                        setMinMatch(15);
+                      }}
+                    >
+                      {t.jobMatches.clearAll}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setFiltersOpen((prev) => !prev)}
+                      className="text-[#aeb4d6] transition hover:text-white"
+                    >
+                      {filtersOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    </button>
+                  </div>
+                </div>
+
+                {filtersOpen && (
+                  <>
+                    <div className="my-5 h-px bg-white/10" />
+
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+                      <div ref={industryRef} className="relative overflow-visible">
+                        <label
+                          className={`mb-3 flex items-center gap-2 text-[15px] text-[#d7dbf7] ${
+                            isRTL ? "flex-row-reverse justify-end" : ""
+                          }`}
+                        >
+                          <Landmark size={17} />
+                          <span>{t.jobMatches.industry}</span>
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIndustryOpen((prev) => !prev);
+                            setSeniorityOpen(false);
+                          }}
+                          className={`flex h-[48px] w-full items-center justify-between rounded-[12px] border border-white/10 bg-[#2a2f68] px-4 text-[15px] text-[#d7dbf7] outline-none transition hover:bg-[#313776] ${
+                            isRTL ? "flex-row-reverse text-right" : "text-left"
+                          }`}
+                        >
+                          <span className="truncate">
+                            {industry
+                              ? t.jobMatches[industry]
+                              : t.jobMatches.allIndustries}
+                          </span>
+
+                          <ChevronDown
+                            size={18}
+                            className={`shrink-0 text-[#8d94bd] transition ${
+                              industryOpen ? "rotate-180" : ""
+                            }`}
+                          />
+                        </button>
+
+                        <div
+                          className={`${dropdownBase} ${
+                            industryOpen ? dropdownAnimationOpen : dropdownAnimationClosed
+                          }`}
+                        >
+                          <div className="max-h-[330px] overflow-y-auto py-1">
+                            {industryOptions.map((item) => {
+                              const isSelected =
+                                (item === "allIndustries" && !industry) ||
+                                industry === item;
+
+                              return (
+                                <button
+                                  key={item}
+                                  type="button"
+                                  onClick={() => {
+                                    setIndustry(item === "allIndustries" ? "" : item);
+                                    setIndustryOpen(false);
+                                  }}
+                                  className={`block w-full px-4 py-3 text-[14px] text-[#1f1f1f] transition ${
+                                    isRTL ? "text-right" : "text-left"
+                                  } ${
+                                    isSelected
+                                      ? "bg-[#ececec] font-medium"
+                                      : "bg-transparent hover:bg-[#ececec]"
+                                  }`}
+                                >
+                                  {t.jobMatches[item]}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div ref={seniorityRef} className="relative overflow-visible">
+                        <label
+                          className={`mb-3 flex items-center gap-2 text-[15px] text-[#d7dbf7] ${
+                            isRTL ? "flex-row-reverse justify-end" : ""
+                          }`}
+                        >
+                          <TrendingUp size={17} />
+                          <span>{t.jobMatches.seniorityLevel}</span>
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSeniorityOpen((prev) => !prev);
+                            setIndustryOpen(false);
+                          }}
+                          className={`flex h-[48px] w-full items-center justify-between rounded-[12px] border border-white/10 bg-[#2a2f68] px-4 text-[15px] text-[#d7dbf7] outline-none transition hover:bg-[#313776] ${
+                            isRTL ? "flex-row-reverse text-right" : "text-left"
+                          }`}
+                        >
+                          <span className="truncate">
+                            {seniority
+                              ? t.jobMatches[seniority]
+                              : t.jobMatches.allLevels}
+                          </span>
+
+                          <ChevronDown
+                            size={18}
+                            className={`shrink-0 text-[#8d94bd] transition ${
+                              seniorityOpen ? "rotate-180" : ""
+                            }`}
+                          />
+                        </button>
+
+                        <div
+                          className={`${dropdownBase} ${
+                            seniorityOpen ? dropdownAnimationOpen : dropdownAnimationClosed
+                          }`}
+                        >
+                          <div className="max-h-[330px] overflow-y-auto py-1">
+                            {seniorityOptions.map((item) => {
+                              const isSelected =
+                                (item === "allLevels" && !seniority) ||
+                                seniority === item;
+
+                              return (
+                                <button
+                                  key={item}
+                                  type="button"
+                                  onClick={() => {
+                                    setSeniority(item === "allLevels" ? "" : item);
+                                    setSeniorityOpen(false);
+                                  }}
+                                  className={`block w-full px-4 py-3 text-[14px] text-[#1f1f1f] transition ${
+                                    isRTL ? "text-right" : "text-left"
+                                  } ${
+                                    isSelected
+                                      ? "bg-[#ececec] font-medium"
+                                      : "bg-transparent hover:bg-[#ececec]"
+                                  }`}
+                                >
+                                  {t.jobMatches[item]}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label
+                          className={`mb-3 flex items-center gap-2 text-[15px] text-[#d7dbf7] ${
+                            isRTL ? "flex-row-reverse justify-end" : ""
+                          }`}
+                        >
+                          <DollarSign size={17} />
+                          <span>
+                            {t.jobMatches.minSalary}: ${minSalary}k
+                          </span>
+                        </label>
+
+                        <input
+                          type="range"
+                          min={40}
+                          max={200}
+                          step={5}
+                          value={minSalary}
+                          onChange={(e) => setMinSalary(Number(e.target.value))}
+                          className="h-2 w-full cursor-pointer appearance-none rounded-full bg-[#171a46]"
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          className={`mb-3 flex items-center gap-2 text-[15px] text-[#d7dbf7] ${
+                            isRTL ? "flex-row-reverse justify-end" : ""
+                          }`}
+                        >
+                          <Target size={17} />
+                          <span>
+                            {t.jobMatches.minMatch}: {minMatch}%
+                          </span>
+                        </label>
+
+                        <input
+                          type="range"
+                          min={15}
+                          max={100}
+                          step={1}
+                          value={minMatch}
+                          onChange={(e) => setMinMatch(Number(e.target.value))}
+                          className="h-2 w-full cursor-pointer appearance-none rounded-full bg-[#171a46]"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
               <div
-                className={`flex items-center gap-5 ${
+                className={`mb-5 flex items-start gap-3 rounded-2xl border border-[#5e66ff55] bg-[#5e66ff14] px-5 py-4 text-white/80 ${
                   isRTL ? "flex-row-reverse" : ""
                 }`}
               >
-                <button
-                  type="button"
-                  className="text-[15px] font-semibold text-[#c8ccee] transition hover:text-white"
-                  onClick={() => {
-                    setIndustry("");
-                    setSeniority("");
-                    setMinSalary(40);
-                    setMinMatch(15);
-                  }}
+                <Scale size={18} className="mt-0.5 shrink-0 text-[#f6c453]" />
+                <p
+                  className={`text-sm leading-6 ${
+                    isRTL ? "text-right" : "text-left"
+                  }`}
                 >
-                  {t.jobMatches.clearAll}
-                </button>
+                  <span className="font-bold text-white">
+                    {t.jobMatches.fairMatchingTitle}
+                  </span>{" "}
+                  {t.jobMatches.fairMatchingText}
+                </p>
+              </div>
+
+              <p
+                className={`text-[15px] text-[#aeb4d6] ${
+                  isRTL ? "text-right" : "text-left"
+                }`}
+              >
+                {filteredJobs.length} {t.jobMatches.jobsMatchCriteria}
+              </p>
+            </section>
+
+            <section className="space-y-5">
+              {filteredJobs.map((job, index) => {
+                const numeric = job.noScore ? 0 : Number(job.percent.replace("%", ""));
+                const ringColor = getRingColor(job);
+
+                return (
+                  <article
+                    key={`${job.title}-${index}`}
+                    onClick={() => {
+                      setSavedScrollY(window.scrollY);
+                      setSelectedJob(job);
+                    }}
+                    className="group cursor-pointer rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)] transition hover:border-white/20 hover:bg-[rgba(50,52,108,0.96)]"
+                  >
+                    <div className="flex flex-col gap-6 md:flex-row md:items-center">
+                      <div className="flex flex-col items-center justify-center md:justify-start">
+                        <div className="relative h-[98px] w-[98px]">
+                          <div
+                            className="h-full w-full rounded-full transition-all duration-[1800ms] ease-out"
+                            style={{
+                              background: job.noScore
+                                ? "conic-gradient(#5f648a 360deg, #2a2c5a 0deg)"
+                                : `conic-gradient(${ringColor} ${numeric * 3.6}deg, #2a2c5a 0deg)`,
+                              boxShadow: job.noScore
+                                ? "0 0 0 rgba(0,0,0,0)"
+                                : `0 0 24px ${ringColor}22`,
+                            }}
+                          />
+
+                          <div className="absolute inset-[8px] flex items-center justify-center rounded-full bg-[#252654] text-[22px] font-extrabold text-white shadow-inner">
+                            {job.noScore ? "N/A" : job.percent}
+                          </div>
+                        </div>
+
+                        {job.noScore && (
+                          <span className="mt-2 text-[12px] font-medium text-white/40">
+                            {t.jobMatches.noScore}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex-1">
+                        <div
+                          className={`mb-3 flex flex-wrap items-center gap-3 ${
+                            isRTL ? "md:flex-row-reverse" : ""
+                          }`}
+                        >
+                          <h2 className="text-[22px] font-extrabold text-white">
+                            {job.title}
+                          </h2>
+
+                          <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-semibold text-emerald-300">
+                            {t.jobMatches.statusActive}
+                          </span>
+                        </div>
+
+                        <div
+                          className={`mb-3 flex items-center gap-2 text-[#c4cae9] ${
+                            isRTL
+                              ? "flex-row-reverse justify-end md:justify-start"
+                              : ""
+                          }`}
+                        >
+                          <Building2 size={16} />
+                          <span className="text-[15px]">{job.company}</span>
+                        </div>
+
+                        <div
+                          className={`mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[#aeb4d6] ${
+                            isRTL ? "md:flex-row-reverse" : ""
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <MapPin size={16} />
+                            <span>{job.location}</span>
+                          </div>
+
+                          {job.remote && (
+                            <div className="flex items-center gap-2 text-cyan-300">
+                              <Wifi size={16} />
+                              <span>{t.jobMatches.remote}</span>
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-2">
+                            <BriefcaseBusiness size={16} />
+                            <span>{job.experience}</span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <Wallet size={16} />
+                            <span className="font-semibold text-emerald-300">
+                              {job.salary}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <Clock3 size={16} />
+                            <span>{job.level}</span>
+                          </div>
+
+                          {job.industry && (
+                            <div className="flex items-center gap-2">
+                              <Landmark size={16} />
+                              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-[#d6dcff]">
+                                {t.jobMatches[job.industry] || job.industry}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {(job.skills.length > 0 || job.dangerSkills.length > 0) && (
+                          <div
+                            className={`flex flex-wrap gap-2 ${
+                              isRTL ? "md:flex-row-reverse" : ""
+                            }`}
+                          >
+                            {job.skills.map((skill) => (
+                              <span
+                                key={skill}
+                                className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-semibold text-emerald-300"
+                              >
+                                {skill}
+                              </span>
+                            ))}
+
+                            {job.dangerSkills.map((skill) => (
+                              <span
+                                key={skill}
+                                className="rounded-full border border-rose-400/20 bg-rose-400/10 px-3 py-1 text-sm font-semibold text-rose-300"
+                              >
+                                {skill}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-end">
+                        <button
+                          type="button"
+                          className="flex h-11 w-11 items-center justify-center rounded-full text-white/30 transition group-hover:bg-white/5 group-hover:text-white/70"
+                        >
+                          <ChevronRight
+                            size={22}
+                            className={isRTL ? "rotate-180" : ""}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </section>
+          </>
+        ) : (
+          <section className="space-y-6">
+            <div
+              className={`mb-2 flex items-center ${
+                isRTL ? "justify-end" : "justify-start"
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedJob(null);
+
+                  setTimeout(() => {
+                    window.scrollTo({
+                      top: savedScrollY,
+                      left: 0,
+                      behavior: "instant" as ScrollBehavior,
+                    });
+                  }, 0);
+                }}
+                className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white ${
+                  isRTL ? "flex-row-reverse" : ""
+                }`}
+              >
+                <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
+                <span>{t.common?.back || "Back"}</span>
+              </button>
+            </div>
+
+            <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-7 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+              <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+                <div className="flex-1">
+                  <div
+                    className={`mb-4 flex flex-wrap items-center gap-3 ${
+                      isRTL ? "xl:flex-row-reverse" : ""
+                    }`}
+                  >
+                    <h1 className="text-[28px] font-extrabold text-white lg:text-[34px]">
+                      {selectedJob.title}
+                    </h1>
+
+                    <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-1.5 text-base font-semibold text-emerald-300">
+                      {selectedJob.status}
+                    </span>
+                  </div>
+
+                  <div
+                    className={`mb-4 flex items-center gap-2 text-[#c4cae9] ${
+                      isRTL ? "flex-row-reverse" : ""
+                    }`}
+                  >
+                    <Building2 size={18} />
+                    <span className="text-[16px]">{selectedJob.company}</span>
+                  </div>
+
+                  <div
+                    className={`flex flex-wrap items-center gap-x-6 gap-y-3 text-[16px] text-[#aeb4d6] ${
+                      isRTL ? "xl:flex-row-reverse" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <MapPin size={18} />
+                      <span>{selectedJob.location}</span>
+                    </div>
+
+                    {selectedJob.remote && (
+                      <div className="flex items-center gap-2 text-cyan-300">
+                        <Wifi size={18} />
+                        <span>{t.jobMatches.remote}</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                      <BriefcaseBusiness size={18} />
+                      <span>{selectedJob.experience}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <DollarSign size={18} />
+                      <span className="font-semibold text-white/60">
+                        {selectedJob.salary}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Clock3 size={18} />
+                      <span>{selectedJob.level}</span>
+                    </div>
+                  </div>
+                </div>
 
                 <button
                   type="button"
-                  onClick={() => setFiltersOpen((prev) => !prev)}
-                  className="text-[#aeb4d6] transition hover:text-white"
+                  className={`inline-flex h-fit items-center gap-3 rounded-[14px] bg-gradient-to-r from-[#7f4cff] to-[#a855f7] px-6 py-3 text-[18px] font-bold text-white shadow-[0_10px_24px_rgba(127,76,255,0.28)] transition hover:opacity-90 ${
+                    isRTL ? "flex-row-reverse self-start" : "self-start"
+                  }`}
                 >
-                  {filtersOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                  <Send size={18} />
+                  Apply Now
                 </button>
               </div>
             </div>
 
-            {filtersOpen && (
-              <>
-                <div className="my-5 h-px bg-white/10" />
-
-                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-                  <div ref={industryRef} className="relative overflow-visible">
-                    <label
-                      className={`mb-3 flex items-center gap-2 text-[15px] text-[#d7dbf7] ${
-                        isRTL ? "flex-row-reverse justify-end" : ""
-                      }`}
-                    >
-                      <Landmark size={17} />
-                      <span>{t.jobMatches.industry}</span>
-                    </label>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIndustryOpen((prev) => !prev);
-                        setSeniorityOpen(false);
-                      }}
-                      className={`flex h-[48px] w-full items-center justify-between rounded-[12px] border border-white/10 bg-[#2a2f68] px-4 text-[15px] text-[#d7dbf7] outline-none transition hover:bg-[#313776] ${
-                        isRTL ? "flex-row-reverse text-right" : "text-left"
-                      }`}
-                    >
-                      <span className="truncate">
-                        {industry
-                          ? t.jobMatches[industry]
-                          : t.jobMatches.allIndustries}
-                      </span>
-
-                      <ChevronDown
-                        size={18}
-                        className={`shrink-0 text-[#8d94bd] transition ${
-                          industryOpen ? "rotate-180" : ""
-                        }`}
-                      />
-                    </button>
-
-                    <div
-                      className={`${dropdownBase} ${
-                        industryOpen ? dropdownAnimationOpen : dropdownAnimationClosed
-                      }`}
-                    >
-                      <div className="max-h-[330px] overflow-y-auto py-1">
-                        {industryOptions.map((item) => {
-                          const isSelected =
-                            (item === "allIndustries" && !industry) ||
-                            industry === item;
-
-                          return (
-                            <button
-                              key={item}
-                              type="button"
-                              onClick={() => {
-                                setIndustry(item === "allIndustries" ? "" : item);
-                                setIndustryOpen(false);
-                              }}
-                              className={`block w-full px-4 py-3 text-[14px] text-[#1f1f1f] transition ${
-                                isRTL ? "text-right" : "text-left"
-                              } ${
-                                isSelected
-                                  ? "bg-[#ececec] font-medium"
-                                  : "bg-transparent hover:bg-[#ececec]"
-                              }`}
-                            >
-                              {t.jobMatches[item]}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div ref={seniorityRef} className="relative overflow-visible">
-                    <label
-                      className={`mb-3 flex items-center gap-2 text-[15px] text-[#d7dbf7] ${
-                        isRTL ? "flex-row-reverse justify-end" : ""
-                      }`}
-                    >
-                      <TrendingUp size={17} />
-                      <span>{t.jobMatches.seniorityLevel}</span>
-                    </label>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSeniorityOpen((prev) => !prev);
-                        setIndustryOpen(false);
-                      }}
-                      className={`flex h-[48px] w-full items-center justify-between rounded-[12px] border border-white/10 bg-[#2a2f68] px-4 text-[15px] text-[#d7dbf7] outline-none transition hover:bg-[#313776] ${
-                        isRTL ? "flex-row-reverse text-right" : "text-left"
-                      }`}
-                    >
-                      <span className="truncate">
-                        {seniority
-                          ? t.jobMatches[seniority]
-                          : t.jobMatches.allLevels}
-                      </span>
-
-                      <ChevronDown
-                        size={18}
-                        className={`shrink-0 text-[#8d94bd] transition ${
-                          seniorityOpen ? "rotate-180" : ""
-                        }`}
-                      />
-                    </button>
-
-                    <div
-                      className={`${dropdownBase} ${
-                        seniorityOpen ? dropdownAnimationOpen : dropdownAnimationClosed
-                      }`}
-                    >
-                      <div className="max-h-[330px] overflow-y-auto py-1">
-                        {seniorityOptions.map((item) => {
-                          const isSelected =
-                            (item === "allLevels" && !seniority) ||
-                            seniority === item;
-
-                          return (
-                            <button
-                              key={item}
-                              type="button"
-                              onClick={() => {
-                                setSeniority(item === "allLevels" ? "" : item);
-                                setSeniorityOpen(false);
-                              }}
-                              className={`block w-full px-4 py-3 text-[14px] text-[#1f1f1f] transition ${
-                                isRTL ? "text-right" : "text-left"
-                              } ${
-                                isSelected
-                                  ? "bg-[#ececec] font-medium"
-                                  : "bg-transparent hover:bg-[#ececec]"
-                              }`}
-                            >
-                              {t.jobMatches[item]}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label
-                      className={`mb-3 flex items-center gap-2 text-[15px] text-[#d7dbf7] ${
-                        isRTL ? "flex-row-reverse justify-end" : ""
-                      }`}
-                    >
-                      <DollarSign size={17} />
-                      <span>
-                        {t.jobMatches.minSalary}: ${minSalary}k
-                      </span>
-                    </label>
-
-                    <input
-                      type="range"
-                      min={40}
-                      max={200}
-                      step={5}
-                      value={minSalary}
-                      onChange={(e) => setMinSalary(Number(e.target.value))}
-                      className="h-2 w-full cursor-pointer appearance-none rounded-full bg-[#171a46]"
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      className={`mb-3 flex items-center gap-2 text-[15px] text-[#d7dbf7] ${
-                        isRTL ? "flex-row-reverse justify-end" : ""
-                      }`}
-                    >
-                      <Target size={17} />
-                      <span>
-                        {t.jobMatches.minMatch}: {minMatch}%
-                      </span>
-                    </label>
-
-                    <input
-                      type="range"
-                      min={15}
-                      max={100}
-                      step={1}
-                      value={minMatch}
-                      onChange={(e) => setMinMatch(Number(e.target.value))}
-                      className="h-2 w-full cursor-pointer appearance-none rounded-full bg-[#171a46]"
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
-          <div
-            className={`mb-5 flex items-start gap-3 rounded-2xl border border-[#5e66ff55] bg-[#5e66ff14] px-5 py-4 text-white/80 ${
-              isRTL ? "flex-row-reverse" : ""
-            }`}
-          >
-            <Scale size={18} className="mt-0.5 shrink-0 text-[#f6c453]" />
-            <p
-              className={`text-sm leading-6 ${
-                isRTL ? "text-right" : "text-left"
-              }`}
-            >
-              <span className="font-bold text-white">
-                {t.jobMatches.fairMatchingTitle}
-              </span>{" "}
-              {t.jobMatches.fairMatchingText}
-            </p>
-          </div>
-
-          <p
-            className={`text-[15px] text-[#aeb4d6] ${
-              isRTL ? "text-right" : "text-left"
-            }`}
-          >
-            {filteredJobs.length} {t.jobMatches.jobsMatchCriteria}
-          </p>
-        </section>
-
-        <section className="space-y-5">
-          {filteredJobs.map((job, index) => {
-            const numeric = job.noScore ? 0 : Number(job.percent.replace("%", ""));
-            const ringColor = getRingColor(job);
-
-            return (
-              <article
-                key={`${job.title}-${index}`}
-                className="group rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)] transition hover:border-white/20 hover:bg-[rgba(50,52,108,0.96)]"
+            <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-7 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+              <div
+                className={`mb-6 flex items-center gap-4 ${
+                  isRTL ? "flex-row-reverse" : ""
+                }`}
               >
-                <div className="flex flex-col gap-6 md:flex-row md:items-center">
-                  <div className="flex flex-col items-center justify-center md:justify-start">
-                    <div className="relative h-[98px] w-[98px]">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
+                  <Zap size={24} />
+                </div>
+
+                <div className={isRTL ? "text-right" : "text-left"}>
+                  <h2 className="text-[22px] font-extrabold text-white">
+                    Smart Match Analysis
+                  </h2>
+                  <p className="mt-1 text-[16px] text-[#aeb4d6]">
+                    AI-powered compatibility breakdown
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+                <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-8">
+                  <div className="mx-auto flex w-full max-w-[260px] flex-col items-center justify-center">
+                    <div className="relative h-[180px] w-[180px]">
                       <div
-                        className="h-full w-full rounded-full transition-all duration-[1800ms] ease-out"
+                        className="h-full w-full rounded-full"
                         style={{
-                          background: job.noScore
+                          background: selectedJob.noScore
                             ? "conic-gradient(#5f648a 360deg, #2a2c5a 0deg)"
-                            : `conic-gradient(${ringColor} ${numeric * 3.6}deg, #2a2c5a 0deg)`,
-                          boxShadow: job.noScore
+                            : `conic-gradient(#49e38d ${(selectedNumericMatch || 0) * 3.6}deg, #2a2c5a 0deg)`,
+                          boxShadow: selectedJob.noScore
                             ? "0 0 0 rgba(0,0,0,0)"
-                            : `0 0 24px ${ringColor}22`,
+                            : "0 0 28px rgba(73,227,141,0.18)",
                         }}
                       />
-
-                      <div className="absolute inset-[8px] flex items-center justify-center rounded-full bg-[#252654] text-[22px] font-extrabold text-white shadow-inner">
-                        {job.noScore ? "N/A" : job.percent}
+                      <div className="absolute inset-[12px] flex items-center justify-center rounded-full bg-[#252654] text-[24px] font-extrabold text-white">
+                        {selectedJob.noScore ? "N/A" : selectedJob.percent}
                       </div>
                     </div>
 
-                    {job.noScore && (
-                      <span className="mt-2 text-[12px] font-medium text-white/40">
-                        {t.jobMatches.noScore}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex-1">
-                    <div
-                      className={`mb-3 flex flex-wrap items-center gap-3 ${
-                        isRTL ? "md:flex-row-reverse" : ""
-                      }`}
-                    >
-                      <h2 className="text-[22px] font-extrabold text-white">
-                        {job.title}
-                      </h2>
-
-                      <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-semibold text-emerald-300">
-                        {t.jobMatches.statusActive}
-                      </span>
-                    </div>
-
-                    <div
-                      className={`mb-3 flex items-center gap-2 text-[#c4cae9] ${
-                        isRTL
-                          ? "flex-row-reverse justify-end md:justify-start"
-                          : ""
-                      }`}
-                    >
-                      <Building2 size={16} />
-                      <span className="text-[15px]">{job.company}</span>
-                    </div>
-
-                    <div
-                      className={`mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[#aeb4d6] ${
-                        isRTL ? "md:flex-row-reverse" : ""
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <MapPin size={16} />
-                        <span>{job.location}</span>
-                      </div>
-
-                      {job.remote && (
-                        <div className="flex items-center gap-2 text-cyan-300">
-                          <Wifi size={16} />
-                          <span>{t.jobMatches.remote}</span>
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-2">
-                        <BriefcaseBusiness size={16} />
-                        <span>{job.experience}</span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Wallet size={16} />
-                        <span className="font-semibold text-emerald-300">
-                          {job.salary}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Clock3 size={16} />
-                        <span>{job.level}</span>
-                      </div>
-
-                      {job.industry && (
-                        <div className="flex items-center gap-2">
-                          <Landmark size={16} />
-                          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-[#d6dcff]">
-                            {t.jobMatches[job.industry] || job.industry}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {(job.skills.length > 0 || job.dangerSkills.length > 0) && (
-                      <div
-                        className={`flex flex-wrap gap-2 ${
-                          isRTL ? "md:flex-row-reverse" : ""
-                        }`}
-                      >
-                        {job.skills.map((skill) => (
-                          <span
-                            key={skill}
-                            className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-semibold text-emerald-300"
-                          >
-                            {skill}
-                          </span>
-                        ))}
-
-                        {job.dangerSkills.map((skill) => (
-                          <span
-                            key={skill}
-                            className="rounded-full border border-rose-400/20 bg-rose-400/10 px-3 py-1 text-sm font-semibold text-rose-300"
-                          >
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-end">
-                    <button
-                      type="button"
-                      className="flex h-11 w-11 items-center justify-center rounded-full text-white/30 transition group-hover:bg-white/5 group-hover:text-white/70"
-                    >
-                      <ChevronRight
-                        size={22}
-                        className={isRTL ? "rotate-180" : ""}
-                      />
-                    </button>
+                    <p className="mt-6 text-[20px] font-semibold text-white/70">
+                      {selectedJob.noScore ? "No score available" : "Excellent Match!"}
+                    </p>
                   </div>
                 </div>
-              </article>
-            );
-          })}
-        </section>
+
+                <div className="space-y-6">
+                  <div>
+                    <div
+                      className={`mb-4 flex items-center gap-3 ${
+                        isRTL ? "flex-row-reverse" : ""
+                      }`}
+                    >
+                      <CheckCircle2 size={20} className="text-emerald-300" />
+                      <h3 className="text-[18px] font-extrabold text-white">
+                        Matching Skills ({selectedJob.skills.length})
+                      </h3>
+                    </div>
+
+                    <div
+                      className={`flex flex-wrap gap-3 ${
+                        isRTL ? "flex-row-reverse" : ""
+                      }`}
+                    >
+                      {selectedJob.skills.length > 0 ? (
+                        selectedJob.skills.map((skill) => (
+                          <span
+                            key={skill}
+                            className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-5 py-2 text-[15px] font-semibold text-emerald-300"
+                          >
+                            ✓ {skill}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-white/45">No matching skills listed</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div
+                      className={`mb-4 flex items-center gap-3 ${
+                        isRTL ? "flex-row-reverse" : ""
+                      }`}
+                    >
+                      <AlertTriangle size={20} className="text-yellow-300" />
+                      <h3 className="text-[18px] font-extrabold text-white">
+                        Skill Gaps ({selectedJob.dangerSkills.length})
+                      </h3>
+                    </div>
+
+                    <div
+                      className={`flex flex-wrap gap-3 ${
+                        isRTL ? "flex-row-reverse" : ""
+                      }`}
+                    >
+                      {selectedJob.dangerSkills.length > 0 ? (
+                        selectedJob.dangerSkills.map((skill) => (
+                          <span
+                            key={skill}
+                            className="rounded-full border border-rose-400/20 bg-rose-400/10 px-5 py-2 text-[15px] font-semibold text-rose-300"
+                          >
+                            × {skill}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-white/45">No major skill gaps detected</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-6">
+                    <div
+                      className={`flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between ${
+                        isRTL ? "lg:flex-row-reverse" : ""
+                      }`}
+                    >
+                      <div>
+                        <h3 className="text-[18px] font-extrabold text-white">
+                          Experience Comparison
+                        </h3>
+                        <div
+                          className={`mt-4 flex items-end gap-6 ${
+                            isRTL ? "flex-row-reverse" : ""
+                          }`}
+                        >
+                          <div>
+                            <p className="text-[38px] font-extrabold leading-none text-white">
+                              {derivedExperienceYears(selectedJob.experience) || "—"}
+                            </p>
+                            <p className="mt-1 text-[14px] text-white/50">
+                              Your Experience
+                            </p>
+                          </div>
+
+                          <span className="pb-2 text-[24px] font-bold text-white/35">
+                            VS
+                          </span>
+
+                          <div>
+                            <p className="text-[38px] font-extrabold leading-none text-white">
+                              {selectedJob.experience}
+                            </p>
+                            <p className="mt-1 text-[14px] text-white/50">
+                              Required
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-5 py-3 text-[16px] font-semibold text-emerald-300">
+                        Meets requirement
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 rounded-[24px] border border-white/10 bg-white/[0.04] p-6">
+                <h3 className="mb-4 text-[18px] font-extrabold text-white">
+                  Improvement Suggestions
+                </h3>
+
+                <ul className="space-y-3 text-[16px] text-white/70">
+                  {(selectedDetails?.improvementSuggestions || [
+                    "Highlight your strongest matching skills in your resume",
+                    "Tailor your profile summary to this position",
+                    "Show practical experience related to this role",
+                  ]).map((item) => (
+                    <li key={item} className="flex items-start gap-3">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#aeb4d6]" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.5fr_0.85fr]">
+              <div className="space-y-6">
+                <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] p-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+                  <h2 className="mb-6 text-[24px] font-extrabold text-white">
+                    About This Role
+                  </h2>
+                  <div className="space-y-6 text-[18px] leading-10 text-white/75">
+                    <p>
+                      {selectedDetails?.about ||
+                        `We are looking for a strong candidate for the ${selectedJob.title} role at ${selectedJob.company}. This role requires relevant practical skills, professional readiness, and the ability to contribute effectively from day one.`}
+                    </p>
+                    <p>
+                      You will collaborate with cross-functional teams, handle core
+                      responsibilities of the position, and help deliver strong
+                      results in a professional work environment.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] p-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+                  <h2 className="mb-6 text-[24px] font-extrabold text-white">
+                    Requirements
+                  </h2>
+
+                  <div className="space-y-4">
+                    {(selectedDetails?.requirements || [
+                      `Experience level: ${selectedJob.experience}`,
+                      `Strong fit for ${selectedJob.level} level work`,
+                      "Ability to communicate and collaborate effectively",
+                      "Relevant practical background for this position",
+                    ]).map((item) => (
+                      <div
+                        key={item}
+                        className={`flex items-start gap-4 ${
+                          isRTL ? "flex-row-reverse" : ""
+                        }`}
+                      >
+                        <CheckCircle2
+                          size={22}
+                          className="mt-1 shrink-0 text-emerald-300"
+                        />
+                        <p className="text-[18px] text-white/75">{item}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] p-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+                  <h2 className="mb-6 text-[24px] font-extrabold text-white">
+                    Required Skills
+                  </h2>
+
+                  <div
+                    className={`flex flex-wrap gap-3 ${
+                      isRTL ? "flex-row-reverse" : ""
+                    }`}
+                  >
+                    {[...selectedJob.skills, ...selectedJob.dangerSkills].map((skill) => (
+                      <span
+                        key={skill}
+                        className={`rounded-full px-5 py-2 text-[15px] font-semibold ${
+                          selectedJob.dangerSkills.includes(skill)
+                            ? "border border-rose-400/20 bg-rose-400/10 text-rose-300"
+                            : "border border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
+                        }`}
+                      >
+                        {selectedJob.dangerSkills.includes(skill) ? "× " : "✓ "}
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+
+                  <h3 className="mt-8 mb-4 text-[18px] font-bold text-white/80">
+                    Nice to Have
+                  </h3>
+
+                  <div
+                    className={`flex flex-wrap gap-3 ${
+                      isRTL ? "flex-row-reverse" : ""
+                    }`}
+                  >
+                    {(selectedDetails?.niceToHave || ["Leadership", "Testing", "CI/CD"]).map(
+                      (item) => (
+                        <span
+                          key={item}
+                          className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-[15px] font-semibold text-white/55"
+                        >
+                          {item}
+                        </span>
+                      )
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] p-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+                  <h2 className="mb-6 text-[24px] font-extrabold text-white">
+                    Company Info
+                  </h2>
+
+                  <div className="space-y-5 text-[18px]">
+                    <div>
+                      <p className="text-white/45">Company</p>
+                      <p className="mt-1 font-semibold text-white">
+                        {selectedJob.company}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-white/45">Industry</p>
+                      <p className="mt-1 font-semibold text-white">
+                        {selectedJob.industry
+                          ? t.jobMatches[selectedJob.industry] || selectedJob.industry
+                          : "General"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-white/45">Location</p>
+                      <p className="mt-1 font-semibold text-white">
+                        {selectedJob.location}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );
