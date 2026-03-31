@@ -14,29 +14,20 @@ const translations = {
     login: "Login",
     started: "Get Started",
 
-    heroBadge:
-      "AI-Powered Recruitment Platform • Smart Matching • Better Hiring",
-    heroTitle1: "The future of hiring",
-    heroTitle2: "starts with",
-    heroTitle3: " smarter matching.",
+    heroBadge: "AI-Powered Job Matching for the Israeli Market",
+    heroTitle1: "Find Your Perfect Career",
+    heroTitle2: "",
+    heroTitle3: " Match",
     heroDescription:
-      "JobMatchAI is a modern recruitment platform prototype designed to help candidates and companies connect through an intelligent, professional, and user-friendly experience. It transforms the hiring journey into a faster, clearer, and more efficient digital process.",
-    heroPrimary: "Start Your Journey",
+      "Let AI analyze your skills and experience to connect you with opportunities that truly fit in the Israeli job market.",
+    heroPrimary: "Get Started",
     heroSecondary: "Learn More",
+    heroContact: "Contact Us",
 
-    stat1: "Matching Accuracy",
-    stat2: "Candidate Profiles",
-    stat3: "Company Accounts",
-
-    dashboardTitle: "AI Matching Dashboard",
-    fitLabel: "Candidate Fit Score",
-    skillsLabel: "Top Skills",
-    statusLabel: "Status",
-    matched: "Matched",
-    matchedText: "Company review in progress",
-    insightLabel: "Platform Insight",
-    insightText:
-      "Smart analysis helps companies identify strong candidates faster and enables candidates to discover the most relevant opportunities.",
+    stat1: "Match Accuracy",
+    stat2: "Active Jobs",
+    stat3: "Candidates",
+    stat4: "Companies",
 
     aboutTag: "About The Platform",
     aboutTitle: "Built to improve the recruitment experience for everyone",
@@ -66,29 +57,25 @@ const translations = {
       "Both sides review relevant details, compare options, and proceed through a smoother digital recruitment journey.",
 
     featuresTag: "Features",
-    featuresTitle: "Why JobMatchAI stands out",
-    feature1Title: "Professional user experience",
+    featuresTitle: "Powered by Artificial Intelligence",
+    feature1Title: "AI-Powered Matching",
     feature1Text:
-      "A modern interface with a clean structure helps users navigate the platform easily and confidently.",
-    feature2Title: "Smart Match Logic",
+      "Smart algorithms analyze skills, experience, and preferences for perfect matches.",
+    feature2Title: "Smart Match Analysis",
     feature2Text:
-      "Matching is based on profile data, job requirements, and relevant skills.",
-    feature3Title: "Candidate Insights",
+      "See exactly why jobs match your profile with skill alignment breakdowns.",
+    feature3Title: "Pre-Interview Module",
     feature3Text:
-      "Employers get clearer visibility into candidate suitability and profile strength.",
-    feature4Title: "Company Efficiency",
+      "AI-driven pre-screening helps evaluate candidates faster and smarter.",
+    feature4Title: "Resume Scoring",
     feature4Text:
-      "Recruiters can save time by focusing on more relevant candidates from the start.",
-    feature5Title: "Guided Experience",
-    feature5Text:
-      "The system supports both sides with a smoother step-by-step process.",
+      "Get actionable feedback to optimize your resume for better results.",
 
-    contactTag: "Contact",
-    contactTitle: "Let’s build a smarter hiring experience",
-    contactText:
-      "JobMatchAI is a professional prototype that demonstrates how design, structure, and smart matching concepts can improve the hiring process for both job seekers and employers.",
-    contactPrimary: "Contact Us",
-    contactSecondary: "Learn More",
+    ctaTitle: "Ready to Transform Your Career?",
+    ctaText:
+      "Join thousands of professionals in Israel who have found their perfect match.",
+    ctaCandidate: "I'm a Candidate",
+    ctaHiring: "I'm Hiring",
 
     modalTitle: "Contact Us",
     modalPlaceholder: "Write your message here...",
@@ -106,28 +93,20 @@ const translations = {
     login: "تسجيل الدخول",
     started: "ابدأ الآن",
 
-    heroBadge: "منصة توظيف ذكية • مطابقة أذكى • توظيف أفضل",
-    heroTitle1: "مستقبل التوظيف",
-    heroTitle2: "يبدأ مع",
-    heroTitle3: " مطابقة أذكى.",
+    heroBadge: "مطابقة وظائف ذكية مدعومة بالذكاء الاصطناعي للسوق الإسرائيلي",
+    heroTitle1: "ابحثي عن",
+    heroTitle2: "",
+    heroTitle3: " الوظيفة المثالية",
     heroDescription:
-      "JobMatchAI هو نموذج أولي حديث لمنصة توظيف ذكية، صُمم لمساعدة المرشحين والشركات على التواصل من خلال تجربة احترافية، سهلة، وذكية. المنصة تجعل رحلة التوظيف أسرع، أوضح، وأكثر كفاءة.",
-    heroPrimary: "ابدأ رحلتك",
+      "دعي الذكاء الاصطناعي يحلل مهاراتك وخبراتك ليربطك بفرص تناسبك فعلًا في سوق العمل الإسرائيلي.",
+    heroPrimary: "ابدأ الآن",
     heroSecondary: "اعرف أكثر",
+    heroContact: "تواصل معنا",
 
     stat1: "دقة المطابقة",
-    stat2: "ملفات المرشحين",
-    stat3: "حسابات الشركات",
-
-    dashboardTitle: "لوحة المطابقة الذكية",
-    fitLabel: "نسبة توافق المرشح",
-    skillsLabel: "أهم المهارات",
-    statusLabel: "الحالة",
-    matched: "تمت المطابقة",
-    matchedText: "مراجعة الشركة قيد التقدم",
-    insightLabel: "تحليل المنصة",
-    insightText:
-      "يساعد التحليل الذكي الشركات على اكتشاف المرشحين المناسبين بسرعة أكبر، كما يساعد المرشحين في الوصول إلى الفرص الأكثر ملاءمة.",
+    stat2: "وظائف نشطة",
+    stat3: "مرشحون",
+    stat4: "شركات",
 
     aboutTag: "عن المنصة",
     aboutTitle: "منصة بُنيت لتحسين تجربة التوظيف للجميع",
@@ -157,32 +136,27 @@ const translations = {
       "يستطيع الطرفان مراجعة التفاصيل المهمة ومقارنة الخيارات والمتابعة ضمن رحلة توظيف رقمية أكثر سلاسة.",
 
     featuresTag: "المميزات",
-    featuresTitle: "لماذا تتميز JobMatchAI",
-    feature1Title: "تجربة استخدام احترافية",
+    featuresTitle: "مدعوم بالذكاء الاصطناعي",
+    feature1Title: "مطابقة ذكية",
     feature1Text:
-      "واجهة حديثة وبنية واضحة تساعد المستخدمين على التنقل في المنصة بسهولة وثقة.",
-    feature2Title: "منطق مطابقة ذكي",
+      "خوارزميات ذكية تحلل المهارات والخبرة والتفضيلات للوصول إلى أفضل تطابق.",
+    feature2Title: "تحليل التطابق الذكي",
     feature2Text:
-      "تعتمد المطابقة على بيانات الملف الشخصي ومتطلبات الوظيفة والمهارات ذات الصلة.",
-    feature3Title: "رؤى عن المرشحين",
+      "شاهدي بوضوح لماذا تناسبك الوظائف من خلال تحليل توافق المهارات.",
+    feature3Title: "وحدة ما قبل المقابلة",
     feature3Text:
-      "يحصل أصحاب العمل على رؤية أوضح حول ملاءمة المرشح وقوة ملفه الشخصي.",
-    feature4Title: "كفاءة أعلى للشركات",
+      "فحص أولي بالذكاء الاصطناعي يساعد على تقييم المرشحين بشكل أسرع وأذكى.",
+    feature4Title: "تقييم السيرة الذاتية",
     feature4Text:
-      "يمكن للمجندين توفير الوقت من خلال التركيز على المرشحين الأكثر صلة منذ البداية.",
-    feature5Title: "تجربة موجهة",
-    feature5Text:
-      "يدعم النظام الطرفين من خلال عملية أكثر سلاسة خطوة بخطوة.",
+      "احصلي على ملاحظات عملية لتحسين سيرتك الذاتية وتحقيق نتائج أفضل.",
 
-    contactTag: "تواصل",
-    contactTitle: "لنصنع تجربة توظيف أذكى",
-    contactText:
-      "JobMatchAI هو نموذج أولي احترافي يوضح كيف يمكن للتصميم والتنظيم ومفاهيم المطابقة الذكية أن تحسن عملية التوظيف للباحثين عن عمل وأصحاب العمل.",
-    contactPrimary: "تواصل معنا",
-    contactSecondary: "اعرف أكثر",
+    ctaTitle: "جاهزة لتطوير مسارك المهني؟",
+    ctaText: "انضمي لآلاف الأشخاص الذين وجدوا الفرصة المناسبة لهم.",
+    ctaCandidate: "أنا مرشحة",
+    ctaHiring: "أنا جهة توظيف",
 
     modalTitle: "تواصل معنا",
-    modalPlaceholder: "اكتب رسالتك هنا...",
+    modalPlaceholder: "اكتبي رسالتك هنا...",
     modalSend: "إرسال الرسالة",
     modalClose: "إغلاق",
     modalSuccess: "تم إرسال الرسالة بنجاح!",
@@ -197,28 +171,20 @@ const translations = {
     login: "התחברות",
     started: "התחל עכשיו",
 
-    heroBadge: "פלטפורמת גיוס חכמה • התאמה חכמה • גיוס טוב יותר",
-    heroTitle1: "עתיד הגיוס",
-    heroTitle2: "מתחיל עם",
-    heroTitle3: " התאמה חכמה יותר.",
+    heroBadge: "התאמת משרות חכמה מבוססת בינה מלאכותית לשוק הישראלי",
+    heroTitle1: "מצאי את",
+    heroTitle2: "",
+    heroTitle3: " המשרה המושלמת",
     heroDescription:
-      "JobMatchAI הוא אבטיפוס מודרני לפלטפורמת גיוס חכמה, שנועדה לחבר בין מועמדים וחברות באמצעות חוויה מקצועית, נוחה וידידותית. הפלטפורמה הופכת את תהליך הגיוס למהיר יותר, ברור יותר ויעיל יותר.",
-    heroPrimary: "התחל את המסע שלך",
+      "תני ל-AI לנתח את הכישורים והניסיון שלך ולחבר אותך להזדמנויות שבאמת מתאימות לך בשוק העבודה הישראלי.",
+    heroPrimary: "התחילי עכשיו",
     heroSecondary: "למד עוד",
+    heroContact: "צור קשר",
 
     stat1: "דיוק התאמה",
-    stat2: "פרופילי מועמדים",
-    stat3: "חשבונות חברות",
-
-    dashboardTitle: "לוח התאמה חכם",
-    fitLabel: "ציון התאמת מועמד",
-    skillsLabel: "כישורים מובילים",
-    statusLabel: "סטטוס",
-    matched: "בוצעה התאמה",
-    matchedText: "בדיקת החברה בתהליך",
-    insightLabel: "תובנת פלטפורמה",
-    insightText:
-      "הניתוח החכם מסייע לחברות לזהות מועמדים חזקים מהר יותר ומאפשר למועמדים לגלות הזדמנויות מתאימות יותר.",
+    stat2: "משרות פעילות",
+    stat3: "מועמדים",
+    stat4: "חברות",
 
     aboutTag: "אודות הפלטפורמה",
     aboutTitle: "נבנתה כדי לשפר את חוויית הגיוס לכולם",
@@ -248,32 +214,27 @@ const translations = {
       "שני הצדדים יכולים לעיין בפרטים הרלוונטיים, להשוות אפשרויות ולהתקדם בתהליך גיוס דיגיטלי חלק יותר.",
 
     featuresTag: "תכונות",
-    featuresTitle: "למה JobMatchAI בולטת",
-    feature1Title: "חוויית משתמש מקצועית",
+    featuresTitle: "מופעל על ידי בינה מלאכותית",
+    feature1Title: "התאמה מבוססת AI",
     feature1Text:
-      "ממשק מודרני עם מבנה נקי מסייע למשתמשים לנווט בפלטפורמה בקלות ובביטחון.",
-    feature2Title: "לוגיקת התאמה חכמה",
+      "אלגוריתמים חכמים מנתחים כישורים, ניסיון והעדפות כדי ליצור התאמות מדויקות.",
+    feature2Title: "ניתוח התאמה חכם",
     feature2Text:
-      "ההתאמה מבוססת על נתוני פרופיל, דרישות משרה וכישורים רלוונטיים.",
-    feature3Title: "תובנות על מועמדים",
+      "ראי בדיוק למה משרות מתאימות לפרופיל שלך עם פירוט של התאמת כישורים.",
+    feature3Title: "מודול טרום-ראיון",
     feature3Text:
-      "מעסיקים מקבלים תמונה ברורה יותר לגבי התאמת המועמד וחוזק הפרופיל שלו.",
-    feature4Title: "יעילות לחברות",
+      "סינון מוקדם בעזרת AI מסייע להעריך מועמדים מהר יותר ובצורה חכמה יותר.",
+    feature4Title: "ציון לקורות חיים",
     feature4Text:
-      "מגייסים יכולים לחסוך זמן על ידי התמקדות במועמדים הרלוונטיים ביותר כבר מההתחלה.",
-    feature5Title: "חוויה מודרכת",
-    feature5Text:
-      "המערכת תומכת בשני הצדדים בתהליך חלק יותר, שלב אחר שלב.",
+      "קבלי משוב מעשי כדי לשפר את קורות החיים שלך ולהשיג תוצאות טובות יותר.",
 
-    contactTag: "צור קשר",
-    contactTitle: "בואו נבנה חוויית גיוס חכמה יותר",
-    contactText:
-      "JobMatchAI הוא אבטיפוס מקצועי שמדגים כיצד עיצוב, מבנה ורעיונות של התאמה חכמה יכולים לשפר את תהליך הגיוס עבור מחפשי עבודה ומעסיקים.",
-    contactPrimary: "צור קשר",
-    contactSecondary: "למד עוד",
+    ctaTitle: "מוכנה לשדרג את הקריירה שלך?",
+    ctaText: "הצטרפי לאלפי אנשים שכבר מצאו את ההתאמה הנכונה עבורם.",
+    ctaCandidate: "אני מועמדת",
+    ctaHiring: "אני מגייסת",
 
     modalTitle: "צור קשר",
-    modalPlaceholder: "כתבו את ההודעה שלכם כאן...",
+    modalPlaceholder: "כתבי כאן את ההודעה שלך...",
     modalSend: "שלח הודעה",
     modalClose: "סגור",
     modalSuccess: "ההודעה נשלחה בהצלחה!",
@@ -291,11 +252,10 @@ function HomePage() {
 
   const scrollToSection = (id: string) => {
     const section = document.getElementById(id);
-    if (section) section.scrollIntoView({ behavior: "smooth" });
+    if (section) {
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
-
-  const sectionTextAlign = isRTL ? "text-right" : "text-left";
-  const sectionDir = isRTL ? "rtl" : "ltr";
 
   const handleSendMessage = () => {
     if (!message.trim()) return;
@@ -306,67 +266,52 @@ function HomePage() {
 
   return (
     <div
-      dir={sectionDir}
-      className="relative min-h-screen overflow-x-hidden bg-[linear-gradient(135deg,#17184a_0%,#1a1b56_40%,#17234f_100%)] text-white"
+      dir={isRTL ? "rtl" : "ltr"}
+      className="relative min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top,rgba(76,70,255,0.18),transparent_28%),linear-gradient(135deg,#090b3a_0%,#15145a_45%,#0f1f59_100%)] text-white"
     >
-      <div className="pointer-events-none fixed left-[-80px] top-[60px] z-0 h-[320px] w-[320px] rounded-full bg-[rgba(105,66,255,0.18)] blur-[120px]" />
-      <div className="pointer-events-none fixed bottom-[40px] right-[-100px] z-0 h-[360px] w-[360px] rounded-full bg-[rgba(36,122,255,0.14)] blur-[120px]" />
-      <div className="pointer-events-none fixed inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:linear-gradient(to_bottom,rgba(255,255,255,0.7),transparent)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(115,73,255,0.18),transparent_22%),radial-gradient(circle_at_80%_85%,rgba(0,153,255,0.16),transparent_24%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:72px_72px] opacity-25 [mask-image:linear-gradient(to_bottom,rgba(255,255,255,0.75),transparent)]" />
 
-      <nav className="sticky top-0 z-50 flex h-[84px] items-center justify-between border-b border-white/10 bg-[rgba(5,10,20,0.7)] px-16 backdrop-blur-[18px] max-[900px]:h-auto max-[900px]:flex-col max-[900px]:gap-4 max-[900px]:px-5 max-[900px]:py-[18px]">
+      <nav className="relative z-30 flex items-center justify-between px-8 py-6 max-[900px]:flex-col max-[900px]:gap-4 max-[900px]:px-5">
         <div className="flex items-center gap-3">
-          <div className="h-[14px] w-[14px] rounded-full bg-gradient-to-br from-[#38bdf8] to-[#8b5cf6] shadow-[0_0_18px_rgba(56,189,248,0.6)]" />
-          <span className="text-2xl font-extrabold tracking-[-0.5px]">
+          <div className="h-3.5 w-3.5 rounded-full bg-gradient-to-br from-[#42d4ff] to-[#8b5cf6] shadow-[0_0_18px_rgba(66,212,255,0.7)]" />
+          <span className="text-[26px] font-extrabold tracking-[-0.6px]">
             JobMatchAI
           </span>
         </div>
 
-        <div className="flex gap-2 max-[900px]:flex-wrap max-[900px]:justify-center">
-          {[
-            ["home", t.home],
-            ["about", t.about],
-            ["how-it-works", t.how],
-            ["features", t.features],
-            ["contact", t.contact],
-          ].map(([id, label]) => (
-            <button
-              key={id}
-              onClick={() => scrollToSection(id)}
-              className="h-[42px] rounded-xl px-4 text-sm font-medium text-[#d8e5ff] transition hover:bg-white/5 hover:text-white"
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-[10px] max-[900px]:flex-wrap max-[900px]:justify-center">
-          <div className="flex items-center gap-[6px] rounded-[14px] bg-white/5 p-1">
-            {(["en", "ar", "he"] as Language[]).map((lang) => (
+        <div className="flex items-center gap-3 max-[900px]:flex-wrap max-[900px]:justify-center">
+          <div className="flex items-center gap-1 rounded-[18px] border border-white/10 bg-white/[0.05] p-1 backdrop-blur-md">
+            {(["he", "ar", "en"] as Language[]).map((lang) => (
               <button
                 key={lang}
                 type="button"
                 onClick={() => setLanguage(lang)}
-                className={`h-[34px] min-w-[44px] rounded-[10px] px-[10px] text-xs font-bold transition ${
+                className={`rounded-[14px] px-4 py-2 text-sm font-semibold transition ${
                   language === lang
-                    ? "bg-gradient-to-r from-[#38bdf8] to-[#6366f1] text-white"
-                    : "bg-transparent text-[#d8e5ff] hover:bg-white/10 hover:text-white"
+                    ? "bg-white/10 text-white shadow-[0_8px_20px_rgba(255,255,255,0.08)]"
+                    : "text-[#c9d6ed] hover:bg-white/5 hover:text-white"
                 }`}
               >
-                {lang.toUpperCase()}
+                {lang === "en"
+                  ? "GB English"
+                  : lang === "ar"
+                    ? "العربية"
+                    : "עברית"}
               </button>
             ))}
           </div>
 
           <button
-            className="h-[42px] rounded-xl px-4 text-sm font-medium text-[#d8e5ff] transition hover:bg-white/5 hover:text-white"
             onClick={() => navigate("/login")}
+            className="rounded-[16px] px-5 py-3 text-sm font-bold text-[#dce7ff] transition hover:bg-white/5 hover:text-white"
           >
             {t.login}
           </button>
 
           <button
-            className="h-[44px] whitespace-nowrap rounded-[14px] bg-gradient-to-r from-[#38bdf8] to-[#6366f1] px-[18px] text-sm font-bold text-white shadow-[0_12px_28px_rgba(56,189,248,0.25)] transition hover:-translate-y-0.5"
-            onClick={() => navigate("/register")}
+            onClick={() => scrollToSection("career-cta")}
+            className="rounded-[16px] bg-gradient-to-r from-[#6d7cff] via-[#7c5cff] to-[#a855f7] px-5 py-3 text-sm font-extrabold text-white shadow-[0_14px_35px_rgba(124,92,255,0.28)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_45px_rgba(124,92,255,0.35)]"
           >
             {t.started}
           </button>
@@ -375,139 +320,122 @@ function HomePage() {
 
       <section
         id="home"
-        className="relative z-10 flex min-h-[calc(100vh-84px)] items-center justify-between gap-14 px-16 pb-10 pt-[70px] max-[1200px]:flex-col max-[1200px]:items-start max-[900px]:px-5 max-[900px]:pt-10"
+        className="relative z-20 flex min-h-[calc(100vh-96px)] flex-col items-center justify-center px-6 pb-20 pt-6 text-center"
       >
-        <div className={`max-w-[720px] flex-1 ${sectionTextAlign}`}>
-          <div className="mb-6 inline-flex min-h-[42px] items-center rounded-full border border-[rgba(125,211,252,0.22)] bg-[rgba(125,211,252,0.12)] px-4 text-[13px] font-semibold text-[#9bdcff]">
-            {t.heroBadge}
-          </div>
-
-          <h1 className="mb-6 text-[72px] font-extrabold leading-[1.03] tracking-[-2.6px] max-[900px]:text-5xl max-[900px]:tracking-[-1.4px]">
-            {t.heroTitle1}
-            <br />
-            {t.heroTitle2}
-            <span className="bg-gradient-to-r from-[#7dd3fc] to-[#a78bfa] bg-clip-text text-transparent">
-              {t.heroTitle3}
-            </span>
-          </h1>
-
-          <p className="mb-[34px] max-w-[640px] text-[17px] leading-[1.95] text-[#c9d6ed]">
-            {t.heroDescription}
-          </p>
-
-          <div className="mb-[38px] flex flex-wrap gap-4">
-            <button
-              className="min-h-[52px] rounded-2xl bg-gradient-to-r from-[#38bdf8] to-[#6366f1] px-6 text-[15px] font-bold text-white shadow-[0_14px_30px_rgba(56,189,248,0.22)] transition hover:-translate-y-0.5"
-              onClick={() => navigate("/register")}
-            >
-              {t.heroPrimary}
-            </button>
-
-            <button
-              className="min-h-[52px] rounded-2xl border border-white/15 bg-white/[0.03] px-6 text-[15px] font-bold text-white transition hover:bg-white/[0.07]"
-              onClick={() => scrollToSection("about")}
-            >
-              {t.heroSecondary}
-            </button>
-          </div>
-
-          <div className="flex flex-wrap gap-[18px]">
-            {[
-              ["92%", t.stat1],
-              ["1200+", t.stat2],
-              ["350+", t.stat3],
-            ].map(([value, label]) => (
-              <div
-                key={value}
-                className="min-w-[160px] rounded-[20px] border border-white/[0.06] bg-white/[0.045] px-5 py-[18px]"
-              >
-                <h3 className="mb-2 text-[28px] font-extrabold text-[#9bdcff]">
-                  {value}
-                </h3>
-                <p className="text-[13px] leading-[1.6] text-[#d6e1f6]">
-                  {label}
-                </p>
-              </div>
-            ))}
-          </div>
+        <div className="mb-8 inline-flex items-center rounded-full border border-[#7c7cff]/30 bg-[#5d5cff]/15 px-6 py-3 text-[15px] font-medium text-[#c8d3ff] shadow-[0_8px_30px_rgba(93,92,255,0.15)] backdrop-blur-md">
+          ✧ {t.heroBadge}
         </div>
 
-        <div className="flex flex-1 justify-center max-[1200px]:w-full">
-          <div className="w-full max-w-[520px] rounded-[30px] border border-white/[0.09] bg-white/[0.055] p-6 shadow-[0_22px_70px_rgba(0,0,0,0.3)] backdrop-blur-[20px] max-[1200px]:max-w-full">
-            <div className="mb-[22px] flex items-center justify-between">
-              <div className="flex gap-2">
-                <span className="h-[10px] w-[10px] rounded-full bg-[#fb7185]" />
-                <span className="h-[10px] w-[10px] rounded-full bg-[#facc15]" />
-                <span className="h-[10px] w-[10px] rounded-full bg-[#4ade80]" />
-              </div>
-              <p className="text-sm font-semibold text-[#d3def5]">
-                {t.dashboardTitle}
-              </p>
-            </div>
+        <h1 className="max-w-[1100px] text-[92px] font-extrabold leading-[0.96] tracking-[-3px] text-white max-[1200px]:text-[76px] max-[900px]:text-[52px] max-[900px]:tracking-[-1.6px]">
+          {t.heroTitle1}
+          {t.heroTitle2 && (
+            <>
+              <br />
+              {t.heroTitle2}
+            </>
+          )}
+          <br />
+          <span className="bg-gradient-to-r from-[#b38cff] via-[#8e7dff] to-[#3ec9ff] bg-clip-text text-transparent">
+            {t.heroTitle3}
+          </span>
+        </h1>
 
-            <div className="mb-[18px] flex items-center justify-between rounded-[24px] border border-white/[0.07] bg-white/[0.045] p-6">
-              <div>
-                <span className="mb-[10px] block text-[13px] font-medium text-[#9fb2d4]">
-                  {t.fitLabel}
-                </span>
-                <h2 className="m-0 text-[44px] font-extrabold">94%</h2>
-              </div>
-              <div className="flex h-[78px] w-[78px] items-center justify-center rounded-full bg-gradient-to-br from-[#38bdf8] to-[#8b5cf6] text-[22px] font-extrabold shadow-[0_10px_30px_rgba(56,189,248,0.2)]">
-                AI
-              </div>
-            </div>
+        <p className="mt-8 max-w-[900px] text-[20px] leading-[1.75] text-[#bfcbe3] max-[900px]:text-[17px]">
+          {t.heroDescription}
+        </p>
 
-            <div className="mb-[18px] grid grid-cols-2 gap-[18px] max-[900px]:grid-cols-1">
-              <div className="rounded-[24px] border border-white/[0.07] bg-white/[0.045] p-5">
-                <span className="mb-[10px] block text-[13px] font-medium text-[#9fb2d4]">
-                  {t.skillsLabel}
-                </span>
-                <ul
-                  className={`${isRTL ? "pr-[18px]" : "pl-[18px]"} m-0 text-sm leading-[1.9] text-[#e8f0ff]`}
-                >
-                  <li>Java</li>
-                  <li>Python</li>
-                  <li>SQL</li>
-                </ul>
-              </div>
+        <div className="mt-10 flex flex-wrap justify-center gap-4">
+          <button
+            className="min-h-[64px] rounded-[18px] bg-gradient-to-r from-[#38bdf8] via-[#4f8cff] to-[#6366f1] px-10 text-[22px] font-extrabold text-white shadow-[0_14px_35px_rgba(79,140,255,0.28)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(79,140,255,0.35)] max-[900px]:text-[18px]"
+            onClick={() => scrollToSection("about")}
+          >
+            {t.heroSecondary}
+          </button>
 
-              <div className="rounded-[24px] border border-white/[0.07] bg-white/[0.045] p-5">
-                <span className="mb-[10px] block text-[13px] font-medium text-[#9fb2d4]">
-                  {t.statusLabel}
-                </span>
-                <h4 className="mb-[10px] text-[22px] font-bold">
-                  {t.matched}
-                </h4>
-                <p className="text-sm leading-[1.8] text-[#c9d6ed]">
-                  {t.matchedText}
-                </p>
-              </div>
-            </div>
+          <button
+            className="min-h-[64px] rounded-[18px] border border-[#7f8cff]/30 bg-[rgba(103,109,255,0.10)] px-10 text-[22px] font-extrabold text-[#eef2ff] shadow-[0_10px_30px_rgba(103,109,255,0.15)] transition duration-300 hover:-translate-y-1 hover:bg-[rgba(103,109,255,0.18)] max-[900px]:text-[18px]"
+            onClick={() => setIsContactOpen(true)}
+          >
+            {t.heroContact}
+          </button>
+        </div>
 
-            <div className="rounded-[24px] border border-white/[0.07] bg-white/[0.045] p-[22px]">
-              <span className="mb-[10px] block text-[13px] font-medium text-[#9fb2d4]">
-                {t.insightLabel}
-              </span>
-              <p className="text-sm leading-[1.9] text-[#d0dbf1]">
-                {t.insightText}
-              </p>
+        <div className="mt-20 flex max-w-[1180px] flex-wrap justify-center gap-5">
+          {[
+            ["95%", t.stat1],
+            ["10K+", t.stat2],
+            ["50K+", t.stat3],
+            ["500+", t.stat4],
+          ].map(([value, label]) => (
+            <div
+              key={value}
+              className="min-w-[230px] rounded-[28px] border border-white/10 bg-white/[0.045] px-9 py-8 text-center shadow-[0_16px_45px_rgba(0,0,0,0.16)] backdrop-blur-[12px]"
+            >
+              <h3 className="mb-2 text-[42px] font-extrabold text-white">
+                {value}
+              </h3>
+              <p className="text-[16px] text-[#c9d6ed]">{label}</p>
             </div>
-          </div>
+          ))}
         </div>
       </section>
 
-      <section id="about" className="relative z-10 px-16 py-[110px] max-[900px]:px-5">
-        <div className="mx-auto mb-14 max-w-[860px] text-center">
-          <p className="mb-3 text-[13px] font-bold uppercase tracking-[1.5px] text-[#7dd3fc]">
-            {t.aboutTag}
-          </p>
-          <h2 className="text-[42px] font-extrabold leading-[1.35] tracking-[-1px] max-[900px]:text-[30px]">
-            {t.aboutTitle}
+      <section
+        id="features"
+        className="relative z-20 px-8 py-[90px] max-[900px]:px-5"
+      >
+        <div className="mx-auto mb-14 max-w-[950px] text-center">
+          <h2 className="text-[52px] font-extrabold leading-[1.2] tracking-[-1.4px] max-[900px]:text-[34px]">
+            {t.featuresTitle}
           </h2>
-          <span className="mt-[18px] inline-block h-1 w-[90px] rounded-full bg-gradient-to-r from-[#38bdf8] to-[#8b5cf6]" />
+          <p className="mx-auto mt-4 max-w-[760px] text-[18px] leading-[1.8] text-[#bfcbe3] max-[900px]:text-[16px]">
+            {language === "en" &&
+              "Our smart algorithms analyze multiple data points to create the most accurate matches between candidates and opportunities."}
+            {language === "ar" &&
+              "تحلل خوارزمياتنا الذكية عدة نقاط بيانات لإنشاء أكثر التطابقات دقة بين المرشحين والفرص."}
+            {language === "he" &&
+              "האלגוריתמים החכמים שלנו מנתחים נקודות מידע רבות כדי ליצור את ההתאמות המדויקות ביותר בין מועמדים להזדמנויות."}
+          </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-6 max-[1200px]:grid-cols-2 max-[900px]:grid-cols-1">
+        <div className="mx-auto grid max-w-[1520px] grid-cols-4 gap-6 max-[1300px]:grid-cols-2 max-[700px]:grid-cols-1">
+          {[
+            [t.feature1Title, t.feature1Text, "🧠"],
+            [t.feature2Title, t.feature2Text, "🎯"],
+            [t.feature3Title, t.feature3Text, "⚡"],
+            [t.feature4Title, t.feature4Text, "🛡️"],
+          ].map(([title, text, icon]) => (
+            <div
+              key={title}
+              className={`rounded-[28px] border border-white/10 bg-white/[0.045] p-6 shadow-[0_16px_45px_rgba(0,0,0,0.12)] backdrop-blur-[10px] ${
+                isRTL ? "text-right" : "text-left"
+              }`}
+            >
+              <div className="mb-6 flex h-[48px] w-[48px] items-center justify-center rounded-[14px] bg-[#6e59ff]/25 text-[22px]">
+                {icon}
+              </div>
+              <h3 className="mb-3 text-[20px] font-bold text-white">{title}</h3>
+              <p className="text-[16px] leading-[1.8] text-[#c5d0e8]">{text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section
+        id="about"
+        className="relative z-20 px-8 py-[90px] max-[900px]:px-5"
+      >
+        <div className="mx-auto mb-14 max-w-[900px] text-center">
+          <p className="mb-3 text-[13px] font-bold uppercase tracking-[1.6px] text-[#7dd3fc]">
+            {t.aboutTag}
+          </p>
+          <h2 className="text-[42px] font-extrabold leading-[1.3] tracking-[-1px] max-[900px]:text-[30px]">
+            {t.aboutTitle}
+          </h2>
+          <span className="mt-5 inline-block h-1 w-[90px] rounded-full bg-gradient-to-r from-[#38bdf8] to-[#8b5cf6]" />
+        </div>
+
+        <div className="mx-auto grid max-w-[1320px] grid-cols-3 gap-6 max-[1200px]:grid-cols-2 max-[800px]:grid-cols-1">
           {[
             ["01", t.about1Title, t.about1Text],
             ["02", t.about2Title, t.about2Text],
@@ -515,15 +443,15 @@ function HomePage() {
           ].map(([num, title, text]) => (
             <div
               key={num}
-              className={`rounded-[28px] border border-white/[0.075] bg-white/[0.045] p-[30px] transition hover:-translate-y-1.5 hover:bg-white/[0.06] ${sectionTextAlign}`}
+              className={`rounded-[28px] border border-white/[0.08] bg-white/[0.045] p-8 shadow-[0_16px_45px_rgba(0,0,0,0.12)] transition hover:-translate-y-1 hover:bg-white/[0.06] ${
+                isRTL ? "text-right" : "text-left"
+              }`}
             >
-              <div className="mb-[18px] flex h-[58px] w-[58px] items-center justify-center rounded-[18px] bg-gradient-to-br from-[#38bdf8] to-[#8b5cf6] text-[18px] font-extrabold">
+              <div className="mb-5 flex h-[58px] w-[58px] items-center justify-center rounded-[18px] bg-gradient-to-br from-[#38bdf8] to-[#8b5cf6] text-[18px] font-extrabold text-white">
                 {num}
               </div>
-              <h3 className="mb-[14px] text-[22px] font-bold">{title}</h3>
-              <p className="text-[15px] leading-[1.95] text-[#d4def2]">
-                {text}
-              </p>
+              <h3 className="mb-4 text-[22px] font-bold text-white">{title}</h3>
+              <p className="text-[15px] leading-[1.95] text-[#d4def2]">{text}</p>
             </div>
           ))}
         </div>
@@ -531,19 +459,19 @@ function HomePage() {
 
       <section
         id="how-it-works"
-        className="relative z-10 px-16 py-[110px] max-[900px]:px-5"
+        className="relative z-20 px-8 pb-[90px] pt-[90px] max-[900px]:px-5"
       >
-        <div className="mx-auto mb-14 max-w-[860px] text-center">
-          <p className="mb-3 text-[13px] font-bold uppercase tracking-[1.5px] text-[#7dd3fc]">
+        <div className="mx-auto mb-14 max-w-[900px] text-center">
+          <p className="mb-3 text-[13px] font-bold uppercase tracking-[1.6px] text-[#7dd3fc]">
             {t.howTag}
           </p>
-          <h2 className="text-[42px] font-extrabold leading-[1.35] tracking-[-1px] max-[900px]:text-[30px]">
+          <h2 className="text-[42px] font-extrabold leading-[1.3] tracking-[-1px] max-[900px]:text-[30px]">
             {t.howTitle}
           </h2>
-          <span className="mt-[18px] inline-block h-1 w-[90px] rounded-full bg-gradient-to-r from-[#38bdf8] to-[#8b5cf6]" />
+          <span className="mt-5 inline-block h-1 w-[90px] rounded-full bg-gradient-to-r from-[#38bdf8] to-[#8b5cf6]" />
         </div>
 
-        <div className="mx-auto grid max-w-[980px] gap-5">
+        <div className="mx-auto grid max-w-[1080px] gap-5">
           {[
             ["01", t.step1Title, t.step1Text],
             ["02", t.step2Title, t.step2Text],
@@ -552,100 +480,61 @@ function HomePage() {
           ].map(([num, title, text]) => (
             <div
               key={num}
-              className={`flex gap-[18px] rounded-[24px] border border-white/[0.075] bg-white/[0.045] px-[26px] py-6 max-[900px]:flex-col ${sectionTextAlign}`}
+              className={`flex gap-5 rounded-[24px] border border-white/[0.08] bg-white/[0.045] px-7 py-6 shadow-[0_16px_45px_rgba(0,0,0,0.1)] max-[900px]:flex-col ${
+                isRTL ? "text-right" : "text-left"
+              }`}
             >
-              <div className="flex h-[62px] min-w-[62px] items-center justify-center rounded-[20px] bg-gradient-to-br from-[#38bdf8] to-[#8b5cf6] text-[18px] font-extrabold">
+              <div className="flex h-[62px] min-w-[62px] items-center justify-center rounded-[20px] bg-gradient-to-br from-[#38bdf8] to-[#8b5cf6] text-[18px] font-extrabold text-white">
                 {num}
               </div>
               <div>
-                <h3 className="mb-[10px] mt-1 text-[22px] font-bold">
+                <h3 className="mb-2 mt-1 text-[22px] font-bold text-white">
                   {title}
                 </h3>
-                <p className="text-[15px] leading-[1.9] text-[#d2dcf0]">
-                  {text}
-                </p>
+                <p className="text-[15px] leading-[1.9] text-[#d2dcf0]">{text}</p>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      <section id="features" className="relative z-10 px-16 py-[110px] max-[900px]:px-5">
-        <div className="mx-auto mb-14 max-w-[860px] text-center">
-          <p className="mb-3 text-[13px] font-bold uppercase tracking-[1.5px] text-[#7dd3fc]">
-            {t.featuresTag}
-          </p>
-          <h2 className="text-[42px] font-extrabold leading-[1.35] tracking-[-1px] max-[900px]:text-[30px]">
-            {t.featuresTitle}
-          </h2>
-          <span className="mt-[18px] inline-block h-1 w-[90px] rounded-full bg-gradient-to-r from-[#38bdf8] to-[#8b5cf6]" />
-        </div>
+      <section
+        id="career-cta"
+        className="relative z-20 px-8 pb-[120px] pt-[20px] max-[900px]:px-5"
+      >
+        <div className="mx-auto max-w-[1500px] rounded-[30px] border border-white/10 bg-[linear-gradient(135deg,rgba(35,32,90,0.9),rgba(32,59,104,0.82))] px-8 py-14 shadow-[0_24px_70px_rgba(0,0,0,0.28)] backdrop-blur-[10px] max-[900px]:px-5">
+          <div className="mx-auto max-w-[900px] text-center">
+            <h2 className="text-[48px] font-extrabold tracking-[-1.4px] text-white max-[900px]:text-[32px]">
+              {t.ctaTitle}
+            </h2>
 
-        <div className="grid grid-cols-3 gap-[22px] max-[1200px]:grid-cols-2 max-[900px]:grid-cols-1">
-          <div
-            className={`col-span-2 flex min-h-[220px] flex-col justify-center rounded-[24px] border border-white/[0.075] bg-white/[0.045] p-7 max-[900px]:col-span-1 ${sectionTextAlign}`}
-          >
-            <h3 className="mb-[14px] text-[21px] font-bold">
-              {t.feature1Title}
-            </h3>
-            <p className="text-[15px] leading-[1.9] text-[#d4def2]">
-              {t.feature1Text}
+            <p className="mt-4 text-[18px] leading-[1.8] text-[#bfcbe3] max-[900px]:text-[16px]">
+              {t.ctaText}
             </p>
-          </div>
 
-          {[
-            [t.feature2Title, t.feature2Text],
-            [t.feature3Title, t.feature3Text],
-            [t.feature4Title, t.feature4Text],
-            [t.feature5Title, t.feature5Text],
-          ].map(([title, text]) => (
-            <div
-              key={title}
-              className={`rounded-[24px] border border-white/[0.075] bg-white/[0.045] p-7 ${sectionTextAlign}`}
-            >
-              <h3 className="mb-[14px] text-[21px] font-bold">{title}</h3>
-              <p className="text-[15px] leading-[1.9] text-[#d4def2]">
-                {text}
-              </p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+              <button
+                onClick={() => navigate("/register/candidate")}
+                className="min-w-[220px] rounded-[16px] bg-gradient-to-r from-[#22c1ee] to-[#2979ff] px-7 py-4 text-[17px] font-bold text-white shadow-[0_14px_35px_rgba(41,121,255,0.28)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_45px_rgba(41,121,255,0.34)]"
+              >
+                {t.ctaCandidate}
+              </button>
+
+              <button
+                onClick={() => navigate("/register/company")}
+                className="min-w-[220px] rounded-[16px] bg-gradient-to-r from-[#7c3aed] to-[#5b5cf0] px-7 py-4 text-[17px] font-bold text-white shadow-[0_14px_35px_rgba(124,58,237,0.26)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_45px_rgba(124,58,237,0.34)]"
+              >
+                {t.ctaHiring}
+              </button>
             </div>
-          ))}
-        </div>
-      </section>
-
-      <section id="contact" className="relative z-10 px-16 pb-[100px] pt-10 max-[900px]:px-5">
-        <div className="mx-auto max-w-[900px] rounded-[32px] border border-white/[0.08] bg-white/[0.05] px-[30px] py-[42px] text-center">
-          <p className="mb-3 text-[13px] font-bold uppercase tracking-[1.5px] text-[#7dd3fc]">
-            {t.contactTag}
-          </p>
-          <h2 className="mb-[18px] text-[40px] font-extrabold leading-[1.3] tracking-[-1px] max-[900px]:text-[30px]">
-            {t.contactTitle}
-          </h2>
-          <p className="mx-auto mb-7 max-w-[700px] text-base leading-[1.95] text-[#d1dcef]">
-            {t.contactText}
-          </p>
-
-          <div className="flex flex-wrap justify-center gap-4">
-            <button
-              className="min-h-[52px] rounded-2xl bg-gradient-to-r from-[#38bdf8] to-[#6366f1] px-6 text-[15px] font-bold text-white shadow-[0_14px_30px_rgba(56,189,248,0.22)] transition hover:-translate-y-0.5"
-              onClick={() => setIsContactOpen(true)}
-            >
-              {t.contactPrimary}
-            </button>
-
-            <button
-              className="min-h-[52px] rounded-2xl border border-white/15 bg-white/[0.03] px-6 text-[15px] font-bold text-white transition hover:bg-white/[0.07]"
-              onClick={() => scrollToSection("about")}
-            >
-              {t.contactSecondary}
-            </button>
           </div>
         </div>
       </section>
 
       {isContactOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 px-5 backdrop-blur-[8px]">
           <div
-            className={`w-full max-w-[520px] rounded-[28px] border border-white/10 bg-[#0f172a] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.45)] ${
+            className={`w-full max-w-[560px] rounded-[30px] border border-white/10 bg-[rgba(15,23,42,0.96)] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.45)] ${
               isRTL ? "text-right" : "text-left"
             }`}
           >
@@ -669,7 +558,9 @@ function HomePage() {
               className="min-h-[150px] w-full resize-none rounded-[18px] border border-white/10 bg-white/[0.04] p-4 text-[15px] text-white outline-none placeholder:text-[#92a1bf]"
             />
 
-            <div className={`mt-5 flex gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+            <div
+              className={`mt-5 flex gap-3 ${isRTL ? "flex-row-reverse" : ""}`}
+            >
               <button
                 type="button"
                 onClick={handleSendMessage}

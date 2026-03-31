@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import {
   ArrowLeft,
   Bell,
@@ -16,7 +17,7 @@ function NotificationsPage() {
   const t = translations[language];
   const isRTL = language === "ar" || language === "he";
 
-  const notifications = [
+  const [notifications, setNotifications] = useState([
     {
       id: 1,
       type: "job",
@@ -70,9 +71,22 @@ function NotificationsPage() {
       icon: <CheckCircle2 size={22} />,
       iconBg: "bg-[linear-gradient(135deg,#10b981,#14b8a6)]",
     },
-  ];
+  ]);
 
   const unreadCount = notifications.filter((item) => item.unread).length;
+
+  const handleMarkAllAsRead = () => {
+    setNotifications((prev) =>
+      prev.map((item) => ({
+        ...item,
+        unread: false,
+      }))
+    );
+  };
+
+  const handleClearAll = () => {
+    setNotifications([]);
+  };
 
   return (
     <div
@@ -93,7 +107,7 @@ function NotificationsPage() {
               isRTL ? "flex-row-reverse" : ""
             }`}
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={20} className={isRTL ? "rotate-180" : ""} />
             {t.common.back}
           </button>
         </div>
@@ -129,16 +143,18 @@ function NotificationsPage() {
           >
             <button
               type="button"
+              onClick={handleMarkAllAsRead}
               className={`flex items-center gap-2 rounded-[14px] border border-[#7180ff]/50 bg-[rgba(113,128,255,0.08)] px-5 py-3 text-[16px] font-semibold text-[#dbe0ff] transition hover:bg-[rgba(113,128,255,0.14)] ${
                 isRTL ? "flex-row-reverse" : ""
               }`}
             >
               <CheckCircle2 size={18} />
-              Mark all read
+              Mark all as read
             </button>
 
             <button
               type="button"
+              onClick={handleClearAll}
               className={`flex items-center gap-2 rounded-[14px] border border-[#ff6b8e]/50 bg-[rgba(255,107,142,0.08)] px-5 py-3 text-[16px] font-semibold text-[#ffd1da] transition hover:bg-[rgba(255,107,142,0.14)] ${
                 isRTL ? "flex-row-reverse" : ""
               }`}
@@ -149,36 +165,51 @@ function NotificationsPage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-4">
-          {notifications.map((item) => (
-            <div
-              key={item.id}
-              className={`relative flex items-start gap-5 rounded-[28px] border border-[rgba(117,132,255,0.30)] bg-[rgba(57,70,134,0.36)] px-6 py-6 shadow-[0_14px_35px_rgba(0,0,0,0.16)] backdrop-blur-[8px] transition hover:bg-[rgba(64,79,150,0.42)] ${
-                isRTL ? "flex-row-reverse" : ""
-              }`}
-            >
-              <div
-                className={`flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-[20px] text-white ${item.iconBg}`}
-              >
-                {item.icon}
-              </div>
-
-              <div className={`flex-1 ${isRTL ? "text-right" : "text-left"}`}>
-                <h3 className="mb-2 text-[20px] font-extrabold text-white">
-                  {item.title}
-                </h3>
-                <p className="mb-3 text-[16px] leading-7 text-[#c2c8ea]">
-                  {item.message}
-                </p>
-                <p className="text-[14px] text-[#8f98c6]">{item.date}</p>
-              </div>
-
-              {item.unread && (
-                <span className="mt-2 h-[10px] w-[10px] rounded-full bg-[#6f78ff] shadow-[0_0_0_6px_rgba(111,120,255,0.14)]" />
-              )}
+        {notifications.length === 0 ? (
+          <div className="rounded-[28px] border border-[rgba(117,132,255,0.25)] bg-[rgba(57,70,134,0.30)] px-8 py-14 text-center shadow-[0_14px_35px_rgba(0,0,0,0.16)] backdrop-blur-[8px]">
+            <div className="mx-auto mb-5 flex h-[72px] w-[72px] items-center justify-center rounded-[22px] bg-white/5 text-white/70">
+              <Bell size={30} />
             </div>
-          ))}
-        </div>
+
+            <h3 className="text-[24px] font-extrabold text-white">
+              No notifications yet
+            </h3>
+            <p className="mt-3 text-[16px] text-[#b9c0ea]">
+              You're all caught up. New updates will appear here.
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {notifications.map((item) => (
+              <div
+                key={item.id}
+                className={`relative flex items-start gap-5 rounded-[28px] border border-[rgba(117,132,255,0.30)] bg-[rgba(57,70,134,0.36)] px-6 py-6 shadow-[0_14px_35px_rgba(0,0,0,0.16)] backdrop-blur-[8px] transition hover:bg-[rgba(64,79,150,0.42)] ${
+                  isRTL ? "flex-row-reverse" : ""
+                }`}
+              >
+                <div
+                  className={`flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-[20px] text-white ${item.iconBg}`}
+                >
+                  {item.icon}
+                </div>
+
+                <div className={`flex-1 ${isRTL ? "text-right" : "text-left"}`}>
+                  <h3 className="mb-2 text-[20px] font-extrabold text-white">
+                    {item.title}
+                  </h3>
+                  <p className="mb-3 text-[16px] leading-7 text-[#c2c8ea]">
+                    {item.message}
+                  </p>
+                  <p className="text-[14px] text-[#8f98c6]">{item.date}</p>
+                </div>
+
+                {item.unread && (
+                  <span className="mt-2 h-[10px] w-[10px] rounded-full bg-[#6f78ff] shadow-[0_0_0_6px_rgba(111,120,255,0.14)]" />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

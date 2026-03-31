@@ -1,13 +1,15 @@
-import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { useLanguage } from "../context/LanguageContext";
-import { translations } from "../translations";
+import { useNavigate } from "react-router-dom";
+import {
+  ShieldCheck,
+  Mail,
+  Lock,
+  Building2,
+  UserRound,
+} from "lucide-react";
 
 function LoginPage() {
   const navigate = useNavigate();
-  const { language, setLanguage } = useLanguage();
-  const t = translations[language];
-  const isRTL = language === "ar" || language === "he";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,201 +29,207 @@ function LoginPage() {
       return;
     }
 
-    const savedUserRaw = localStorage.getItem("registeredUser");
+    const candidates = JSON.parse(localStorage.getItem("candidates") || "[]");
+    const companies = JSON.parse(localStorage.getItem("companies") || "[]");
 
-    if (!savedUserRaw) {
-      setError("No account found. Please register first.");
+    const foundCandidate = candidates.find(
+      (candidate: any) => candidate.email.toLowerCase() === email.toLowerCase()
+    );
+
+    const foundCompany = companies.find(
+      (company: any) => company.email.toLowerCase() === email.toLowerCase()
+    );
+
+    const foundUser = foundCandidate || foundCompany;
+
+    if (!foundUser) {
+      setError("No account found with this email.");
       return;
     }
 
-    const savedUser = JSON.parse(savedUserRaw);
-
-    if (email !== savedUser.email) {
-      setError("This email is not registered.");
-      return;
-    }
-
-    if (password !== savedUser.password) {
+    if (password !== foundUser.password) {
       setError("Incorrect password.");
       return;
     }
 
-    localStorage.setItem("name", savedUser.name);
-    localStorage.setItem("email", savedUser.email);
-    localStorage.setItem("role", savedUser.role);
-    localStorage.setItem("phone", savedUser.phone || "");
-    localStorage.setItem("location", savedUser.location || "");
-    localStorage.setItem("currentTitle", savedUser.currentTitle || "");
-    localStorage.setItem("experience", savedUser.experience || "");
-    localStorage.setItem("skills", JSON.stringify(savedUser.skills || []));
-    localStorage.setItem(
-      "summary",
-      savedUser.summary ||
-        "Passionate professional looking for great opportunities and continuous growth."
-    );
-    localStorage.setItem("isFirstLogin", "false");
+    localStorage.setItem("registeredUser", JSON.stringify(foundUser));
+    localStorage.setItem("name", foundUser.name || foundUser.companyName || "");
+    localStorage.setItem("email", foundUser.email || "");
+    localStorage.setItem("role", foundUser.role || "");
+    localStorage.setItem("phone", foundUser.phone || "");
+    localStorage.setItem("location", foundUser.location || "");
 
-    if (savedUser.role === "company") {
-      navigate("/company-dashboard");
-    } else {
+    if (foundUser.role === "candidate") {
+      localStorage.setItem("currentTitle", foundUser.currentTitle || "");
+      localStorage.setItem("experience", foundUser.experience || "");
+      localStorage.setItem("skills", JSON.stringify(foundUser.skills || []));
+      localStorage.setItem(
+        "summary",
+        foundUser.summary ||
+          "Passionate professional looking for great opportunities and continuous growth."
+      );
+      localStorage.setItem("resumeName", foundUser.resumeName || "");
+      localStorage.setItem("isFirstLogin", "false");
       navigate("/candidate-dashboard");
+      return;
+    }
+
+    if (foundUser.role === "company") {
+      localStorage.setItem("industry", foundUser.industry || "");
+      localStorage.setItem("companySize", foundUser.companySize || "");
+      localStorage.setItem("website", foundUser.website || "");
+      localStorage.setItem("description", foundUser.description || "");
+      localStorage.setItem("isFirstLogin", "false");
+      navigate("/company-dashboard");
     }
   };
 
+  const inputClass =
+    "w-full rounded-2xl border border-white/10 bg-white/5 pl-12 pr-4 py-3.5 text-white placeholder:text-white/40 outline-none transition focus:border-cyan-400/60 focus:bg-white/10";
+
   return (
-    <div
-      dir={isRTL ? "rtl" : "ltr"}
-      className="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#050a14_0%,#0b1220_100%)] text-white"
-    >
-      <div className="pointer-events-none fixed left-[-80px] top-[60px] z-0 h-[320px] w-[320px] rounded-full bg-[rgba(0,183,255,0.16)] blur-[120px]" />
-      <div className="pointer-events-none fixed right-[-100px] top-[120px] z-0 h-[360px] w-[360px] rounded-full bg-[rgba(124,58,237,0.16)] blur-[120px]" />
-      <div className="pointer-events-none fixed inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:linear-gradient(to_bottom,rgba(255,255,255,0.7),transparent)]" />
+    <div className="min-h-screen bg-[linear-gradient(135deg,#17184a_0%,#1a1b56_40%,#17234f_100%)] px-4 py-10">
+      <div className="mx-auto max-w-6xl overflow-hidden rounded-[32px] border border-white/10 bg-white/5 shadow-[0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+        <div className="grid min-h-[760px] lg:grid-cols-2">
+          {/* Left Side */}
+          <div className="relative hidden overflow-hidden lg:flex">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.22),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(139,92,246,0.22),transparent_30%)]" />
+            <div className="relative z-10 flex w-full flex-col justify-between p-10">
+              <div>
+                <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-medium text-cyan-300">
+                  <ShieldCheck size={16} />
+                  Secure Access
+                </div>
 
-      <div
-        className={`absolute top-6 z-30 flex gap-[10px] ${
-          isRTL ? "left-6" : "right-6"
-        } max-[640px]:top-[18px] max-[640px]:gap-2 ${
-          isRTL ? "max-[640px]:left-[18px]" : "max-[640px]:right-[18px]"
-        }`}
-      >
-        <button
-          type="button"
-          className={`rounded-xl border px-[14px] py-2 text-[13px] font-bold backdrop-blur-[10px] transition max-[640px]:px-3 max-[640px]:text-xs ${
-            language === "en"
-              ? "border-transparent bg-gradient-to-br from-[#7c3aed] to-[#2563eb] text-white shadow-[0_8px_20px_rgba(37,99,235,0.28)]"
-              : "border-white/25 bg-white/8 text-white hover:bg-white/16"
-          }`}
-          onClick={() => setLanguage("en")}
-        >
-          {t.common.english}
-        </button>
+                <h1 className="max-w-md text-4xl font-extrabold leading-tight text-white">
+                  Welcome back to your smarter hiring space.
+                </h1>
 
-        <button
-          type="button"
-          className={`rounded-xl border px-[14px] py-2 text-[13px] font-bold backdrop-blur-[10px] transition max-[640px]:px-3 max-[640px]:text-xs ${
-            language === "ar"
-              ? "border-transparent bg-gradient-to-br from-[#7c3aed] to-[#2563eb] text-white shadow-[0_8px_20px_rgba(37,99,235,0.28)]"
-              : "border-white/25 bg-white/8 text-white hover:bg-white/16"
-          }`}
-          onClick={() => setLanguage("ar")}
-        >
-          {t.common.arabic}
-        </button>
+                <p className="mt-5 max-w-lg text-[16px] leading-7 text-white/70">
+                  Sign in to continue your journey on JobMatchAI and access your
+                  personalized dashboard with a clean and modern experience.
+                </p>
+              </div>
 
-        <button
-          type="button"
-          className={`rounded-xl border px-[14px] py-2 text-[13px] font-bold backdrop-blur-[10px] transition max-[640px]:px-3 max-[640px]:text-xs ${
-            language === "he"
-              ? "border-transparent bg-gradient-to-br from-[#7c3aed] to-[#2563eb] text-white shadow-[0_8px_20px_rgba(37,99,235,0.28)]"
-              : "border-white/25 bg-white/8 text-white hover:bg-white/16"
-          }`}
-          onClick={() => setLanguage("he")}
-        >
-          {t.common.hebrew}
-        </button>
-      </div>
+              <div className="space-y-4">
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
+                  <p className="text-sm text-white/50">Access your workspace</p>
 
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-5 py-10">
-        <div className="mb-3 w-full max-w-[480px]">
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            className={`h-[38px] rounded-[12px] border border-white/10 bg-white/[0.04] px-3 text-sm text-[#d8e5ff] transition hover:bg-white/[0.08] ${
-              isRTL ? "self-end" : "self-start"
-            }`}
-          >
-            ← {t.common.back}
-          </button>
-        </div>
+                  <div className="mt-4 grid gap-3">
+                    <div className="flex items-center gap-3 rounded-2xl bg-white/5 px-4 py-3 text-white/80">
+                      <UserRound size={18} className="text-cyan-300" />
+                      Candidate dashboard access
+                    </div>
 
-        <div
-          className={`w-full max-w-[480px] rounded-[30px] border border-white/[0.08] bg-white/[0.055] px-[30px] py-[34px] shadow-[0_22px_70px_rgba(0,0,0,0.3)] backdrop-blur-[20px] max-[640px]:rounded-[24px] max-[640px]:px-[18px] max-[640px]:py-[26px] ${
-            isRTL ? "text-right" : "text-left"
-          }`}
-        >
-          <div className="mb-[18px] inline-flex min-h-[38px] items-center rounded-full border border-[rgba(125,211,252,0.22)] bg-[rgba(125,211,252,0.12)] px-[14px] text-xs font-semibold text-[#9bdcff]">
-            {t.loginPage.badge}
+                    <div className="flex items-center gap-3 rounded-2xl bg-white/5 px-4 py-3 text-white/80">
+                      <Building2 size={18} className="text-cyan-300" />
+                      Company dashboard access
+                    </div>
+
+                    <div className="flex items-center gap-3 rounded-2xl bg-white/5 px-4 py-3 text-white/80">
+                      <ShieldCheck size={18} className="text-cyan-300" />
+                      Secure sign-in experience
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <h1 className="mb-3 text-[38px] font-extrabold leading-[1.15] tracking-[-1.4px] max-[640px]:text-[30px]">
-            {t.loginPage.title1}{" "}
-            <span className="bg-gradient-to-r from-[#7dd3fc] to-[#a78bfa] bg-clip-text text-transparent">
-              {t.loginPage.title2}
-            </span>
-          </h1>
-
-          <p className="mb-6 text-[15px] leading-[1.8] text-[#c9d6ed]">
-            {t.loginPage.subtitle}
-          </p>
-
-          <form className="flex flex-col gap-3" onSubmit={handleLogin}>
-            <label className="text-sm font-semibold text-[#dce7fb]">
-              {t.common.email}
-            </label>
-
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={t.common.enterEmail}
-              className="h-[52px] rounded-2xl border border-white/[0.09] bg-white/[0.045] px-4 text-sm text-white outline-none placeholder:text-[#8ea2c7]"
-            />
-
-            <label className="text-sm font-semibold text-[#dce7fb]">
-              {t.common.password}
-            </label>
-
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={t.common.enterPassword}
-              className="h-[52px] rounded-2xl border border-white/[0.09] bg-white/[0.045] px-4 text-sm text-white outline-none placeholder:text-[#8ea2c7]"
-            />
-
-            <div
-              className={`my-[2px] flex items-center justify-between gap-3 ${
-                isRTL ? "flex-row-reverse" : ""
-              }`}
+          {/* Right Side */}
+          <div className="p-6 sm:p-8 lg:p-10">
+            <button
+              onClick={() => navigate("/")}
+              className="mb-6 rounded-2xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
             >
-              <label
-                className={`flex items-center gap-2 text-[13px] text-[#d6e2f7] ${
-                  isRTL ? "flex-row-reverse" : ""
-                }`}
-              >
-                <input type="checkbox" className="h-auto w-auto" />
-                {t.common.rememberMe}
-              </label>
+              ← Back
+            </button>
 
-              <button
-                type="button"
-                className="border-none bg-transparent font-semibold text-[#8fd8ff]"
-              >
-                {t.common.forgotPassword}
-              </button>
+            <div className="mb-8">
+              <h2 className="text-3xl font-extrabold text-white">Sign In</h2>
+              <p className="mt-2 text-white/60">
+                Enter your email and password to continue.
+              </p>
             </div>
 
-            {error && (
-              <div className="rounded-2xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                {error}
+            <form onSubmit={handleLogin} className="space-y-5">
+              <div className="space-y-5">
+                <div className="relative">
+                  <Mail
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40"
+                    size={18}
+                  />
+                  <input
+                    type="email"
+                    placeholder="Email Address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+
+                <div className="relative">
+                  <Lock
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40"
+                    size={18}
+                  />
+                  <input
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
               </div>
-            )}
 
-            <button
-              type="submit"
-              className="mt-2 min-h-[52px] rounded-2xl bg-gradient-to-r from-[#38bdf8] to-[#6366f1] text-[15px] font-bold text-white shadow-[0_14px_30px_rgba(56,189,248,0.22)] transition hover:-translate-y-0.5"
-            >
-              {t.common.login}
-            </button>
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <label className="flex items-center gap-2 text-white/70">
+                  <input type="checkbox" className="h-4 w-4" />
+                  Remember me
+                </label>
 
-            <button
-              type="button"
-              onClick={() => navigate("/register")}
-              className="min-h-[52px] rounded-2xl border border-white/[0.12] bg-white/[0.03] text-[15px] font-bold text-white transition hover:-translate-y-0.5"
-            >
-              {t.common.createAccount}
-            </button>
-          </form>
+                <button
+                  type="button"
+                  onClick={() => navigate("/forgot-password")}
+                  className="font-semibold text-cyan-300 transition hover:text-cyan-200"
+                >
+                  Forgot password?
+                </button>
+              </div>
+
+              {error && (
+                <div className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="w-full rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-6 py-4 text-base font-bold text-white shadow-[0_12px_30px_rgba(34,211,238,0.25)] transition hover:scale-[1.01]"
+              >
+                Sign In
+              </button>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => navigate("/register/candidate")}
+                  className="rounded-2xl border border-white/15 bg-white/[0.03] px-5 py-3.5 font-semibold text-[#dce7ff] transition hover:bg-white/[0.06]"
+                >
+                  Create Candidate Account
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => navigate("/register/company")}
+                  className="rounded-2xl border border-cyan-400/20 bg-cyan-400/5 px-5 py-3.5 font-semibold text-cyan-100 transition hover:bg-cyan-400/10"
+                >
+                  Create Company Account
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </div>
