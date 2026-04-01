@@ -14,6 +14,7 @@ import Applications from "./pages/Applications";
 import ProfilePage from "./pages/ProfilePage";
 import ResumeManager from "./pages/ResumeManager";
 import CompanyJobPostings from "./pages/CompanyJobPostings";
+import PostJob from "./pages/PostJob";
 
 import ScrollToTop from "./components/ScrollToTop";
 import CandidateLayout from "./components/CandidateLayout";
@@ -109,6 +110,14 @@ function App() {
           element={
             <CompanyLayout>
               <CompanyJobPostings />
+            </CompanyLayout>
+          }
+        />
+        <Route
+          path="/post-job"
+          element={
+            <CompanyLayout>
+              <PostJob />
             </CompanyLayout>
           }
         />
