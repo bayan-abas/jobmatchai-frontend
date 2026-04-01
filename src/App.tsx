@@ -13,6 +13,7 @@ import JobMatches from "./pages/JobMatches";
 import Applications from "./pages/Applications";
 import ProfilePage from "./pages/ProfilePage";
 import ResumeManager from "./pages/ResumeManager";
+import CompanyJobPostings from "./pages/CompanyJobPostings";
 
 import ScrollToTop from "./components/ScrollToTop";
 import CandidateLayout from "./components/CandidateLayout";
@@ -100,6 +101,14 @@ function App() {
           element={
             <CompanyLayout>
               <CompanyDashboard />
+            </CompanyLayout>
+          }
+        />
+        <Route
+          path="/company-job-postings"
+          element={
+            <CompanyLayout>
+              <CompanyJobPostings />
             </CompanyLayout>
           }
         />

@@ -36,7 +36,7 @@ function CompanySidebar({
     },
     {
       label: "Job Postings",
-      path: "/company-jobs",
+      path: "/company-job-postings",
       icon: BriefcaseBusiness,
     },
     {

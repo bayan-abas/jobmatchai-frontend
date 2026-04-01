@@ -1,11 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import {
+  Plus,
   BriefcaseBusiness,
+  Users,
+  MoreVertical,
   MapPin,
   CircleDollarSign,
-  Users,
-  Plus,
-  MoreVertical,
   ArrowLeft,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
@@ -23,89 +23,90 @@ type JobItem = {
   newApplicants?: number;
 };
 
+const jobs: JobItem[] = [
+  {
+    id: 1,
+    title: "Senior Frontend Developer",
+    location: "Tel Aviv, Israel",
+    salary: "$120k - $180k",
+    postedDate: "10/01/2024",
+    status: "Active",
+    applicants: 45,
+    newApplicants: 8,
+  },
+  {
+    id: 2,
+    title: "Full Stack Engineer",
+    location: "Herzliya, Israel",
+    salary: "$100k - $150k",
+    postedDate: "12/01/2024",
+    status: "Active",
+    applicants: 32,
+    newApplicants: 5,
+  },
+  {
+    id: 3,
+    title: "DevOps Engineer",
+    location: "Remote",
+    salary: "$110k - $160k",
+    postedDate: "15/01/2024",
+    status: "Active",
+    applicants: 28,
+    newApplicants: 3,
+  },
+  {
+    id: 4,
+    title: "UX Designer",
+    location: "Be'er Sheva, Israel",
+    salary: "$90k - $130k",
+    postedDate: "20/12/2023",
+    status: "Closed",
+    applicants: 56,
+  },
+  {
+    id: 5,
+    title: "Product Manager",
+    location: "Haifa, Israel",
+    salary: "$130k - $180k",
+    postedDate: "18/01/2024",
+    status: "Draft",
+    applicants: 0,
+  },
+];
+
+function getStatusStyles(status: JobStatus) {
+  switch (status) {
+    case "Active":
+      return "bg-[rgba(38,199,132,0.14)] text-[#4ff0b2] border border-[rgba(79,240,178,0.18)]";
+    case "Closed":
+      return "bg-[rgba(145,153,180,0.12)] text-[#c5cadb] border border-[rgba(197,202,219,0.14)]";
+    case "Draft":
+      return "bg-[rgba(147,117,255,0.12)] text-[#cbb8ff] border border-[rgba(203,184,255,0.14)]";
+    default:
+      return "bg-white/10 text-white border border-white/10";
+  }
+}
+
 function CompanyJobPostings() {
   const navigate = useNavigate();
   const { language } = useLanguage();
   const isRTL = language === "ar" || language === "he";
 
-  const jobs: JobItem[] = [
-    {
-      id: 1,
-      title: "Senior Frontend Developer",
-      location: "Tel Aviv, Israel",
-      salary: "$120k - $180k",
-      postedDate: "10/01/2024",
-      status: "Active",
-      applicants: 45,
-      newApplicants: 8,
-    },
-    {
-      id: 2,
-      title: "Full Stack Engineer",
-      location: "Herzliya, Israel",
-      salary: "$100k - $150k",
-      postedDate: "12/01/2024",
-      status: "Active",
-      applicants: 32,
-      newApplicants: 5,
-    },
-    {
-      id: 3,
-      title: "DevOps Engineer",
-      location: "Remote",
-      salary: "$110k - $160k",
-      postedDate: "15/01/2024",
-      status: "Active",
-      applicants: 28,
-      newApplicants: 3,
-    },
-    {
-      id: 4,
-      title: "UX Designer",
-      location: "Be'er Sheva, Israel",
-      salary: "$90k - $130k",
-      postedDate: "20/12/2023",
-      status: "Closed",
-      applicants: 56,
-    },
-    {
-      id: 5,
-      title: "Product Manager",
-      location: "Haifa, Israel",
-      salary: "$130k - $180k",
-      postedDate: "18/01/2024",
-      status: "Draft",
-      applicants: 0,
-    },
-  ];
-
-  const getStatusClass = (status: JobStatus) => {
-    if (status === "Active") {
-      return "bg-[rgba(38,199,132,0.14)] text-[#4ff0b2] border border-[rgba(79,240,178,0.18)]";
-    }
-
-    if (status === "Closed") {
-      return "bg-[rgba(145,153,180,0.12)] text-[#c5cadb] border border-[rgba(197,202,219,0.14)]";
-    }
-
-    return "bg-[rgba(147,117,255,0.12)] text-[#cbb8ff] border border-[rgba(203,184,255,0.14)]";
-  };
-
   return (
-    <div
-      className={`relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(87,57,255,0.22),transparent_24%),linear-gradient(90deg,#15124a_0%,#161354_38%,#121a58_100%)] ${
+    <section
+      className={`relative min-h-[calc(100vh-78px)] overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(87,57,255,0.24),transparent_24%),linear-gradient(90deg,#15124a_0%,#161354_38%,#121a58_100%)] text-white ${
         isRTL ? "text-right" : "text-left"
       }`}
       dir={isRTL ? "rtl" : "ltr"}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_65%_25%,rgba(0,194,255,0.09),transparent_10%),radial-gradient(circle_at_62%_80%,rgba(116,80,255,0.10),transparent_18%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.12] bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:90px_90px]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_65%_25%,rgba(0,194,255,0.10),transparent_10%),radial-gradient(circle_at_62%_80%,rgba(116,80,255,0.10),transparent_18%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.14] bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:90px_90px]" />
 
-      <div className="relative z-10 mx-auto max-w-[1380px] px-8 pb-10 pt-10 max-[700px]:px-4">
+      <div className="relative z-10 w-full px-8 pb-10 pt-10 max-[700px]:px-4 xl:px-10 2xl:px-12">
         <button
           type="button"
           onClick={() => navigate("/company-dashboard")}
-          className={`mb-10 inline-flex items-center gap-3 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-6 py-3 text-[16px] font-semibold text-white/80 backdrop-blur-[8px] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-white ${
+          className={`mb-10 inline-flex items-center gap-3 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-6 py-3 text-[16px] font-semibold text-white/85 backdrop-blur-[8px] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-white ${
             isRTL ? "flex-row-reverse" : ""
           }`}
         >
@@ -119,17 +120,21 @@ function CompanyJobPostings() {
           }`}
         >
           <div
-            className={`flex items-center gap-5 ${isRTL ? "flex-row-reverse" : ""}`}
+            className={`flex items-center gap-5 ${
+              isRTL ? "flex-row-reverse" : ""
+            }`}
           >
             <div className="flex h-[62px] w-[62px] items-center justify-center rounded-[20px] bg-[linear-gradient(135deg,#7b61ff,#b13dff)] shadow-[0_12px_30px_rgba(139,92,246,0.28)]">
               <BriefcaseBusiness size={30} className="text-white" />
             </div>
 
             <div>
-              <h1 className="text-[46px] font-extrabold leading-none text-white max-[900px]:text-[34px]">
+              <h1 className="text-[42px] font-extrabold leading-none text-white max-[900px]:text-[32px]">
                 Job Postings
               </h1>
-              <p className="mt-3 text-[18px] text-white/50">5 total jobs</p>
+              <p className="mt-3 text-[18px] text-white/55">
+                {jobs.length} total jobs
+              </p>
             </div>
           </div>
 
@@ -149,13 +154,15 @@ function CompanyJobPostings() {
           {jobs.map((job) => (
             <div
               key={job.id}
-              className="rounded-[28px] border border-white/10 bg-[rgba(40,38,95,0.74)] px-7 py-7 shadow-[0_10px_35px_rgba(0,0,0,0.16)] backdrop-blur-[10px] transition hover:bg-[rgba(48,46,108,0.82)]"
+              className="rounded-[28px] border border-white/10 bg-[rgba(48,46,108,0.72)] px-7 py-7 shadow-[0_10px_35px_rgba(0,0,0,0.16)] backdrop-blur-[10px] transition hover:bg-[rgba(54,52,118,0.84)]"
             >
               <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
                 <div className="min-w-0 flex-1">
                   <div
                     className={`mb-4 flex flex-wrap items-center gap-4 ${
-                      isRTL ? "flex-row-reverse justify-end xl:justify-start" : ""
+                      isRTL
+                        ? "flex-row-reverse justify-end xl:justify-start"
+                        : ""
                     }`}
                   >
                     <h2 className="text-[24px] font-extrabold text-white">
@@ -163,7 +170,7 @@ function CompanyJobPostings() {
                     </h2>
 
                     <span
-                      className={`rounded-full px-4 py-1.5 text-[13px] font-bold ${getStatusClass(
+                      className={`rounded-full px-4 py-1.5 text-[13px] font-bold ${getStatusStyles(
                         job.status
                       )}`}
                     >
@@ -243,7 +250,7 @@ function CompanyJobPostings() {
           ))}
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 
