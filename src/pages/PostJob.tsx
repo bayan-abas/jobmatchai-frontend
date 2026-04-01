@@ -16,6 +16,17 @@ function PostJob() {
   const [skills, setSkills] = useState(["React", "TypeScript"]);
   const [skillInput, setSkillInput] = useState("");
 
+  const [jobTitle, setJobTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [location, setLocation] = useState("");
+  const [remoteWork, setRemoteWork] = useState(false);
+  const [seniorityLevel, setSeniorityLevel] = useState("");
+  const [employmentType, setEmploymentType] = useState("Full-time");
+  const [minExperience, setMinExperience] = useState("");
+  const [maxExperience, setMaxExperience] = useState("");
+  const [minSalary, setMinSalary] = useState("");
+  const [maxSalary, setMaxSalary] = useState("");
+
   const addSkill = () => {
     const trimmed = skillInput.trim();
     if (!trimmed) return;
@@ -26,6 +37,42 @@ function PostJob() {
 
   const removeSkill = (skillToRemove: string) => {
     setSkills(skills.filter((skill) => skill !== skillToRemove));
+  };
+
+  const handleSaveDraft = () => {
+    alert("Job saved as draft!");
+  };
+
+  const handlePostJob = () => {
+    if (!jobTitle.trim() || !description.trim()) {
+      alert("Please fill in Job Title and Description.");
+      return;
+    }
+
+    const newJob = {
+      id: Date.now(),
+      title: jobTitle,
+      description,
+      location,
+      remoteWork,
+      seniorityLevel,
+      employmentType,
+      minExperience,
+      maxExperience,
+      minSalary,
+      maxSalary,
+      skills,
+      status: "Active",
+      postedDate: new Date().toLocaleDateString(),
+    };
+
+    const existingJobs = JSON.parse(localStorage.getItem("postedJobs") || "[]");
+    const updatedJobs = [newJob, ...existingJobs];
+
+    localStorage.setItem("postedJobs", JSON.stringify(updatedJobs));
+
+    alert("Job posted successfully!");
+    navigate("/company-job-postings");
   };
 
   return (
@@ -79,6 +126,8 @@ function PostJob() {
                 </label>
                 <input
                   type="text"
+                  value={jobTitle}
+                  onChange={(e) => setJobTitle(e.target.value)}
                   placeholder="e.g., Senior Frontend Developer"
                   className="h-14 w-full rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white placeholder:text-white/28 outline-none transition focus:border-[#7f6bff]"
                 />
@@ -90,6 +139,8 @@ function PostJob() {
                 </label>
                 <textarea
                   rows={7}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe the role and responsibilities..."
                   className="w-full rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 py-4 text-[17px] text-white placeholder:text-white/28 outline-none transition focus:border-[#7f6bff]"
                 />
@@ -106,6 +157,8 @@ function PostJob() {
                   </label>
                   <input
                     type="text"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
                     placeholder="e.g., San Francisco, CA"
                     className="h-14 w-full rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white placeholder:text-white/28 outline-none transition focus:border-[#7f6bff]"
                   />
@@ -118,7 +171,12 @@ function PostJob() {
                     }`}
                   >
                     <div className="relative">
-                      <input type="checkbox" className="peer sr-only" />
+                      <input
+                        type="checkbox"
+                        checked={remoteWork}
+                        onChange={(e) => setRemoteWork(e.target.checked)}
+                        className="peer sr-only"
+                      />
                       <div className="h-8 w-14 rounded-full bg-white/25 transition peer-checked:bg-[#7f6bff]" />
                       <div className="absolute left-1 top-1 h-6 w-6 rounded-full bg-white transition peer-checked:translate-x-6" />
                     </div>
@@ -142,8 +200,9 @@ function PostJob() {
                   </label>
                   <div className="relative">
                     <select
+                      value={seniorityLevel}
+                      onChange={(e) => setSeniorityLevel(e.target.value)}
                       className="h-14 w-full appearance-none rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white outline-none transition focus:border-[#7f6bff]"
-                      defaultValue=""
                     >
                       <option
                         value=""
@@ -152,21 +211,25 @@ function PostJob() {
                         Select level
                       </option>
                       <option
+                        value="Junior"
                         style={{ backgroundColor: "#2f2d68", color: "white" }}
                       >
                         Junior
                       </option>
                       <option
+                        value="Mid-Level"
                         style={{ backgroundColor: "#2f2d68", color: "white" }}
                       >
                         Mid-Level
                       </option>
                       <option
+                        value="Senior"
                         style={{ backgroundColor: "#2f2d68", color: "white" }}
                       >
                         Senior
                       </option>
                       <option
+                        value="Lead"
                         style={{ backgroundColor: "#2f2d68", color: "white" }}
                       >
                         Lead
@@ -183,25 +246,30 @@ function PostJob() {
                   </label>
                   <div className="relative">
                     <select
+                      value={employmentType}
+                      onChange={(e) => setEmploymentType(e.target.value)}
                       className="h-14 w-full appearance-none rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white outline-none transition focus:border-[#7f6bff]"
-                      defaultValue="Full-time"
                     >
                       <option
+                        value="Full-time"
                         style={{ backgroundColor: "#2f2d68", color: "white" }}
                       >
                         Full-time
                       </option>
                       <option
+                        value="Part-time"
                         style={{ backgroundColor: "#2f2d68", color: "white" }}
                       >
                         Part-time
                       </option>
                       <option
+                        value="Contract"
                         style={{ backgroundColor: "#2f2d68", color: "white" }}
                       >
                         Contract
                       </option>
                       <option
+                        value="Internship"
                         style={{ backgroundColor: "#2f2d68", color: "white" }}
                       >
                         Internship
@@ -221,12 +289,16 @@ function PostJob() {
                   <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                     <input
                       type="number"
+                      value={minExperience}
+                      onChange={(e) => setMinExperience(e.target.value)}
                       placeholder="Min"
                       className="h-14 rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white placeholder:text-white/28 outline-none transition focus:border-[#7f6bff]"
                     />
                     <span className="text-white/40">-</span>
                     <input
                       type="number"
+                      value={maxExperience}
+                      onChange={(e) => setMaxExperience(e.target.value)}
                       placeholder="Max"
                       className="h-14 rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white placeholder:text-white/28 outline-none transition focus:border-[#7f6bff]"
                     />
@@ -240,12 +312,16 @@ function PostJob() {
                   <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                     <input
                       type="number"
+                      value={minSalary}
+                      onChange={(e) => setMinSalary(e.target.value)}
                       placeholder="Min"
                       className="h-14 rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white placeholder:text-white/28 outline-none transition focus:border-[#7f6bff]"
                     />
                     <span className="text-white/40">-</span>
                     <input
                       type="number"
+                      value={maxSalary}
+                      onChange={(e) => setMaxSalary(e.target.value)}
                       placeholder="Max"
                       className="h-14 rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white placeholder:text-white/28 outline-none transition focus:border-[#7f6bff]"
                     />
@@ -311,13 +387,15 @@ function PostJob() {
           >
             <button
               type="button"
+              onClick={handleSaveDraft}
               className="inline-flex h-14 items-center justify-center rounded-[14px] bg-white px-8 text-[16px] font-bold text-[#2a265f] shadow-[0_10px_24px_rgba(255,255,255,0.12)] transition hover:opacity-90"
             >
               Save as Draft
             </button>
 
             <button
-              type="submit"
+              type="button"
+              onClick={handlePostJob}
               className={`inline-flex h-14 items-center gap-3 rounded-[14px] bg-[linear-gradient(135deg,#7f6bff,#9b3ff5)] px-8 text-[16px] font-bold text-white shadow-[0_14px_30px_rgba(139,92,246,0.25)] transition hover:scale-[1.02] ${
                 isRTL ? "flex-row-reverse" : ""
               }`}

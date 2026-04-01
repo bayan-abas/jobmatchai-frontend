@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -23,7 +24,7 @@ type JobItem = {
   newApplicants?: number;
 };
 
-const jobs: JobItem[] = [
+const defaultJobs: JobItem[] = [
   {
     id: 1,
     title: "Senior Frontend Developer",
@@ -92,21 +93,51 @@ function CompanyJobPostings() {
   const { language } = useLanguage();
   const isRTL = language === "ar" || language === "he";
 
+  const [postedJobs, setPostedJobs] = useState<JobItem[]>([]);
+
+  useEffect(() => {
+    const savedJobs = JSON.parse(localStorage.getItem("postedJobs") || "[]");
+
+    const formattedJobs: JobItem[] = savedJobs.map((job: any) => {
+      const salary =
+        job.minSalary || job.maxSalary
+          ? `$${job.minSalary || "0"} - $${job.maxSalary || "0"}`
+          : "Not specified";
+
+      return {
+        id: job.id,
+        title: job.title || "Untitled Job",
+        location: job.location || (job.remoteWork ? "Remote" : "Not specified"),
+        salary,
+        postedDate: job.postedDate || "Recently",
+        status: "Active",
+        applicants: 0,
+        newApplicants: 0,
+      };
+    });
+
+    setPostedJobs(formattedJobs);
+  }, []);
+
+  const allJobs = useMemo(() => {
+    return [...postedJobs, ...defaultJobs];
+  }, [postedJobs]);
+
   return (
-    <section
-      className={`relative min-h-[calc(100vh-78px)] overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(87,57,255,0.24),transparent_24%),linear-gradient(90deg,#15124a_0%,#161354_38%,#121a58_100%)] text-white ${
+    <div
+      className={`relative overflow-hidden text-white ${
         isRTL ? "text-right" : "text-left"
       }`}
       dir={isRTL ? "rtl" : "ltr"}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_65%_25%,rgba(0,194,255,0.10),transparent_10%),radial-gradient(circle_at_62%_80%,rgba(116,80,255,0.10),transparent_18%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.14] bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:90px_90px]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_65%_25%,rgba(0,194,255,0.09),transparent_10%),radial-gradient(circle_at_62%_80%,rgba(116,80,255,0.10),transparent_18%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.12] bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:90px_90px]" />
 
-      <div className="relative z-10 w-full px-8 pb-10 pt-10 max-[700px]:px-4 xl:px-10 2xl:px-12">
+      <div className="relative z-10 w-full px-8 pb-10 pt-10 xl:px-10 2xl:px-12 max-[700px]:px-4">
         <button
           type="button"
           onClick={() => navigate("/company-dashboard")}
-          className={`mb-10 inline-flex items-center gap-3 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-6 py-3 text-[16px] font-semibold text-white/85 backdrop-blur-[8px] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-white ${
+          className={`mb-10 inline-flex items-center gap-3 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-6 py-3 text-[16px] font-semibold text-white/80 backdrop-blur-[8px] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-white ${
             isRTL ? "flex-row-reverse" : ""
           }`}
         >
@@ -129,11 +160,11 @@ function CompanyJobPostings() {
             </div>
 
             <div>
-              <h1 className="text-[42px] font-extrabold leading-none text-white max-[900px]:text-[32px]">
+              <h1 className="text-[46px] font-extrabold leading-none text-white max-[900px]:text-[34px]">
                 Job Postings
               </h1>
-              <p className="mt-3 text-[18px] text-white/55">
-                {jobs.length} total jobs
+              <p className="mt-3 text-[18px] text-white/50">
+                {allJobs.length} total jobs
               </p>
             </div>
           </div>
@@ -151,7 +182,7 @@ function CompanyJobPostings() {
         </div>
 
         <div className="space-y-6">
-          {jobs.map((job) => (
+          {allJobs.map((job) => (
             <div
               key={job.id}
               className="rounded-[28px] border border-white/10 bg-[rgba(48,46,108,0.72)] px-7 py-7 shadow-[0_10px_35px_rgba(0,0,0,0.16)] backdrop-blur-[10px] transition hover:bg-[rgba(54,52,118,0.84)]"
@@ -160,9 +191,7 @@ function CompanyJobPostings() {
                 <div className="min-w-0 flex-1">
                   <div
                     className={`mb-4 flex flex-wrap items-center gap-4 ${
-                      isRTL
-                        ? "flex-row-reverse justify-end xl:justify-start"
-                        : ""
+                      isRTL ? "flex-row-reverse justify-end xl:justify-start" : ""
                     }`}
                   >
                     <h2 className="text-[24px] font-extrabold text-white">
@@ -250,7 +279,7 @@ function CompanyJobPostings() {
           ))}
         </div>
       </div>
-    </section>
+    </div>
   );
 }
 
