@@ -94,7 +94,7 @@ const translations = {
     started: "ابدأ الآن",
 
     heroBadge: "مطابقة وظائف ذكية مدعومة بالذكاء الاصطناعي للسوق الإسرائيلي",
-    heroTitle1: "ابحثي عن",
+    heroTitle1: "ابحث عن",
     heroTitle2: "",
     heroTitle3: " الوظيفة المثالية",
     heroDescription:
@@ -172,7 +172,7 @@ const translations = {
     started: "התחל עכשיו",
 
     heroBadge: "התאמת משרות חכמה מבוססת בינה מלאכותית לשוק הישראלי",
-    heroTitle1: "מצאי את",
+    heroTitle1: "מצא את",
     heroTitle2: "",
     heroTitle3: " המשרה המושלמת",
     heroDescription:

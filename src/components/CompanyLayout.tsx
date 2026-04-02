@@ -55,9 +55,10 @@ function CompanyLayout({ children }: CompanyLayoutProps) {
               isRTL ? "flex-row-reverse" : ""
             }`}
           >
+            {/* ✅ التعديل هون */}
             <button
               type="button"
-              onClick={() => navigate("/")}
+              onClick={() => navigate(-1)}
               className="flex h-[42px] w-[42px] items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-[#cfd3f6] transition hover:bg-white/[0.08] hover:text-white"
             >
               <ArrowLeft size={20} className={isRTL ? "rotate-180" : ""} />
@@ -72,7 +73,8 @@ function CompanyLayout({ children }: CompanyLayoutProps) {
               <input
                 type="text"
                 placeholder={
-                  t?.dashboard?.searchPlaceholder || "Search jobs, companies..."
+                  t?.dashboard?.searchPlaceholder ||
+                  "Search jobs, companies..."
                 }
                 className={`w-full bg-transparent text-[15px] text-white outline-none placeholder:text-[#8d94bd] ${
                   isRTL ? "text-right" : "text-left"

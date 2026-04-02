@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   UserRound,
@@ -12,9 +12,14 @@ import {
   FileText,
   Upload,
 } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
+import { translations } from "../translations";
 
 function CandidateRegisterPage() {
   const navigate = useNavigate();
+  const { language, setLanguage } = useLanguage();
+  const t = translations[language];
+  const isRTL = language === "ar" || language === "he";
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -33,6 +38,16 @@ function CandidateRegisterPage() {
   const [resumeName, setResumeName] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  useEffect(() => {
+    const registeredUser = JSON.parse(
+      localStorage.getItem("registeredUser") || "null"
+    );
+
+    if (registeredUser?.role === "candidate") {
+      navigate("/candidate-dashboard");
+    }
+  }, [navigate]);
 
   const jobTitles = [
     "Student",
@@ -209,7 +224,6 @@ function CandidateRegisterPage() {
   const handleResumeUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setResumeName(file.name);
   };
 
@@ -255,23 +269,35 @@ function CandidateRegisterPage() {
       !currentTitle ||
       !experience
     ) {
-      setError("Please fill in all required fields.");
+      setError(
+        t?.candidateRegisterPage?.errors?.requiredFields ||
+          "Please fill in all required fields."
+      );
       return;
     }
 
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailPattern.test(email)) {
-      setError("Please enter a valid email address.");
+      setError(
+        t?.candidateRegisterPage?.errors?.invalidEmail ||
+          "Please enter a valid email address."
+      );
       return;
     }
 
     if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+      setError(
+        t?.candidateRegisterPage?.errors?.passwordLength ||
+          "Password must be at least 6 characters."
+      );
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      setError(
+        t?.candidateRegisterPage?.errors?.passwordMismatch ||
+          "Passwords do not match."
+      );
       return;
     }
 
@@ -284,13 +310,17 @@ function CandidateRegisterPage() {
     );
 
     if (emailExists) {
-      setError("This email is already registered.");
+      setError(
+        t?.candidateRegisterPage?.errors?.emailExists ||
+          "This email is already registered."
+      );
       return;
     }
 
     const candidateSummary =
       summary.trim() ||
-      "Passionate professional looking for great opportunities and continuous growth.";
+      (t?.candidateRegisterPage?.defaultSummary ||
+        "Passionate professional looking for great opportunities and continuous growth.");
 
     const newCandidate = {
       name: fullName,
@@ -321,20 +351,31 @@ function CandidateRegisterPage() {
     localStorage.setItem("skills", JSON.stringify(skills));
     localStorage.setItem("summary", candidateSummary);
     localStorage.setItem("resumeName", resumeName);
-    localStorage.setItem("isFirstLogin", "true");
+    localStorage.setItem("isFirstLogin", "false");
 
-    setSuccess("Candidate account created successfully!");
+    setSuccess(
+      t?.candidateRegisterPage?.success ||
+        "Candidate account created successfully!"
+    );
 
     setTimeout(() => {
       navigate("/candidate-dashboard");
-    }, 1200);
+    }, 900);
   };
 
-  const inputClass =
-    "w-full rounded-2xl border border-white/10 bg-white/5 pl-12 pr-4 py-3.5 text-white placeholder:text-white/40 outline-none transition focus:border-cyan-400/60 focus:bg-white/10";
+  const inputClass = `w-full rounded-2xl border border-white/10 bg-white/5 ${
+    isRTL ? "pr-12 pl-4 text-right" : "pl-12 pr-4 text-left"
+  } py-3.5 text-white placeholder:text-white/40 outline-none transition focus:border-cyan-400/60 focus:bg-white/10`;
+
+  const textareaClass = `w-full rounded-2xl border border-white/10 bg-white/5 ${
+    isRTL ? "pr-12 pl-4 text-right" : "pl-12 pr-4 text-left"
+  } py-3.5 text-white placeholder:text-white/40 outline-none transition resize-none focus:border-cyan-400/60 focus:bg-white/10`;
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(135deg,#17184a_0%,#1a1b56_40%,#17234f_100%)] px-4 py-10">
+    <div
+      dir={isRTL ? "rtl" : "ltr"}
+      className="min-h-screen bg-[linear-gradient(135deg,#17184a_0%,#1a1b56_40%,#17234f_100%)] px-4 py-10"
+    >
       <div className="mx-auto max-w-6xl overflow-hidden rounded-[32px] border border-white/10 bg-white/5 shadow-[0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl">
         <div className="grid min-h-[760px] lg:grid-cols-2">
           <div className="relative hidden overflow-hidden lg:flex">
@@ -343,33 +384,38 @@ function CandidateRegisterPage() {
               <div>
                 <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-medium text-cyan-300">
                   <UserRound size={16} />
-                  Candidate Portal
+                  {t?.candidateRegisterPage?.badge || "Candidate Portal"}
                 </div>
 
                 <h1 className="max-w-md text-4xl font-extrabold leading-tight text-white">
-                  Create your profile and discover smarter opportunities.
+                  {t?.candidateRegisterPage?.heroTitle ||
+                    "Create your profile and discover smarter opportunities."}
                 </h1>
 
                 <p className="mt-5 max-w-lg text-[16px] leading-7 text-white/70">
-                  Build your candidate account to showcase your skills,
-                  experience, and career goals in one clean and modern space.
+                  {t?.candidateRegisterPage?.heroText ||
+                    "Build your candidate account to showcase your skills, experience, and career goals in one clean and modern space."}
                 </p>
               </div>
 
               <div className="space-y-4">
                 <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
                   <p className="text-sm text-white/50">
-                    Why candidates use JobMatchAI
+                    {t?.candidateRegisterPage?.whyTitle ||
+                      "Why candidates use JobMatchAI"}
                   </p>
                   <div className="mt-4 grid gap-3">
                     <div className="rounded-2xl bg-white/5 px-4 py-3 text-white/80">
-                      Build a professional profile
+                      {t?.candidateRegisterPage?.why1 ||
+                        "Build a professional profile"}
                     </div>
                     <div className="rounded-2xl bg-white/5 px-4 py-3 text-white/80">
-                      Highlight your skills and strengths
+                      {t?.candidateRegisterPage?.why2 ||
+                        "Highlight your skills and strengths"}
                     </div>
                     <div className="rounded-2xl bg-white/5 px-4 py-3 text-white/80">
-                      Get matched with better opportunities
+                      {t?.candidateRegisterPage?.why3 ||
+                        "Get matched with better opportunities"}
                     </div>
                   </div>
                 </div>
@@ -378,19 +424,58 @@ function CandidateRegisterPage() {
           </div>
 
           <div className="p-6 sm:p-8 lg:p-10">
-            <button
-              onClick={() => navigate(-1)}
-              className="mb-6 rounded-2xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
-            >
-              ← Back
-            </button>
+            <div className="mb-6 flex items-center justify-between gap-3">
+              <button
+                onClick={() => navigate(-1)}
+                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
+              >
+                {t?.common?.back || "Back"}
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setLanguage("en")}
+                  className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                    language === "en"
+                      ? "bg-cyan-400 text-[#0f172a]"
+                      : "bg-white/5 text-white/75 hover:bg-white/10"
+                  }`}
+                >
+                  EN
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLanguage("ar")}
+                  className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                    language === "ar"
+                      ? "bg-cyan-400 text-[#0f172a]"
+                      : "bg-white/5 text-white/75 hover:bg-white/10"
+                  }`}
+                >
+                  AR
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLanguage("he")}
+                  className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                    language === "he"
+                      ? "bg-cyan-400 text-[#0f172a]"
+                      : "bg-white/5 text-white/75 hover:bg-white/10"
+                  }`}
+                >
+                  HE
+                </button>
+              </div>
+            </div>
 
             <div className="mb-8">
               <h2 className="text-3xl font-extrabold text-white">
-                Create Candidate Account
+                {t?.candidateRegisterPage?.title || "Create Candidate Account"}
               </h2>
               <p className="mt-2 text-white/60">
-                Enter your details to start your journey.
+                {t?.candidateRegisterPage?.subtitle ||
+                  "Enter your details to start your journey."}
               </p>
             </div>
 
@@ -398,13 +483,15 @@ function CandidateRegisterPage() {
               <div className="grid gap-5 md:grid-cols-2">
                 <div className="relative">
                   <UserRound
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40"
+                    className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${
+                      isRTL ? "right-4" : "left-4"
+                    }`}
                     size={18}
                   />
                   <input
                     type="text"
                     name="fullName"
-                    placeholder="Full Name"
+                    placeholder={t?.common?.fullName || "Full Name"}
                     value={formData.fullName}
                     onChange={handleChange}
                     className={inputClass}
@@ -413,13 +500,15 @@ function CandidateRegisterPage() {
 
                 <div className="relative">
                   <Mail
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40"
+                    className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${
+                      isRTL ? "right-4" : "left-4"
+                    }`}
                     size={18}
                   />
                   <input
                     type="email"
                     name="email"
-                    placeholder="Email Address"
+                    placeholder={t?.common?.email || "Email Address"}
                     value={formData.email}
                     onChange={handleChange}
                     className={inputClass}
@@ -428,13 +517,15 @@ function CandidateRegisterPage() {
 
                 <div className="relative">
                   <Lock
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40"
+                    className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${
+                      isRTL ? "right-4" : "left-4"
+                    }`}
                     size={18}
                   />
                   <input
                     type="password"
                     name="password"
-                    placeholder="Password"
+                    placeholder={t?.common?.password || "Password"}
                     value={formData.password}
                     onChange={handleChange}
                     className={inputClass}
@@ -443,13 +534,17 @@ function CandidateRegisterPage() {
 
                 <div className="relative">
                   <Lock
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40"
+                    className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${
+                      isRTL ? "right-4" : "left-4"
+                    }`}
                     size={18}
                   />
                   <input
                     type="password"
                     name="confirmPassword"
-                    placeholder="Confirm Password"
+                    placeholder={
+                      t?.common?.confirmPassword || "Confirm Password"
+                    }
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     className={inputClass}
@@ -458,13 +553,17 @@ function CandidateRegisterPage() {
 
                 <div className="relative">
                   <Phone
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40"
+                    className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${
+                      isRTL ? "right-4" : "left-4"
+                    }`}
                     size={18}
                   />
                   <input
                     type="text"
                     name="phone"
-                    placeholder="Phone Number"
+                    placeholder={
+                      t?.candidateRegisterPage?.phone || "Phone Number"
+                    }
                     value={formData.phone}
                     onChange={handleChange}
                     className={inputClass}
@@ -473,13 +572,15 @@ function CandidateRegisterPage() {
 
                 <div className="relative">
                   <MapPin
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40"
+                    className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${
+                      isRTL ? "right-4" : "left-4"
+                    }`}
                     size={18}
                   />
                   <input
                     type="text"
                     name="location"
-                    placeholder="Location"
+                    placeholder={t?.candidateRegisterPage?.location || "Location"}
                     value={formData.location}
                     onChange={handleChange}
                     className={inputClass}
@@ -488,7 +589,9 @@ function CandidateRegisterPage() {
 
                 <div className="relative">
                   <Briefcase
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40"
+                    className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${
+                      isRTL ? "right-4" : "left-4"
+                    }`}
                     size={18}
                   />
                   <select
@@ -498,7 +601,8 @@ function CandidateRegisterPage() {
                     className={`${inputClass} appearance-none`}
                   >
                     <option value="" className="text-black">
-                      Select Current Title
+                      {t?.candidateRegisterPage?.selectTitle ||
+                        "Select Current Title"}
                     </option>
                     {jobTitles.map((title) => (
                       <option key={title} value={title} className="text-black">
@@ -510,7 +614,9 @@ function CandidateRegisterPage() {
 
                 <div className="relative">
                   <Sparkles
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40"
+                    className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${
+                      isRTL ? "right-4" : "left-4"
+                    }`}
                     size={18}
                   />
                   <select
@@ -520,7 +626,8 @@ function CandidateRegisterPage() {
                     className={`${inputClass} appearance-none`}
                   >
                     <option value="" className="text-black">
-                      Years of Experience
+                      {t?.candidateRegisterPage?.experience ||
+                        "Years of Experience"}
                     </option>
                     {experienceOptions.map((exp) => (
                       <option key={exp} value={exp} className="text-black">
@@ -532,7 +639,7 @@ function CandidateRegisterPage() {
 
                 <div className="md:col-span-2">
                   <label className="mb-2 block text-sm font-medium text-white/75">
-                    Skills
+                    {t?.candidateRegisterPage?.skills || "Skills"}
                   </label>
 
                   <div className="flex gap-3 max-md:flex-col">
@@ -542,7 +649,8 @@ function CandidateRegisterPage() {
                       className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 text-white outline-none transition focus:border-cyan-400/60 focus:bg-white/10"
                     >
                       <option value="" className="text-black">
-                        Select a skill
+                        {t?.candidateRegisterPage?.selectSkill ||
+                          "Select a skill"}
                       </option>
                       {allSkills.map((skill) => (
                         <option
@@ -560,7 +668,7 @@ function CandidateRegisterPage() {
                       onClick={addSkill}
                       className="rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-6 py-3.5 font-bold text-white shadow-[0_12px_30px_rgba(34,211,238,0.25)] transition hover:scale-[1.01]"
                     >
-                      Add
+                      {t?.candidateRegisterPage?.addSkill || "Add"}
                     </button>
                   </div>
 
@@ -587,7 +695,9 @@ function CandidateRegisterPage() {
 
                 <div className="relative md:col-span-2">
                   <FileText
-                    className="absolute left-4 top-5 text-white/40"
+                    className={`absolute top-5 text-white/40 ${
+                      isRTL ? "right-4" : "left-4"
+                    }`}
                     size={18}
                   />
                   <textarea
@@ -595,14 +705,18 @@ function CandidateRegisterPage() {
                     value={formData.summary}
                     onChange={handleChange}
                     rows={5}
-                    placeholder="Write a short summary about yourself, your background, your goals, and what kind of opportunities you are looking for..."
-                    className="w-full rounded-2xl border border-white/10 bg-white/5 pl-12 pr-4 py-3.5 text-white placeholder:text-white/40 outline-none transition resize-none focus:border-cyan-400/60 focus:bg-white/10"
+                    placeholder={
+                      t?.candidateRegisterPage?.summaryPlaceholder ||
+                      "Write a short summary about yourself, your background, your goals, and what kind of opportunities you are looking for..."
+                    }
+                    className={textareaClass}
                   />
                 </div>
 
                 <div className="md:col-span-2">
                   <label className="mb-2 block text-sm font-medium text-white/75">
-                    Upload Resume (Optional)
+                    {t?.candidateRegisterPage?.uploadResume ||
+                      "Upload Resume (Optional)"}
                   </label>
 
                   <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.03] p-4 transition hover:bg-white/[0.05]">
@@ -614,16 +728,19 @@ function CandidateRegisterPage() {
 
                         <div>
                           <p className="text-sm font-medium text-white">
-                            {resumeName || "No file selected"}
+                            {resumeName ||
+                              t?.candidateRegisterPage?.noFile ||
+                              "No file selected"}
                           </p>
                           <p className="text-xs text-white/50">
-                            PDF, DOC, or DOCX — optional
+                            {t?.candidateRegisterPage?.resumeFormats ||
+                              "PDF, DOC, or DOCX — optional"}
                           </p>
                         </div>
                       </div>
 
                       <label className="cursor-pointer rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-5 py-3 text-sm font-bold text-white shadow-[0_12px_30px_rgba(34,211,238,0.25)] transition hover:scale-[1.01]">
-                        Choose File
+                        {t?.candidateRegisterPage?.chooseFile || "Choose File"}
                         <input
                           type="file"
                           accept=".pdf,.doc,.docx"
@@ -639,7 +756,7 @@ function CandidateRegisterPage() {
                         onClick={removeResume}
                         className="mt-3 text-sm font-medium text-red-300 transition hover:text-red-200"
                       >
-                        Remove file
+                        {t?.candidateRegisterPage?.removeFile || "Remove file"}
                       </button>
                     )}
                   </div>
@@ -662,7 +779,8 @@ function CandidateRegisterPage() {
                 type="submit"
                 className="w-full rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-6 py-4 text-base font-bold text-white shadow-[0_12px_30px_rgba(34,211,238,0.25)] transition hover:scale-[1.01]"
               >
-                Create Candidate Account
+                {t?.candidateRegisterPage?.createAccount ||
+                  "Create Candidate Account"}
               </button>
 
               <div className="grid gap-3 sm:grid-cols-2">
@@ -671,7 +789,7 @@ function CandidateRegisterPage() {
                   onClick={() => navigate("/login")}
                   className="rounded-2xl border border-white/15 bg-white/[0.03] px-5 py-3.5 font-semibold text-[#dce7ff] transition hover:bg-white/[0.06]"
                 >
-                  Already have an account?
+                  {t?.common?.alreadyHaveAccount || "Already have an account?"}
                 </button>
 
                 <button
@@ -679,7 +797,8 @@ function CandidateRegisterPage() {
                   onClick={() => navigate("/register/company")}
                   className="rounded-2xl border border-cyan-400/20 bg-cyan-400/5 px-5 py-3.5 font-semibold text-cyan-100 transition hover:bg-cyan-400/10"
                 >
-                  Switch to Company Registration
+                  {t?.candidateRegisterPage?.switchCompany ||
+                    "Switch to Company Registration"}
                 </button>
               </div>
             </form>
