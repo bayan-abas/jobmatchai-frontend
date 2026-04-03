@@ -114,7 +114,7 @@ function App() {
           }
         />
         <Route
-          path="/postJob"
+          path="/post-Job"
           element={
             <CompanyLayout>
               <PostJob />
