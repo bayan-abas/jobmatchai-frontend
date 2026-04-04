@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CompanySidebar from "./CompanySidebar";
+import AIChatButton from "./AIChatButton";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
 import { ArrowLeft, Search, Bell } from "lucide-react";
@@ -55,7 +56,6 @@ function CompanyLayout({ children }: CompanyLayoutProps) {
               isRTL ? "flex-row-reverse" : ""
             }`}
           >
-            {/* ✅ التعديل هون */}
             <button
               type="button"
               onClick={() => navigate(-1)}
@@ -125,6 +125,8 @@ function CompanyLayout({ children }: CompanyLayoutProps) {
         </header>
 
         <main className="pt-[78px]">{children}</main>
+
+        <AIChatButton />
       </div>
     </div>
   );

@@ -19,6 +19,10 @@ import PostJob from "./pages/PostJob";
 import ScrollToTop from "./components/ScrollToTop";
 import CandidateLayout from "./components/CandidateLayout";
 import CompanyLayout from "./components/CompanyLayout";
+import CompanyCandidates from "./pages/CompanyCandidates";
+import CompanyApplications from "./pages/CompanyApplications";
+import CompanyProfile from "./pages/CompanyProfile";
+import CompanyNotifications from "./pages/CompanyNotifications";
 
 function App() {
   const { language } = useLanguage();
@@ -40,6 +44,7 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/register/candidate" element={<RegisterPage />} />
         <Route path="/register/company" element={<CompanyRegisterPage />} />
+        
 
         {/* Candidate Routes */}
         <Route
@@ -121,6 +126,38 @@ function App() {
             </CompanyLayout>
           }
         />
+        <Route
+  path="/company-candidates"
+  element={
+    <CompanyLayout>
+      <CompanyCandidates />
+    </CompanyLayout>
+  }
+/>
+<Route
+  path="/company-applications"
+  element={
+    <CompanyLayout>
+      <CompanyApplications />
+    </CompanyLayout>
+  }
+/>
+<Route
+  path="/company-profile"
+  element={
+    <CompanyLayout>
+      <CompanyProfile />
+    </CompanyLayout>
+  }
+/>
+<Route
+  path="/company-notifications"
+  element={
+    <CompanyLayout>
+      <CompanyNotifications />
+    </CompanyLayout>
+  }
+/>
       </Routes>
     </>
   );

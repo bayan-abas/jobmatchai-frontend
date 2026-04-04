@@ -24,33 +24,48 @@ function LoginPage() {
     e.preventDefault();
     setError("");
 
-    if (!email.trim()) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPassword = password.trim();
+
+    if (!normalizedEmail) {
       setError(
         t?.loginPage?.errors?.emailRequired || "Please enter your email."
       );
       return;
     }
 
-    if (!password.trim()) {
+    if (!normalizedPassword) {
       setError(
         t?.loginPage?.errors?.passwordRequired || "Please enter your password."
       );
       return;
     }
 
-    const candidates = JSON.parse(localStorage.getItem("candidates") || "[]");
+    const candidates = [
+      ...JSON.parse(localStorage.getItem("candidates") || "[]"),
+      ...JSON.parse(localStorage.getItem("users") || "[]"),
+    ];
+
     const companies = JSON.parse(localStorage.getItem("companies") || "[]");
 
     const foundCandidate = candidates.find(
       (candidate: any) =>
-        candidate.email.toLowerCase() === email.toLowerCase()
+        candidate?.email?.trim().toLowerCase() === normalizedEmail
     );
 
     const foundCompany = companies.find(
-      (company: any) => company.email.toLowerCase() === email.toLowerCase()
+      (company: any) =>
+        company?.email?.trim().toLowerCase() === normalizedEmail
     );
 
     const foundUser = foundCandidate || foundCompany;
+
+    console.log("LOGIN DEBUG");
+    console.log("typed email:", normalizedEmail);
+    console.log("candidates:", candidates);
+    console.log("companies:", companies);
+    console.log("foundCandidate:", foundCandidate);
+    console.log("foundCompany:", foundCompany);
 
     if (!foundUser) {
       setError(
@@ -60,14 +75,16 @@ function LoginPage() {
       return;
     }
 
-    if (password !== foundUser.password) {
+    if ((foundUser.password || "").trim() !== normalizedPassword) {
       setError(
         t?.loginPage?.errors?.wrongPassword || "Incorrect password."
       );
       return;
     }
 
+    localStorage.setItem("currentUser", JSON.stringify(foundUser));
     localStorage.setItem("registeredUser", JSON.stringify(foundUser));
+    localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("name", foundUser.name || foundUser.companyName || "");
     localStorage.setItem("email", foundUser.email || "");
     localStorage.setItem("role", foundUser.role || "");
@@ -90,13 +107,17 @@ function LoginPage() {
     }
 
     if (foundUser.role === "company") {
+      localStorage.setItem("currentCompany", JSON.stringify(foundUser));
       localStorage.setItem("industry", foundUser.industry || "");
       localStorage.setItem("companySize", foundUser.companySize || "");
       localStorage.setItem("website", foundUser.website || "");
       localStorage.setItem("description", foundUser.description || "");
       localStorage.setItem("isFirstLogin", "false");
       navigate("/company-dashboard");
+      return;
     }
+
+    setError("Something went wrong.");
   };
 
   const inputClass = `w-full rounded-2xl border border-white/10 bg-white/5 ${

@@ -61,6 +61,25 @@ function CompanySidebar({
     },
   ];
 
+  const handleLogout = () => {
+    localStorage.removeItem("currentUser");
+    localStorage.removeItem("currentCompany");
+    localStorage.removeItem("registeredUser");
+    localStorage.removeItem("isLoggedIn");
+    localStorage.removeItem("name");
+    localStorage.removeItem("email");
+    localStorage.removeItem("role");
+    localStorage.removeItem("phone");
+    localStorage.removeItem("location");
+    localStorage.removeItem("industry");
+    localStorage.removeItem("companySize");
+    localStorage.removeItem("website");
+    localStorage.removeItem("description");
+    localStorage.removeItem("isFirstLogin");
+
+    navigate("/login");
+  };
+
   return (
     <aside
       className={`fixed top-0 z-50 flex h-screen flex-col justify-between overflow-hidden border-white/10 bg-[linear-gradient(180deg,#15184c_0%,#111444_60%,#0d1038_100%)] text-white transition-all duration-300 ${
@@ -68,7 +87,6 @@ function CompanySidebar({
       } ${isRTL ? "right-0 border-l" : "left-0 border-r"} max-[980px]:hidden`}
     >
       <div>
-        {/* TOP SECTION */}
         <div
           className={`flex items-center justify-between border-b border-white/10 px-5 pb-5 pt-5 ${
             isRTL ? "flex-row-reverse" : ""
@@ -110,7 +128,6 @@ function CompanySidebar({
           </button>
         </div>
 
-        {/* MENU ITEMS */}
         <div className="px-3 pt-5">
           <div className="flex flex-col gap-2">
             {menuItems.map((item) => {
@@ -160,7 +177,6 @@ function CompanySidebar({
         </div>
       </div>
 
-      {/* BOTTOM SECTION */}
       <div className="border-t border-white/10 px-3 pb-5 pt-4">
         {!isCollapsed && (
           <div className="mb-4 flex rounded-[18px] border border-white/10 bg-white/[0.03] p-1">
@@ -187,10 +203,7 @@ function CompanySidebar({
 
         <button
           type="button"
-          onClick={() => {
-            localStorage.clear();
-            navigate("/login");
-          }}
+          onClick={handleLogout}
           title={isCollapsed ? t.common.logout : ""}
           className={`flex w-full items-center rounded-[18px] text-[17px] font-semibold text-[#b7bddb] transition hover:bg-white/[0.04] hover:text-white ${
             isCollapsed

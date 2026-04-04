@@ -134,7 +134,7 @@ function CompanyJobPostings() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_65%_25%,rgba(0,194,255,0.09),transparent_10%),radial-gradient(circle_at_62%_80%,rgba(116,80,255,0.10),transparent_18%)]" />
       <div className="pointer-events-none absolute inset-0 opacity-[0.12] bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:90px_90px]" />
 
-      <div className="relative z-10 w-full px-8 pb-10 pt-10 xl:px-10 2xl:px-12 max-[700px]:px-4">
+     <div className="relative z-10 mx-auto w-full max-w-[980px] px-6 pb-10 pt-10 md:px-8 xl:px-0">
         <button
           type="button"
           onClick={() => navigate("/company-dashboard")}

@@ -1,6 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, Mail, Lock, Phone, MapPin, Globe, Briefcase, Users, FileText } from "lucide-react";
+import {
+  Building2,
+  Mail,
+  Lock,
+  Phone,
+  MapPin,
+  Globe,
+  Briefcase,
+  Users,
+  FileText,
+} from "lucide-react";
 
 function CompanyRegisterPage() {
   const navigate = useNavigate();
@@ -81,13 +91,22 @@ function CompanyRegisterPage() {
       description,
     } = formData;
 
+    const cleanCompanyName = companyName.trim();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
+    const cleanConfirmPassword = confirmPassword.trim();
+    const cleanPhone = phone.trim();
+    const cleanLocation = location.trim();
+    const cleanWebsite = website.trim();
+    const cleanDescription = description.trim();
+
     if (
-      !companyName ||
-      !email ||
-      !password ||
-      !confirmPassword ||
-      !phone ||
-      !location ||
+      !cleanCompanyName ||
+      !cleanEmail ||
+      !cleanPassword ||
+      !cleanConfirmPassword ||
+      !cleanPhone ||
+      !cleanLocation ||
       !industry ||
       !companySize
     ) {
@@ -95,7 +114,18 @@ function CompanyRegisterPage() {
       return;
     }
 
-    if (password !== confirmPassword) {
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(cleanEmail)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    if (cleanPassword.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+
+    if (cleanPassword !== cleanConfirmPassword) {
       setError("Passwords do not match.");
       return;
     }
@@ -103,7 +133,7 @@ function CompanyRegisterPage() {
     const existingCompanies = JSON.parse(localStorage.getItem("companies") || "[]");
 
     const emailExists = existingCompanies.some(
-      (company: any) => company.email.toLowerCase() === email.toLowerCase()
+      (company: any) => company.email?.trim().toLowerCase() === cleanEmail
     );
 
     if (emailExists) {
@@ -112,15 +142,15 @@ function CompanyRegisterPage() {
     }
 
     const newCompany = {
-      companyName,
-      email,
-      password,
-      phone,
-      location,
+      companyName: cleanCompanyName,
+      email: cleanEmail,
+      password: cleanPassword,
+      phone: cleanPhone,
+      location: cleanLocation,
       industry,
       companySize,
-      website,
-      description,
+      website: cleanWebsite,
+      description: cleanDescription,
       role: "company",
       createdAt: new Date().toISOString(),
     };
@@ -128,11 +158,26 @@ function CompanyRegisterPage() {
     existingCompanies.push(newCompany);
     localStorage.setItem("companies", JSON.stringify(existingCompanies));
 
+    localStorage.setItem("currentUser", JSON.stringify(newCompany));
+    localStorage.setItem("currentCompany", JSON.stringify(newCompany));
+    localStorage.setItem("registeredUser", JSON.stringify(newCompany));
+    localStorage.setItem("isLoggedIn", "true");
+    localStorage.setItem("role", "company");
+    localStorage.setItem("name", newCompany.companyName);
+    localStorage.setItem("email", newCompany.email);
+    localStorage.setItem("phone", newCompany.phone);
+    localStorage.setItem("location", newCompany.location);
+    localStorage.setItem("industry", newCompany.industry);
+    localStorage.setItem("companySize", newCompany.companySize);
+    localStorage.setItem("website", newCompany.website);
+    localStorage.setItem("description", newCompany.description);
+    localStorage.setItem("isFirstLogin", "false");
+
     setSuccess("Company account created successfully!");
 
     setTimeout(() => {
-      navigate("/login");
-    }, 1200);
+      navigate("/company-dashboard");
+    }, 900);
   };
 
   const inputClass =
@@ -142,7 +187,6 @@ function CompanyRegisterPage() {
     <div className="min-h-screen bg-[linear-gradient(135deg,#17184a_0%,#1a1b56_40%,#17234f_100%)] px-4 py-10">
       <div className="mx-auto max-w-6xl overflow-hidden rounded-[32px] border border-white/10 bg-white/5 shadow-[0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl">
         <div className="grid min-h-[760px] lg:grid-cols-2">
-          {/* Left Side */}
           <div className="relative hidden overflow-hidden lg:flex">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.22),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(139,92,246,0.22),transparent_30%)]" />
             <div className="relative z-10 flex w-full flex-col justify-between p-10">
@@ -157,8 +201,8 @@ function CompanyRegisterPage() {
                 </h1>
 
                 <p className="mt-5 max-w-lg text-[16px] leading-7 text-white/70">
-                  Create your company account to publish opportunities, discover matching candidates,
-                  and manage your recruitment flow in one modern dashboard.
+                  Create your company account to publish opportunities, discover matching
+                  candidates, and manage your recruitment flow in one modern dashboard.
                 </p>
               </div>
 
@@ -181,7 +225,6 @@ function CompanyRegisterPage() {
             </div>
           </div>
 
-          {/* Right Side */}
           <div className="p-6 sm:p-8 lg:p-10">
             <button
               onClick={() => navigate(-1)}

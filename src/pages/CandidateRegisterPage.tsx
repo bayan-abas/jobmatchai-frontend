@@ -40,11 +40,11 @@ function CandidateRegisterPage() {
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
-    const registeredUser = JSON.parse(
-      localStorage.getItem("registeredUser") || "null"
+    const currentUser = JSON.parse(
+      localStorage.getItem("currentUser") || "null"
     );
 
-    if (registeredUser?.role === "candidate") {
+    if (currentUser?.role === "candidate") {
       navigate("/candidate-dashboard");
     }
   }, [navigate]);
@@ -259,13 +259,21 @@ function CandidateRegisterPage() {
       summary,
     } = formData;
 
+    const cleanFullName = fullName.trim();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
+    const cleanConfirmPassword = confirmPassword.trim();
+    const cleanPhone = phone.trim();
+    const cleanLocation = location.trim();
+    const cleanSummary = summary.trim();
+
     if (
-      !fullName ||
-      !email ||
-      !password ||
-      !confirmPassword ||
-      !phone ||
-      !location ||
+      !cleanFullName ||
+      !cleanEmail ||
+      !cleanPassword ||
+      !cleanConfirmPassword ||
+      !cleanPhone ||
+      !cleanLocation ||
       !currentTitle ||
       !experience
     ) {
@@ -277,7 +285,7 @@ function CandidateRegisterPage() {
     }
 
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailPattern.test(email)) {
+    if (!emailPattern.test(cleanEmail)) {
       setError(
         t?.candidateRegisterPage?.errors?.invalidEmail ||
           "Please enter a valid email address."
@@ -285,7 +293,7 @@ function CandidateRegisterPage() {
       return;
     }
 
-    if (password.length < 6) {
+    if (cleanPassword.length < 6) {
       setError(
         t?.candidateRegisterPage?.errors?.passwordLength ||
           "Password must be at least 6 characters."
@@ -293,7 +301,7 @@ function CandidateRegisterPage() {
       return;
     }
 
-    if (password !== confirmPassword) {
+    if (cleanPassword !== cleanConfirmPassword) {
       setError(
         t?.candidateRegisterPage?.errors?.passwordMismatch ||
           "Passwords do not match."
@@ -306,7 +314,8 @@ function CandidateRegisterPage() {
     );
 
     const emailExists = existingCandidates.some(
-      (candidate: any) => candidate.email.toLowerCase() === email.toLowerCase()
+      (candidate: any) =>
+        candidate.email?.trim().toLowerCase() === cleanEmail
     );
 
     if (emailExists) {
@@ -318,17 +327,18 @@ function CandidateRegisterPage() {
     }
 
     const candidateSummary =
-      summary.trim() ||
+      cleanSummary ||
       (t?.candidateRegisterPage?.defaultSummary ||
         "Passionate professional looking for great opportunities and continuous growth.");
 
     const newCandidate = {
-      name: fullName,
-      email,
-      password,
+      name: cleanFullName,
+      fullName: cleanFullName,
+      email: cleanEmail,
+      password: cleanPassword,
       role: "candidate",
-      phone,
-      location,
+      phone: cleanPhone,
+      location: cleanLocation,
       currentTitle,
       experience,
       skills,
@@ -340,12 +350,14 @@ function CandidateRegisterPage() {
     existingCandidates.push(newCandidate);
     localStorage.setItem("candidates", JSON.stringify(existingCandidates));
 
+    localStorage.setItem("currentUser", JSON.stringify(newCandidate));
     localStorage.setItem("registeredUser", JSON.stringify(newCandidate));
-    localStorage.setItem("name", fullName);
-    localStorage.setItem("email", email);
+    localStorage.setItem("isLoggedIn", "true");
+    localStorage.setItem("name", cleanFullName);
+    localStorage.setItem("email", cleanEmail);
     localStorage.setItem("role", "candidate");
-    localStorage.setItem("phone", phone);
-    localStorage.setItem("location", location);
+    localStorage.setItem("phone", cleanPhone);
+    localStorage.setItem("location", cleanLocation);
     localStorage.setItem("currentTitle", currentTitle);
     localStorage.setItem("experience", experience);
     localStorage.setItem("skills", JSON.stringify(skills));
