@@ -94,6 +94,7 @@ function CompanyJobPostings() {
   const isRTL = language === "ar" || language === "he";
 
   const [postedJobs, setPostedJobs] = useState<JobItem[]>([]);
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
   useEffect(() => {
     const savedJobs = JSON.parse(localStorage.getItem("postedJobs") || "[]");
@@ -185,8 +186,9 @@ function CompanyJobPostings() {
           {allJobs.map((job) => (
             <div
               key={job.id}
-              className="rounded-[28px] border border-white/10 bg-[rgba(48,46,108,0.72)] px-7 py-7 shadow-[0_10px_35px_rgba(0,0,0,0.16)] backdrop-blur-[10px] transition hover:bg-[rgba(54,52,118,0.84)]"
-            >
+              className={`relative rounded-[28px] border border-white/10 bg-[rgba(48,46,108,0.72)] px-7 py-7 shadow-[0_10px_35px_rgba(0,0,0,0.16)] backdrop-blur-[10px] transition hover:bg-[rgba(54,52,118,0.84)] ${
+                openMenuId === job.id ? "z-50" : "z-0"
+              }`}            >
               <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
                 <div className="min-w-0 flex-1">
                   <div
@@ -267,12 +269,29 @@ function CompanyJobPostings() {
                     View Applicants
                   </button>
 
-                  <button
-                    type="button"
-                    className="rounded-full p-2 text-white/45 transition hover:bg-white/10 hover:text-white"
-                  >
-                    <MoreVertical size={20} />
-                  </button>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setOpenMenuId(openMenuId === job.id ? null : job.id)
+                      }
+                      className="rounded-full p-2 text-white/45 transition hover:bg-white/10 hover:text-white"
+                    >
+                      <MoreVertical size={20} />
+                    </button>
+
+                    {openMenuId === job.id && (
+                      <div className="absolute right-0 top-full mt-2 w-[180px] rounded-[14px] bg-white text-black shadow-lg z-[9999]">
+                        <button className="flex w-full items-center gap-2 px-4 py-3 hover:bg-gray-100">
+                          View Details
+                        </button>
+
+                        <button className="flex w-full items-center gap-2 px-4 py-3 hover:bg-gray-100">
+                          Edit Job
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
