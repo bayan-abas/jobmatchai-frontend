@@ -67,6 +67,15 @@ function CompanyCandidates() {
   const [minSalary, setMinSalary] = useState(0);
   const [minMatch, setMinMatch] = useState(0);
   const [minPreInterview, setMinPreInterview] = useState(0);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [messageText, setMessageText] = useState("");
+
+  //Schedule Interview
+  const [showInterviewModal, setShowInterviewModal] = useState(false);
+  const [interviewDate, setInterviewDate] = useState("");
+  const [interviewTime, setInterviewTime] = useState("");
+  const [interviewType, setInterviewType] = useState("Online");
+  const [interviewNotes, setInterviewNotes] = useState("");
 
   const candidates: Candidate[] = [
     {
@@ -561,12 +570,29 @@ function CompanyCandidates() {
                 </div>
 
                 <div className="flex w-full flex-col gap-3 xl:w-[260px]">
-                  <button className="flex items-center justify-center gap-2 rounded-[14px] bg-[linear-gradient(135deg,#7f6bff,#9b3ff5)] px-5 py-3.5 text-[15px] font-bold text-white transition hover:opacity-95">
+                  <button
+                    onClick={() => {
+                      setMessageText(
+                        `Hi ${selectedCandidate.name}, we would like to contact you regarding your profile.`
+                      );
+                      setShowContactModal(true);
+                    }}
+                    className="flex items-center justify-center gap-2 rounded-[14px] bg-[linear-gradient(135deg,#7f6bff,#9b3ff5)] px-5 py-3.5 text-[15px] font-bold text-white transition hover:opacity-95"
+                  >
                     <Send size={17} />
                     Contact Candidate
                   </button>
 
-                  <button className="flex items-center justify-center gap-2 rounded-[14px] border border-white/15 bg-white/[0.03] px-5 py-3.5 text-[15px] font-semibold text-[#b8c4ff] transition hover:bg-white/[0.06]">
+                  <button
+                    onClick={() => {
+                      setInterviewDate("");
+                      setInterviewTime("");
+                      setInterviewType("Online");
+                      setInterviewNotes("");
+                      setShowInterviewModal(true);
+                    }}
+                    className="flex items-center justify-center gap-2 rounded-[14px] border border-white/15 bg-white/[0.03] px-5 py-3.5 text-[15px] font-semibold text-[#b8c4ff] transition hover:bg-white/[0.06]"
+                  >
                     <Calendar size={17} />
                     Schedule Interview
                   </button>
@@ -689,6 +715,145 @@ function CompanyCandidates() {
               </div>
             </div>
           </>
+        )}
+        {showContactModal && selectedCandidate && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 px-4">
+            <div className="w-full max-w-[560px] rounded-[28px] border border-white/10 bg-[#1b1d57] p-6 text-white shadow-[0_20px_80px_rgba(0,0,0,0.45)]">
+
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <h2 className="text-[24px] font-extrabold">
+                    Contact {selectedCandidate.name}
+                  </h2>
+                  <p className="text-sm text-white/55">
+                    {selectedCandidate.email}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setShowContactModal(false)}
+                  className="text-white/60 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <textarea
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
+                rows={5}
+                className="w-full mb-4 rounded-[14px] border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+              />
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowContactModal(false)}
+                  className="px-4 py-2 rounded bg-white/10"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={() => {
+                    alert("Message sent!");
+                    setShowContactModal(false);
+                  }}
+                  className="px-4 py-2 rounded bg-purple-500"
+                >
+                  Send
+                </button>
+              </div>
+
+            </div>
+          </div>
+        )}
+        {showInterviewModal && selectedCandidate && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 px-4">
+            <div className="w-full max-w-[560px] rounded-[28px] border border-white/10 bg-[#1b1d57] p-6 text-white shadow-[0_20px_80px_rgba(0,0,0,0.45)]">
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <h2 className="text-[24px] font-extrabold">
+                    Schedule Interview
+                  </h2>
+                  <p className="text-sm text-white/55">
+                    With {selectedCandidate.name}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setShowInterviewModal(false)}
+                  className="text-white/60 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm text-white/70">Date</label>
+                  <input
+                    type="date"
+                    value={interviewDate}
+                    onChange={(e) => setInterviewDate(e.target.value)}
+                    className="w-full rounded-[14px] border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm text-white/70">Time</label>
+                  <input
+                    type="time"
+                    value={interviewTime}
+                    onChange={(e) => setInterviewTime(e.target.value)}
+                    className="w-full rounded-[14px] border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="mb-2 block text-sm text-white/70">Interview Type</label>
+                <select
+                  value={interviewType}
+                  onChange={(e) => setInterviewType(e.target.value)}
+                  className="w-full rounded-[14px] border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+                >
+                  <option value="Online" className="bg-[#1d2258] text-white">Online</option>
+                  <option value="In Person" className="bg-[#1d2258] text-white">In Person</option>
+                </select>
+              </div>
+
+              <div className="mt-4">
+                <label className="mb-2 block text-sm text-white/70">Notes</label>
+                <textarea
+                  value={interviewNotes}
+                  onChange={(e) => setInterviewNotes(e.target.value)}
+                  rows={4}
+                  className="w-full rounded-[14px] border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+                  placeholder="Add interview notes..."
+                />
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  onClick={() => setShowInterviewModal(false)}
+                  className="px-4 py-2 rounded bg-white/10"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={() => {
+                    alert(`Interview scheduled with ${selectedCandidate.name}`);
+                    setShowInterviewModal(false);
+                  }}
+                  className="flex items-center gap-2 rounded bg-purple-500 px-4 py-2 text-white"
+                >
+                  <Calendar size={16} />
+                  Confirm Schedule
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
