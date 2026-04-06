@@ -102,19 +102,23 @@ function CompanyProfile() {
             </div>
           </div>
 
-          <button
-            onClick={() => {
-              if (isEditing) {
-                handleSave();
-              } else {
-                setIsEditing(true);
-              }
-            }}
-            className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-violet-500 to-indigo-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-500/20 transition hover:scale-[1.02]"
-          >
-            <Pencil size={16} />
-            {isEditing ? "Save Changes" : "Edit Profile"}
-          </button>
+            <button
+              onClick={() => {
+                if (isEditing) {
+                  handleSave();
+                } else {
+                  setIsEditing(true);
+                }
+              }}
+              className={`flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white transition ${
+                isEditing
+                  ? "rounded-lg bg-green-500 hover:bg-green-600 shadow-md"
+                  : "rounded-2xl bg-gradient-to-r from-violet-500 to-indigo-500 shadow-lg shadow-violet-500/20 hover:scale-[1.02]"
+              }`}
+            >
+              <Pencil size={16} />
+              {isEditing ? "Save Changes" : "Edit Profile"}
+            </button>
         </div>
 
         <div className="grid grid-cols-1 gap-8 xl:grid-cols-[440px_1fr]">
