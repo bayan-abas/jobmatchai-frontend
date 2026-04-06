@@ -183,6 +183,20 @@ function CompanyDashboard() {
                 return (
                   <div
                     key={item.title}
+                    onClick={() => {
+                      if (item.title === "Active Jobs") {
+                        navigate("/company-job-postings");
+                      }
+                      if (item.title === "Total Candidates") {
+                        navigate("/company-candidates");
+                      }
+                      if (item.title === "New Applications") {
+                        navigate("/company-applications");
+                      }
+                      if (item.title === "Hired This Month") {
+                        navigate("/company-applications");
+                      }
+                    }}
                     className="group rounded-[28px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.14)] transition hover:-translate-y-1 hover:bg-white/[0.065]"
                   >
                     <div className="mb-8 flex items-start justify-between">
