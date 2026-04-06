@@ -261,6 +261,7 @@ function CompanyJobPostings() {
 
                   <button
                     type="button"
+                    onClick={() => navigate("/company-applications")}
                     className={`inline-flex items-center gap-3 rounded-[14px] border border-[rgba(140,157,255,0.25)] bg-[rgba(255,255,255,0.02)] px-5 py-3 text-[15px] font-semibold text-[#b8c4ff] transition hover:bg-[rgba(255,255,255,0.06)] ${
                       isRTL ? "flex-row-reverse" : ""
                     }`}
