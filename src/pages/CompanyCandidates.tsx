@@ -597,7 +597,15 @@ function CompanyCandidates() {
                     Schedule Interview
                   </button>
 
-                  <button className="flex items-center justify-center gap-2 rounded-[14px] border border-cyan-400/30 bg-cyan-400/5 px-5 py-3.5 text-[15px] font-semibold text-cyan-300 transition hover:bg-cyan-400/10">
+                  <button
+                    onClick={() => {
+                      const link = document.createElement("a");
+                      link.href = "/resume.pdf";
+                      link.download = "Resume.pdf";
+                      link.click();
+                    }}
+                    className="flex items-center justify-center gap-2 rounded-[14px] border border-cyan-400/30 bg-cyan-400/10 px-5 py-3.5 text-[15px] font-semibold text-cyan-300 transition hover:bg-cyan-400/20"
+                  >
                     <Download size={17} />
                     Download Resume
                   </button>
