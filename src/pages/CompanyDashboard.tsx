@@ -169,7 +169,7 @@ function CompanyDashboard() {
               </div>
 
               <button
-                onClick={() => navigate("/postJob")}
+                onClick={() => navigate("/post-job")}
                 className="inline-flex items-center gap-2 self-start rounded-2xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-5 py-3.5 text-sm font-bold text-white shadow-[0_14px_35px_rgba(99,102,241,0.35)] transition hover:scale-[1.02]"
               >
                 <Plus size={18} />
