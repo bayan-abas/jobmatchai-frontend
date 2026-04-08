@@ -23,6 +23,9 @@ import CompanyCandidates from "./pages/CompanyCandidates";
 import CompanyApplications from "./pages/CompanyApplications";
 import CompanyProfile from "./pages/CompanyProfile";
 import CompanyNotifications from "./pages/CompanyNotifications";
+import PublicJobsPage from "./pages/PublicJobsPage";
+
+
 
 function App() {
   const { language } = useLanguage();
@@ -40,6 +43,7 @@ function App() {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<HomePage />} />
+        <Route path="/jobs" element={<PublicJobsPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/register/candidate" element={<RegisterPage />} />
@@ -127,37 +131,37 @@ function App() {
           }
         />
         <Route
-  path="/company-candidates"
-  element={
-    <CompanyLayout>
-      <CompanyCandidates />
-    </CompanyLayout>
-  }
-/>
-<Route
-  path="/company-applications"
-  element={
-    <CompanyLayout>
-      <CompanyApplications />
-    </CompanyLayout>
-  }
-/>
-<Route
-  path="/company-profile"
-  element={
-    <CompanyLayout>
-      <CompanyProfile />
-    </CompanyLayout>
-  }
-/>
-<Route
-  path="/company-notifications"
-  element={
-    <CompanyLayout>
-      <CompanyNotifications />
-    </CompanyLayout>
-  }
-/>
+          path="/company-candidates"
+          element={
+            <CompanyLayout>
+              <CompanyCandidates />
+            </CompanyLayout>
+          }
+        />
+        <Route
+          path="/company-applications"
+          element={
+            <CompanyLayout>
+              <CompanyApplications />
+            </CompanyLayout>
+          }
+        />
+        <Route
+          path="/company-profile"
+          element={
+            <CompanyLayout>
+              <CompanyProfile />
+            </CompanyLayout>
+          }
+        />
+        <Route
+          path="/company-notifications"
+          element={
+            <CompanyLayout>
+              <CompanyNotifications />
+            </CompanyLayout>
+          }
+        />
       </Routes>
     </>
   );

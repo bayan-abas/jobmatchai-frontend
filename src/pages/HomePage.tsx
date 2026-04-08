@@ -280,6 +280,25 @@ function HomePage() {
           </span>
         </div>
 
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-[18px] border border-white/10 bg-white/[0.05] p-1 backdrop-blur-md max-[900px]:hidden">
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="rounded-[14px] px-5 py-2 text-sm font-semibold text-white"
+          >
+            {t.home}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate("/jobs")}
+            className="rounded-[14px] px-5 py-2 text-sm font-semibold text-[#c9d6ed] transition hover:bg-white/10 hover:text-white"
+          >
+            Jobs
+          </button>
+        </div>
+
+
         <div className="flex items-center gap-3 max-[900px]:flex-wrap max-[900px]:justify-center">
           <div className="flex items-center gap-1 rounded-[18px] border border-white/10 bg-white/[0.05] p-1 backdrop-blur-md">
             {(["he", "ar", "en"] as Language[]).map((lang) => (
@@ -301,6 +320,7 @@ function HomePage() {
               </button>
             ))}
           </div>
+
 
           <button
             onClick={() => navigate("/login")}
