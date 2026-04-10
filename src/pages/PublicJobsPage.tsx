@@ -126,7 +126,7 @@ function PublicJobsPage() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(115,73,255,0.18),transparent_22%),radial-gradient(circle_at_80%_85%,rgba(0,153,255,0.16),transparent_24%)]" />
 
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[rgba(7,11,36,0.82)] backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4">
+        <div className="relative mx-auto flex max-w-[1400px] items-center px-6 py-4">
           <button
             type="button"
             onClick={() => navigate("/")}
@@ -146,22 +146,24 @@ function PublicJobsPage() {
             </div>
           </button>
 
-          <div className="hidden items-center gap-4 md:flex">
+          <div className="absolute left-1/2 hidden -translate-x-1/2 md:flex items-center gap-1 rounded-[18px] border border-white/10 bg-white/[0.05] p-1 backdrop-blur-md">
             <button
               type="button"
               onClick={() => navigate("/")}
-              className="rounded-xl px-4 py-2 text-sm font-medium text-white/75 transition hover:bg-white/10 hover:text-white"
+              className="rounded-[14px] px-5 py-2 text-sm font-semibold text-[#c9d6ed] transition hover:bg-white/10 hover:text-white"
             >
               Home
             </button>
 
             <button
               type="button"
-              className="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-white"
+              className="rounded-[14px] px-5 py-2 text-sm font-semibold text-white"
             >
               Jobs
             </button>
+          </div>
 
+          <div className="ml-auto hidden items-center gap-4 md:flex">
             <button
               type="button"
               onClick={() => navigate("/login")}
