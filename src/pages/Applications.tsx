@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import {
-  BriefcaseBusiness,
+  Building2,
   MapPin,
   ArrowLeft,
   ChevronRight,
@@ -12,10 +12,14 @@ import {
   Eye,
   Star,
   CheckCircle2,
+  Clock3,
+
+
 } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
+import { translations } from "../translations";
 
 type FilterType = "all" | "active" | "completed";
-
 type ProgressStep = "applied" | "ai" | "review" | "shortlisted" | "final";
 
 type ApplicationItem = {
@@ -39,51 +43,20 @@ type ApplicationItem = {
   currentStep: ProgressStep;
 };
 
-function CircleProgress({ percent }: { percent: string }) {
+function ScoreRing({ percent }: { percent: string }) {
   const value = parseInt(percent.replace("%", ""));
-  const size = 90;
-  const stroke = 7;
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (value / 100) * circumference;
-
-  const getColor = (num: number) => {
-    if (num >= 90) return "#8b93ff";
-    if (num >= 75) return "#7f4cff";
-    return "#22d3ee";
-  };
+  const ringColor = value >= 90 ? "#49e38d" : value >= 80 ? "#8b93ff" : "#f5c542";
 
   return (
-    <div className="relative h-[90px] w-[90px] shrink-0">
-      <svg
-        width={size}
-        height={size}
-        className="-rotate-90"
-        viewBox={`0 0 ${size} ${size}`}
-      >
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="rgba(255,255,255,0.10)"
-          strokeWidth={stroke}
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={getColor(value)}
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          className="transition-all duration-700 ease-out"
-          style={{ filter: "drop-shadow(0 0 12px rgba(139,147,255,0.28))" }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center text-[18px] font-extrabold text-white">
+    <div className="relative h-[98px] w-[98px] shrink-0">
+      <div
+        className="h-full w-full rounded-full transition-all duration-[1800ms] ease-out"
+        style={{
+          background: `conic-gradient(${ringColor} ${value * 3.6}deg, #2a2c5a 0deg)`,
+          boxShadow: `0 0 24px ${ringColor}22`,
+        }}
+      />
+      <div className="absolute inset-[8px] flex items-center justify-center rounded-full bg-[#252654] text-[22px] font-extrabold text-white shadow-inner">
         {percent}
       </div>
     </div>
@@ -92,9 +65,14 @@ function CircleProgress({ percent }: { percent: string }) {
 
 function Applications() {
   const navigate = useNavigate();
-  const location = useLocation(); // ✅ إضافة useLocation
+  const location = useLocation();
+  const { language } = useLanguage();
+  const t = translations[language];
+  const isRTL = language === "ar" || language === "he";
+
   const [filter, setFilter] = useState<FilterType>("all");
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [savedScrollY, setSavedScrollY] = useState(0);
 
   const applications: ApplicationItem[] = [
     {
@@ -227,18 +205,23 @@ function Applications() {
     },
   ];
 
-  // ✅ التعديل الرئيسي: قراءة الـ id من navigation state وفتح الطلب مباشرة
   useEffect(() => {
     const idFromNav = location.state?.selectedApplicationId;
-    if (idFromNav) {
+    if (typeof idFromNav === "number") {
       const found = applications.find((a) => a.id === idFromNav);
       if (found) {
         setSelectedId(found.id);
+        window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
       }
-      // تنظيف الـ state
       window.history.replaceState({}, document.title);
     }
-  }, []);
+  }, [location.state]);
+
+  useEffect(() => {
+    if (selectedId !== null) {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+    }
+  }, [selectedId]);
 
   const filteredApplications = useMemo(() => {
     return applications.filter((app) => {
@@ -250,11 +233,28 @@ function Applications() {
   const selectedApplication =
     applications.find((app) => app.id === selectedId) ?? null;
 
+  const getReviewStatusLabel = (status: string) => {
+    switch (status) {
+      case "Applied":
+        return t.applicationsPage.applied || "Applied";
+      case "AI Screening":
+        return t.applicationsPage.aiScreening;
+      case "Under Review":
+        return t.applicationsPage.underReview;
+      case "Shortlisted":
+        return t.applicationsPage.shortlisted;
+      case "Final Decision":
+        return t.applicationsPage.accepted || "Final Decision";
+      default:
+        return status;
+    }
+  };
+
   const filterButtonClass = (value: FilterType) =>
-    `rounded-[18px] px-8 py-3 text-[18px] font-semibold transition ${
+    `min-w-[88px] rounded-[16px] px-5 py-3 text-[15px] font-semibold transition ${
       filter === value
-        ? "bg-indigo-500/25 text-indigo-200 shadow-[0_0_0_1px_rgba(129,140,248,0.16)]"
-        : "text-white/60 hover:bg-white/[0.04] hover:text-white"
+        ? "bg-[#222a75] text-white border border-[#4b57ff]"
+        : "text-white/70 hover:bg-white/[0.05] hover:text-white border border-transparent"
     }`;
 
   const statusBadgeClass = (status: string) => {
@@ -275,11 +275,11 @@ function Applications() {
   };
 
   const steps = [
-    { key: "applied", label: "Applied", icon: Send },
-    { key: "ai", label: "AI Screening", icon: Brain },
-    { key: "review", label: "Under Review", icon: Eye },
-    { key: "shortlisted", label: "Shortlisted", icon: Star },
-    { key: "final", label: "Final Decision", icon: CheckCircle2 },
+    { key: "applied", label: t.applicationsPage.applied || "Applied", icon: Send },
+    { key: "ai", label: t.applicationsPage.aiScreening, icon: Brain },
+    { key: "review", label: t.applicationsPage.underReview, icon: Eye },
+    { key: "shortlisted", label: t.applicationsPage.shortlisted, icon: Star },
+    { key: "final", label: t.applicationsPage.accepted || "Final Decision", icon: CheckCircle2 },
   ] as const;
 
   const getCurrentStepIndex = (step: ProgressStep) =>
@@ -294,19 +294,19 @@ function Applications() {
     return (
       <div key={index} className="flex items-center">
         <div
-          className={`flex h-[44px] w-[44px] items-center justify-center rounded-full border text-[16px] transition ${
+          className={`flex h-[42px] w-[42px] items-center justify-center rounded-full border text-[15px] transition ${
             done
               ? "border-cyan-400/30 bg-cyan-400/15 text-cyan-300"
               : current
-                ? "border-indigo-400 bg-indigo-500/20 text-indigo-300 shadow-[0_0_20px_rgba(99,102,241,0.25)]"
-                : "border-white/10 bg-white/5 text-white/30"
+              ? "border-indigo-400 bg-indigo-500/20 text-indigo-300 shadow-[0_0_20px_rgba(99,102,241,0.25)]"
+              : "border-white/10 bg-white/5 text-white/30"
           }`}
         >
           {icon}
         </div>
         {index !== 5 && (
           <div
-            className={`mx-2 h-[2px] w-8 lg:w-10 ${
+            className={`mx-2 h-[2px] w-7 lg:w-9 ${
               index < progress ? "bg-cyan-400/70" : "bg-white/10"
             }`}
           />
@@ -316,166 +316,324 @@ function Applications() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-78px)] bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.12),transparent_25%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.10),transparent_24%),linear-gradient(135deg,#17184a_0%,#1a1b56_42%,#17234f_100%)] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto w-full max-w-[1280px]">
+    <div
+      dir={isRTL ? "rtl" : "ltr"}
+      className="min-h-[calc(100vh-78px)] bg-[radial-gradient(circle_at_top_left,rgba(86,45,255,0.16),transparent_24%),radial-gradient(circle_at_bottom_right,rgba(32,146,255,0.13),transparent_22%),linear-gradient(135deg,#0a0d2e_0%,#101548_45%,#181b58_100%)] px-4 py-7 lg:px-8"
+    >
+      <div className="mx-auto w-full max-w-[1080px]">
         {!selectedApplication ? (
-          <section>
-            <button
-              onClick={() => navigate("/candidate-dashboard")}
-              className="mb-8 flex items-center gap-3 rounded-[20px] border border-white/10 bg-white/[0.05] px-7 py-3 text-[18px] font-semibold text-white/80 transition hover:bg-white/[0.08] hover:text-white"
-            >
-              <ArrowLeft size={20} />
-              Back
-            </button>
-
-            <div className="mb-8 flex items-center gap-5">
-              <div className="flex h-[74px] w-[74px] items-center justify-center rounded-[24px] bg-gradient-to-b from-sky-500 to-blue-600 shadow-[0_0_30px_rgba(59,130,246,0.35)]">
-                <FileText size={34} className="text-white" />
-              </div>
-              <div>
-                <h1 className="text-[52px] font-extrabold leading-none text-white">
-                  My Applications
-                </h1>
-                <p className="mt-3 text-[20px] text-white/60">
-                  Track and manage your job applications
-                </p>
-              </div>
-            </div>
-
-            <div className="mb-12 inline-flex rounded-[22px] border border-white/10 bg-white/[0.05] p-1.5">
-              <button onClick={() => setFilter("all")} className={filterButtonClass("all")}>
-                All
-              </button>
-              <button onClick={() => setFilter("active")} className={filterButtonClass("active")}>
-                Active
-              </button>
-              <button onClick={() => setFilter("completed")} className={filterButtonClass("completed")}>
-                Completed
-              </button>
-            </div>
-
-            <div className="space-y-6">
-              {filteredApplications.map((app) => (
+          <>
+            <section className="mb-8">
+              <div className={`mb-5 flex ${isRTL ? "justify-start" : "justify-start"}`}>
                 <button
-                  key={app.id}
                   type="button"
-                  onClick={() => setSelectedId(app.id)}
-                  className="w-full rounded-[34px] border border-white/10 bg-white/[0.07] px-6 py-7 text-left shadow-[0_8px_30px_rgba(0,0,0,0.15)] backdrop-blur-sm transition hover:bg-white/[0.09] lg:px-9"
+                  onClick={() => navigate("/candidate-dashboard")}
+                  className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white ${
+                    isRTL ? "flex-row-reverse" : ""
+                  }`}
                 >
-                  <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
-                    <div className="flex min-w-0 items-center gap-6">
-                      <CircleProgress percent={app.percent} />
-                      <div className="min-w-0">
-                        <h3 className="truncate text-[30px] font-extrabold text-white">
+                  <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
+                  <span>{t.common.back}</span>
+                </button>
+              </div>
+
+              <div
+                className={`mb-6 flex items-start gap-4 ${
+                  isRTL ? "flex-row-reverse text-right" : ""
+                }`}
+              >
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#22d3ee] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
+                  <FileText size={26} />
+                </div>
+
+                <div className="flex-1">
+                  <h1 className="text-[42px] font-extrabold leading-tight text-white">
+                    {t.applicationsPage.title}
+                  </h1>
+                  <p className="mt-2 text-[17px] text-[#aeb4d6]">
+                    {t.applicationsPage.subtitle}
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-[28px] border border-white/10 bg-white/[0.05] px-5 py-5 shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
+                <div
+                  className={`flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between ${
+                    isRTL ? "lg:flex-row-reverse" : ""
+                  }`}
+                >
+                  <div className={isRTL ? "text-right" : "text-left"}>
+                    <h3 className="text-[20px] font-extrabold text-white">
+                      {t.applicationsPage.allApplications}
+                    </h3>
+                    <p className="mt-1 text-[15px] text-[#aeb4d6]">
+                      {filteredApplications.length} {t.applicationsPage.recentActivity}
+                    </p>
+                  </div>
+
+                  <div
+                    className={`inline-flex w-fit rounded-[20px] border border-white/10 bg-[#141845] p-1.5 ${
+                      isRTL ? "self-end lg:self-auto" : ""
+                    }`}
+                  >
+                    <button onClick={() => setFilter("all")} className={filterButtonClass("all")}>
+                      {t.applicationsPage.allApplications}
+                    </button>
+                    <button onClick={() => setFilter("active")} className={filterButtonClass("active")}>
+                      {t.common.active}
+                    </button>
+                    <button onClick={() => setFilter("completed")} className={filterButtonClass("completed")}>
+                      {t.applicationsPage.accepted}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="space-y-5">
+              {filteredApplications.map((app, index) => (
+                <article
+                  key={`${app.id}-${index}`}
+                  onClick={() => {
+                    setSavedScrollY(window.scrollY);
+                    setSelectedId(app.id);
+                  }}
+                  className="group cursor-pointer rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)] transition hover:border-white/20 hover:bg-[rgba(50,52,108,0.96)]"
+                >
+                  <div
+                    className={`flex flex-col gap-6 lg:flex-row lg:items-center ${
+                      isRTL ? "lg:flex-row-reverse" : ""
+                    }`}
+                  >
+                    <div className="flex justify-center lg:justify-start">
+                      <ScoreRing percent={app.percent} />
+                    </div>
+
+                    <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
+                      <div
+                        className={`mb-3 flex flex-wrap items-center gap-3 ${
+                          isRTL ? "flex-row-reverse" : ""
+                        }`}
+                      >
+                        <h2 className="text-[22px] font-extrabold text-white">
                           {app.title}
-                        </h3>
-                        <div className="mt-3 flex flex-wrap items-center gap-5 text-[17px] text-white/55">
-                          <span className="flex items-center gap-2">
-                            <BriefcaseBusiness size={17} />
-                            {app.company}
-                          </span>
-                          <span className="flex items-center gap-2">
-                            <MapPin size={17} />
-                            {app.location}
+                        </h2>
+
+                        <span
+                          className={`rounded-full px-3 py-1 text-sm font-semibold ${statusBadgeClass(
+                            app.reviewStatus
+                          )}`}
+                        >
+                          {getReviewStatusLabel(app.reviewStatus)}
+                        </span>
+                      </div>
+
+                      <div
+                        className={`mb-3 flex items-center gap-2 text-[#c4cae9] ${
+                          isRTL ? "flex-row-reverse" : ""
+                        }`}
+                      >
+                        <Building2 size={16} />
+                        <span className="text-[15px]">{app.company}</span>
+                      </div>
+
+                      <div
+                        className={`mb-4 flex flex-wrap gap-x-5 gap-y-2 text-[#aeb4d6] ${
+                          isRTL ? "flex-row-reverse" : ""
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <MapPin size={16} />
+                          <span>{app.location}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <CalendarDays size={16} />
+                          <span>
+                            {t.applicationsPage.appliedOn} {app.date}
                           </span>
                         </div>
-                        <p className="mt-3 text-[16px] text-white/40">
-                          Applied {app.date}
-                        </p>
+                      </div>
+
+                      <div
+                        className={`flex flex-wrap items-center gap-2 ${
+                          isRTL ? "justify-start lg:justify-start" : ""
+                        }`}
+                      >
+                        {[1, 2, 3, 4, 5].map((step) => renderStep(step, app.progress))}
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center xl:justify-center">
-                      {[1, 2, 3, 4, 5].map((step) => renderStep(step, app.progress))}
-                    </div>
-
-                    <div className="flex min-w-[190px] items-center justify-between gap-4 xl:justify-end">
-                      <div className="text-right">
+                    <div
+                      className={`flex flex-row items-center justify-between gap-4 lg:min-w-[170px] ${
+                        isRTL ? "lg:flex-row-reverse" : ""
+                      }`}
+                    >
+                      <div className={`${isRTL ? "text-left" : "text-right"} min-w-[88px]`}>
                         {app.pending ? (
-                          <div className="rounded-full bg-yellow-500/20 px-5 py-2.5 text-[15px] font-semibold text-yellow-300">
+                          <div className="rounded-full border border-yellow-400/20 bg-yellow-500/12 px-4 py-2.5 text-[14px] font-semibold text-yellow-300">
                             {app.pending}
                           </div>
                         ) : (
                           <>
-                            <h2 className="text-[44px] font-extrabold leading-none text-white">
+                            <h2 className="text-[42px] font-extrabold leading-none text-white">
                               {app.score}
                             </h2>
-                            <p className="mt-2 text-[16px] text-white/50">
+                            <p className="mt-2 text-[14px] text-white/50">
                               Interview Score
                             </p>
                           </>
                         )}
                       </div>
-                      <span className="text-white/35 transition hover:text-white">
-                        <ChevronRight size={34} />
-                      </span>
+
+                      <button
+                        type="button"
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/30 transition group-hover:bg-white/5 group-hover:text-white/70"
+                      >
+                        <ChevronRight size={22} className={isRTL ? "rotate-180" : ""} />
+                      </button>
                     </div>
                   </div>
-                </button>
+                </article>
               ))}
 
               {filteredApplications.length === 0 && (
                 <div className="rounded-[30px] border border-white/10 bg-white/[0.05] px-8 py-12 text-center">
                   <h3 className="text-[24px] font-bold text-white">
-                    No applications found
+                    {t.applicationsPage.noApplications}
                   </h3>
                   <p className="mt-2 text-white/55">
-                    There are no applications in this section yet.
+                    {t.applicationsPage.noApplicationsText}
                   </p>
                 </div>
               )}
-            </div>
-          </section>
+            </section>
+          </>
         ) : (
-          <section>
-            <button
-              onClick={() => setSelectedId(null)}
-              className="mb-9 flex items-center gap-3 rounded-[20px] border border-white/10 bg-white/[0.05] px-7 py-3 text-[18px] font-semibold text-white/80 transition hover:bg-white/[0.08] hover:text-white"
-            >
-              <ArrowLeft size={20} />
-              Back
-            </button>
+          <section className="space-y-6">
+            <div className={`mb-2 flex ${isRTL ? "justify-start" : "justify-start"}`}>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedId(null);
+                  setTimeout(() => {
+                    window.scrollTo({
+                      top: savedScrollY,
+                      left: 0,
+                      behavior: "instant" as ScrollBehavior,
+                    });
+                  }, 0);
+                }}
+                className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white ${
+                  isRTL ? "flex-row-reverse" : ""
+                }`}
+              >
+                <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
+                <span>{t.common.back}</span>
+              </button>
+            </div>
 
-            <div className="mb-8 rounded-[34px] border border-white/10 bg-white/[0.07] px-7 py-7 shadow-[0_8px_30px_rgba(0,0,0,0.15)] backdrop-blur-sm lg:px-9">
-              <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
-                <CircleProgress percent={selectedApplication.percent} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-7 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+              <div
+                className={`flex flex-col gap-6 lg:flex-row lg:items-center ${
+                  isRTL ? "lg:flex-row-reverse" : ""
+                }`}
+              >
+                <ScoreRing percent={selectedApplication.percent} />
+
+                <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
+                  <div
+                    className={`flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between ${
+                      isRTL ? "lg:flex-row-reverse" : ""
+                    }`}
+                  >
                     <div className="min-w-0">
-                      <h1 className="truncate text-[38px] font-extrabold text-white">
-                        {selectedApplication.title}
-                      </h1>
-                      <div className="mt-4 flex flex-wrap items-center gap-6 text-[18px] text-white/60">
-                        <span className="flex items-center gap-2">
-                          <BriefcaseBusiness size={18} />
-                          {selectedApplication.company}
-                        </span>
-                        <span className="flex items-center gap-2">
-                          <MapPin size={18} />
-                          {selectedApplication.location}
-                        </span>
-                        <span className="flex items-center gap-2">
-                          <CalendarDays size={18} />
-                          Applied {selectedApplication.date}
+                      <div
+                        className={`mb-3 flex flex-wrap items-center gap-3 ${
+                          isRTL ? "flex-row-reverse" : ""
+                        }`}
+                      >
+                        <h1 className="truncate text-[38px] font-extrabold text-white">
+                          {selectedApplication.title}
+                        </h1>
+
+                        <span
+                          className={`rounded-full px-4 py-2 text-[15px] font-semibold ${statusBadgeClass(
+                            selectedApplication.reviewStatus
+                          )}`}
+                        >
+                          {getReviewStatusLabel(selectedApplication.reviewStatus)}
                         </span>
                       </div>
+
+                      <div
+                        className={`mb-3 flex items-center gap-2 text-[#c4cae9] ${
+                          isRTL ? "flex-row-reverse" : ""
+                        }`}
+                      >
+                        <Building2 size={17} />
+                        <span className="text-[16px]">{selectedApplication.company}</span>
+                      </div>
+
+                      <div
+                        className={`flex flex-wrap gap-x-5 gap-y-2 text-[#aeb4d6] ${
+                          isRTL ? "flex-row-reverse" : ""
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <MapPin size={16} />
+                          <span>{selectedApplication.location}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <CalendarDays size={16} />
+                          <span>
+                            {t.applicationsPage.appliedOn} {selectedApplication.date}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Clock3 size={16} />
+                          <span>
+                            {selectedApplication.status === "active"
+                              ? t.common.active
+                              : t.applicationsPage.accepted}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div
-                      className={`shrink-0 rounded-full px-6 py-3 text-[16px] font-semibold ${statusBadgeClass(
-                        selectedApplication.reviewStatus
-                      )}`}
-                    >
-                      {selectedApplication.reviewStatus}
+
+                    <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-6 py-5 text-center">
+                      {selectedApplication.pending ? (
+                        <>
+                          <p className="text-[15px] font-semibold text-yellow-300">
+                            {selectedApplication.pending}
+                          </p>
+                          <p className="mt-2 text-[14px] text-white/45">
+                            {t.applicationsPage.applicationStatus}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-[40px] font-extrabold leading-none text-white">
+                            {selectedApplication.score}
+                          </p>
+                          <p className="mt-2 text-[14px] text-white/50">
+                            Interview Score
+                          </p>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="mb-8 rounded-[34px] border border-white/10 bg-white/[0.07] px-8 py-8 shadow-[0_8px_30px_rgba(0,0,0,0.15)] backdrop-blur-sm">
-              <h2 className="mb-10 text-[26px] font-extrabold text-white">
-                Application Progress
+            <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-8 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+              <h2 className={`mb-6 text-[24px] font-extrabold text-white ${isRTL ? "text-right" : "text-left"}`}>
+                {t.applicationsPage.applicationStatus}
               </h2>
+
               <div className="grid grid-cols-1 gap-8 md:grid-cols-5 md:gap-4">
                 {steps.map((step, index) => {
                   const Icon = step.icon;
@@ -494,13 +652,14 @@ function Applications() {
                             isDone
                               ? "border-cyan-400/25 bg-cyan-400/12 text-cyan-300"
                               : isCurrent
-                                ? "border-indigo-400 bg-indigo-500/18 text-indigo-300 shadow-[0_0_18px_rgba(99,102,241,0.22)]"
-                                : "border-white/10 bg-white/[0.04] text-white/30"
+                              ? "border-indigo-400 bg-indigo-500/18 text-indigo-300 shadow-[0_0_18px_rgba(99,102,241,0.22)]"
+                              : "border-white/10 bg-white/[0.04] text-white/30"
                           }`}
                         >
                           <Icon size={30} />
                         </div>
                       </div>
+
                       {index !== steps.length - 1 && (
                         <div className="absolute left-[58%] top-[36px] hidden h-[2px] w-[88%] md:block">
                           <div
@@ -510,85 +669,11 @@ function Applications() {
                           />
                         </div>
                       )}
-                      <p
-                        className={`text-[15px] font-medium ${
-                          isDone
-                            ? "text-cyan-300"
-                            : isCurrent
-                              ? "text-indigo-300"
-                              : "text-white/35"
-                        }`}
-                      >
-                        {step.label}
-                      </p>
+
+                      <h3 className="text-[16px] font-bold text-white">{step.label}</h3>
                     </div>
                   );
                 })}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1fr_1fr]">
-              <div className="rounded-[34px] border border-white/10 bg-white/[0.07] px-8 py-8 shadow-[0_8px_30px_rgba(0,0,0,0.15)] backdrop-blur-sm">
-                <h2 className="mb-6 text-[24px] font-extrabold text-white">
-                  About the Role
-                </h2>
-                <p className="mb-8 text-[18px] leading-10 text-white/70">
-                  {selectedApplication.about}
-                </p>
-                <h3 className="mb-5 text-[18px] font-bold text-white">Requirements</h3>
-                <div className="space-y-4">
-                  {selectedApplication.requirements.map((item) => (
-                    <div
-                      key={item}
-                      className="flex items-start gap-3 text-[17px] text-white/70"
-                    >
-                      <CheckCircle2 size={22} className="mt-0.5 shrink-0 text-indigo-300" />
-                      <span>{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-[34px] border border-white/10 bg-white/[0.07] px-8 py-8 shadow-[0_8px_30px_rgba(0,0,0,0.15)] backdrop-blur-sm">
-                <h2 className="mb-6 text-[24px] font-extrabold text-white">
-                  Required Skills
-                </h2>
-                <div className="mb-10 flex flex-wrap gap-3">
-                  {selectedApplication.skills.map((skill) => (
-                    <span
-                      key={skill}
-                      className="rounded-full border border-white/10 bg-white/[0.06] px-5 py-2.5 text-[16px] font-semibold text-white/75"
-                    >
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-
-                <h3 className="mb-5 text-[22px] font-extrabold text-white">
-                  Pre-Interview
-                </h3>
-                {selectedApplication.preInterviewScore ? (
-                  <>
-                    <div className="mb-4 flex items-end gap-4">
-                      <span className="text-[42px] font-extrabold leading-none text-white">
-                        {selectedApplication.preInterviewScore}
-                      </span>
-                      <div className="pb-1">
-                        <p className="text-[18px] text-white/55">Interview Score</p>
-                        <p className="text-[16px] font-semibold text-emerald-400">
-                          {selectedApplication.preInterviewStrength}
-                        </p>
-                      </div>
-                    </div>
-                    <p className="text-[18px] leading-9 text-white/70">
-                      {selectedApplication.preInterviewText}
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-[18px] leading-9 text-white/65">
-                    {selectedApplication.preInterviewText}
-                  </p>
-                )}
               </div>
             </div>
           </section>

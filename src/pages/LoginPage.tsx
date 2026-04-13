@@ -60,13 +60,6 @@ function LoginPage() {
 
     const foundUser = foundCandidate || foundCompany;
 
-    console.log("LOGIN DEBUG");
-    console.log("typed email:", normalizedEmail);
-    console.log("candidates:", candidates);
-    console.log("companies:", companies);
-    console.log("foundCandidate:", foundCandidate);
-    console.log("foundCompany:", foundCompany);
-
     if (!foundUser) {
       setError(
         t?.loginPage?.errors?.noAccount ||

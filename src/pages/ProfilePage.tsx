@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
+import { translations } from "../translations";
 import { useState } from "react";
 import {
   ArrowLeft,
@@ -21,6 +22,7 @@ import {
 function ProfilePage() {
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const t = translations[language];
   const isRTL = language === "ar" || language === "he";
 
   const [showPremiumModal, setShowPremiumModal] = useState(false);
@@ -102,106 +104,115 @@ function ProfilePage() {
   return (
     <>
       <div
-        className={`min-h-screen bg-transparent px-8 py-8 ${
+        className={`min-h-[calc(100vh-78px)] bg-[radial-gradient(circle_at_top_left,rgba(86,45,255,0.16),transparent_24%),radial-gradient(circle_at_bottom_right,rgba(32,146,255,0.13),transparent_22%),linear-gradient(135deg,#0a0d2e_0%,#101548_45%,#181b58_100%)] px-4 py-7 lg:px-8 ${
           isRTL ? "text-right" : "text-left"
         }`}
+        dir={isRTL ? "rtl" : "ltr"}
       >
-        <div className="mx-auto max-w-[1180px]">
-          <div
-            className={`mb-7 flex items-center justify-between ${
-              isRTL ? "flex-row-reverse" : ""
-            }`}
-          >
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className={`inline-flex items-center gap-2 rounded-[16px] border border-white/10 bg-white/[0.04] px-5 py-3 text-[18px] font-semibold text-[#d9defb] transition hover:bg-white/[0.08] hover:text-white ${
+        <div className="mx-auto w-full max-w-[1080px]">
+          <section className="mb-8">
+            <div
+              className={`mb-5 flex items-center justify-between ${
                 isRTL ? "flex-row-reverse" : ""
               }`}
             >
-              <ArrowLeft size={20} className={isRTL ? "rotate-180" : ""} />
-              Back
-            </button>
-
-            {!isEditing ? (
               <button
                 type="button"
-                onClick={() => setIsEditing(true)}
-                className={`inline-flex items-center gap-2 rounded-[12px] bg-gradient-to-r from-[#6f6bff] to-[#7f4cff] px-6 py-3 text-[16px] font-semibold text-white shadow-[0_10px_24px_rgba(127,76,255,0.28)] transition hover:opacity-90 ${
+                onClick={() => navigate(-1)}
+                className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white ${
                   isRTL ? "flex-row-reverse" : ""
                 }`}
               >
-                <Pencil size={18} />
-                Edit Profile
+                <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
+                <span>{t.common.back}</span>
               </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleSaveChanges}
-                className={`inline-flex items-center gap-2 rounded-[12px] bg-gradient-to-r from-[#22c55e] to-[#16a34a] px-6 py-3 text-[16px] font-semibold text-white shadow-[0_10px_24px_rgba(34,197,94,0.28)] transition hover:opacity-90 ${
-                  isRTL ? "flex-row-reverse" : ""
-                }`}
-              >
-                <Save size={18} />
-                Save Changes
-              </button>
-            )}
-          </div>
 
-          <div
-            className={`mb-7 flex items-center gap-4 ${
-              isRTL ? "flex-row-reverse" : ""
-            }`}
-          >
-            <div className="flex h-[52px] w-[52px] items-center justify-center rounded-[18px] bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-white shadow-[0_12px_28px_rgba(127,76,255,0.3)]">
-              <User size={24} />
+              {!isEditing ? (
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                  className={`inline-flex items-center gap-2 rounded-[16px] bg-gradient-to-r from-[#7f4cff] to-[#a855f7] px-6 py-3 text-[15px] font-semibold text-white shadow-[0_10px_24px_rgba(127,76,255,0.28)] transition hover:opacity-90 ${
+                    isRTL ? "flex-row-reverse" : ""
+                  }`}
+                >
+                  <Pencil size={18} />
+                  {t.profilePage.editProfile}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSaveChanges}
+                  className={`inline-flex items-center gap-2 rounded-[16px] bg-gradient-to-r from-[#22c55e] to-[#16a34a] px-6 py-3 text-[15px] font-semibold text-white shadow-[0_10px_24px_rgba(34,197,94,0.28)] transition hover:opacity-90 ${
+                    isRTL ? "flex-row-reverse" : ""
+                  }`}
+                >
+                  <Save size={18} />
+                  {t.profilePage.saveChanges}
+                </button>
+              )}
             </div>
 
-            <h1 className="text-[46px] font-extrabold leading-none text-white">
-              My Profile
-            </h1>
-          </div>
-
-          <div className="mb-7 rounded-[26px] border border-cyan-400/20 bg-gradient-to-r from-[rgba(92,58,191,0.55)] to-[rgba(28,83,138,0.55)] px-6 py-6 shadow-[0_16px_34px_rgba(0,0,0,0.16)]">
             <div
-              className={`flex items-center justify-between gap-6 max-[860px]:flex-col max-[860px]:items-start ${
-                isRTL ? "flex-row-reverse max-[860px]:items-end" : ""
+              className={`mb-6 flex items-start gap-4 ${
+                isRTL ? "flex-row-reverse" : ""
               }`}
             >
-              <div
-                className={`flex items-center gap-4 ${
-                  isRTL ? "flex-row-reverse" : ""
-                }`}
-              >
-                <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[16px] bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-white shadow-[0_10px_24px_rgba(127,76,255,0.28)]">
-                  <Crown size={22} />
-                </div>
-
-                <div>
-                  <h3 className="text-[18px] font-bold text-white">
-                    You're on the Basic Plan
-                  </h3>
-                  <p className="text-[15px] text-[#c5cbf2]">
-                    Upgrade to Premium to unlock AI-powered features
-                  </p>
-                </div>
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#22d3ee] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
+                <User size={26} />
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowPremiumModal(true)}
-                className={`inline-flex items-center gap-3 rounded-[14px] bg-gradient-to-r from-[#a855f7] to-[#7f4cff] px-6 py-3 text-[16px] font-bold text-white transition hover:opacity-90 ${
-                  isRTL ? "flex-row-reverse" : ""
+              <div className={isRTL ? "text-right" : "text-left"}>
+                <h1 className="text-[42px] font-extrabold leading-tight text-white">
+                  {t.profilePage.title}
+                </h1>
+                <p className="mt-2 text-[17px] text-[#aeb4d6]">
+                  {t.profilePage.subtitle}
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-[28px] border border-white/10 bg-white/[0.05] px-5 py-5 shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
+              <div
+                className={`flex items-center justify-between gap-6 max-[860px]:flex-col max-[860px]:items-start ${
+                  isRTL ? "flex-row-reverse max-[860px]:items-end" : ""
                 }`}
               >
-                <Crown size={18} />
-                Upgrade to Premium
-              </button>
-            </div>
-          </div>
+                <div
+                  className={`flex items-center gap-4 ${
+                    isRTL ? "flex-row-reverse" : ""
+                  }`}
+                >
+                  <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[16px] bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-white shadow-[0_10px_24px_rgba(127,76,255,0.28)]">
+                    <Crown size={22} />
+                  </div>
 
-          <div className="mb-7 grid grid-cols-[320px_1fr] gap-7 max-[1080px]:grid-cols-1">
-            <div className="rounded-[30px] border border-white/10 bg-[rgba(54,55,111,0.72)] p-8 shadow-[0_16px_34px_rgba(0,0,0,0.16)]">
+                  <div>
+                    <h3 className="text-[20px] font-extrabold text-white">
+                      {t.profilePage.basicPlan || "You're on the Basic Plan"}
+                    </h3>
+                    <p className="mt-1 text-[15px] text-[#aeb4d6]">
+                      {t.profilePage.premiumHint ||
+                        "Upgrade to Premium to unlock AI-powered features"}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPremiumModal(true)}
+                  className={`inline-flex items-center gap-3 rounded-[16px] bg-gradient-to-r from-[#a855f7] to-[#7f4cff] px-6 py-3 text-[15px] font-bold text-white transition hover:opacity-90 ${
+                    isRTL ? "flex-row-reverse" : ""
+                  }`}
+                >
+                  <Crown size={18} />
+                  {t.profilePage.upgradePremium || "Upgrade to Premium"}
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section className="mb-8 grid grid-cols-1 gap-6 xl:grid-cols-[0.9fr_1.5fr]">
+            <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] p-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
               <div className="flex flex-col items-center text-center">
                 <div className="mb-6 flex h-[96px] w-[96px] items-center justify-center rounded-[28px] bg-gradient-to-br from-[#6f6bff] to-[#a855f7] text-[44px] font-extrabold text-white shadow-[0_16px_30px_rgba(127,76,255,0.28)]">
                   {userName.charAt(0).toUpperCase()}
@@ -213,34 +224,35 @@ function ProfilePage() {
 
                 <p className="mt-2 text-[16px] text-[#b8bfdc]">{userTitle}</p>
 
-                <div className="mt-7 mb-6 relative flex h-[132px] w-[132px] items-center justify-center rounded-full">
+                <div className="relative mt-7 mb-6 flex h-[132px] w-[132px] items-center justify-center rounded-full">
                   <div
                     className="absolute inset-0 rounded-full"
                     style={{
                       background: `conic-gradient(#7c83ff ${profileScore}%, rgba(123,132,255,0.14) ${profileScore}% 100%)`,
                     }}
                   />
-                  <div className="absolute inset-[12px] rounded-full bg-[#2a2d67]" />
+                  <div className="absolute inset-[12px] rounded-full bg-[#252654]" />
                   <div className="relative z-10 flex flex-col items-center justify-center">
                     <span className="text-[22px] font-extrabold text-white">
                       {profileScore}%
                     </span>
                     <span className="text-[14px] text-[#b9c0e0]">
-                      Profile Score
+                      {t.dashboard.stats.profileScore}
                     </span>
                   </div>
                 </div>
 
                 <p className="max-w-[220px] text-[15px] leading-7 text-[#b8bfdc]">
-                  Complete your profile to improve your match score
+                  {t.profilePage.profileHint ||
+                    "Complete your profile to improve your match score"}
                 </p>
               </div>
             </div>
 
-            <div className="rounded-[30px] border border-white/10 bg-[linear-gradient(135deg,rgba(54,55,111,0.76)_0%,rgba(42,68,118,0.72)_100%)] p-8 shadow-[0_16px_34px_rgba(0,0,0,0.16)]">
-              <h3 className="mb-8 text-[22px] font-extrabold text-white">
-                Personal Information
-              </h3>
+            <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] p-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+              <h2 className="mb-8 text-[24px] font-extrabold text-white">
+                {t.profilePage.personalInfo}
+              </h2>
 
               <div className="grid grid-cols-2 gap-x-10 gap-y-8 max-[760px]:grid-cols-1">
                 <div>
@@ -250,7 +262,7 @@ function ProfilePage() {
                     }`}
                   >
                     <User size={18} />
-                    <span className="text-[15px]">Full Name</span>
+                    <span className="text-[15px]">{t.common.fullName}</span>
                   </div>
                   {isEditing ? (
                     <input
@@ -272,7 +284,7 @@ function ProfilePage() {
                     }`}
                   >
                     <Mail size={18} />
-                    <span className="text-[15px]">Email</span>
+                    <span className="text-[15px]">{t.common.email}</span>
                   </div>
                   {isEditing ? (
                     <input
@@ -294,7 +306,9 @@ function ProfilePage() {
                     }`}
                   >
                     <Phone size={18} />
-                    <span className="text-[15px]">Phone</span>
+                    <span className="text-[15px]">
+                      {t.candidateRegisterPage.phone}
+                    </span>
                   </div>
                   {isEditing ? (
                     <input
@@ -316,7 +330,9 @@ function ProfilePage() {
                     }`}
                   >
                     <MapPin size={18} />
-                    <span className="text-[15px]">Location</span>
+                    <span className="text-[15px]">
+                      {t.candidateRegisterPage.location}
+                    </span>
                   </div>
                   {isEditing ? (
                     <input
@@ -338,7 +354,9 @@ function ProfilePage() {
                     }`}
                   >
                     <Briefcase size={18} />
-                    <span className="text-[15px]">Current Title</span>
+                    <span className="text-[15px]">
+                      {t.profilePage.currentTitle}
+                    </span>
                   </div>
                   {isEditing ? (
                     <input
@@ -360,7 +378,9 @@ function ProfilePage() {
                     }`}
                   >
                     <Briefcase size={18} />
-                    <span className="text-[15px]">Years of Experience</span>
+                    <span className="text-[15px]">
+                      {t.profilePage.experience}
+                    </span>
                   </div>
                   {isEditing ? (
                     <input
@@ -378,7 +398,7 @@ function ProfilePage() {
 
               <div className="mt-10">
                 <p className="mb-3 text-[15px] text-[#b7bedf]">
-                  Professional Summary
+                  {t.profilePage.professionalSummary}
                 </p>
                 {isEditing ? (
                   <textarea
@@ -393,67 +413,75 @@ function ProfilePage() {
                 )}
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className="mb-7 rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,rgba(54,55,111,0.74)_0%,rgba(42,68,118,0.7)_100%)] p-8 shadow-[0_16px_34px_rgba(0,0,0,0.16)]">
-            <div
-              className={`mb-6 flex items-center gap-3 ${
-                isRTL ? "flex-row-reverse" : ""
-              }`}
-            >
-              <Code2 size={22} className="text-[#7f8bff]" />
-              <h3 className="text-[22px] font-extrabold text-white">Skills</h3>
-            </div>
-
-            {isEditing ? (
-              <textarea
-                value={skillsInput}
-                onChange={(e) => setSkillsInput(e.target.value)}
-                placeholder="Write skills separated by commas"
-                className={textareaClass}
-              />
-            ) : (
-              <div className="flex flex-wrap gap-3">
-                {userSkills.length > 0 ? (
-                  userSkills.map((skill) => (
-                    <span
-                      key={skill}
-                      className="rounded-full border border-white/10 bg-white/[0.08] px-5 py-3 text-[15px] font-semibold text-[#d9defb]"
-                    >
-                      {skill}
-                    </span>
-                  ))
-                ) : (
-                  <p className="text-[#b8bfdc]">No skills added yet.</p>
-                )}
+          <section className="mb-8">
+            <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] p-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+              <div
+                className={`mb-6 flex items-center gap-3 ${
+                  isRTL ? "flex-row-reverse" : ""
+                }`}
+              >
+                <Code2 size={22} className="text-[#7f8bff]" />
+                <h2 className="text-[24px] font-extrabold text-white">
+                  {t.profilePage.skills}
+                </h2>
               </div>
-            )}
-          </div>
 
-          <div className="rounded-[28px] border border-[rgba(255,88,120,0.26)] bg-[linear-gradient(135deg,rgba(63,49,91,0.85)_0%,rgba(42,68,118,0.72)_100%)] p-8 shadow-[0_16px_34px_rgba(0,0,0,0.16)]">
-            <div
-              className={`mb-4 flex items-center gap-3 ${
-                isRTL ? "flex-row-reverse" : ""
-              }`}
-            >
-              <Trash2 size={23} className="text-[#ff6a8d]" />
-              <h3 className="text-[22px] font-extrabold text-[#ff7d9d]">
-                Danger Zone
-              </h3>
+              {isEditing ? (
+                <textarea
+                  value={skillsInput}
+                  onChange={(e) => setSkillsInput(e.target.value)}
+                  placeholder={t.profilePage.skillsPlaceholder || "Write skills separated by commas"}
+                  className={textareaClass}
+                />
+              ) : (
+                <div className="flex flex-wrap gap-3">
+                  {userSkills.length > 0 ? (
+                    userSkills.map((skill) => (
+                      <span
+                        key={skill}
+                        className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-sm font-semibold text-emerald-300"
+                      >
+                        {skill}
+                      </span>
+                    ))
+                  ) : (
+                    <p className="text-[#b8bfdc]">
+                      {t.profilePage.noSkills || "No skills added yet."}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
+          </section>
 
-            <p className="mb-6 text-[16px] text-[#c9cde6]">
-              Permanently delete your account and all associated data. This
-              action cannot be undone.
-            </p>
+          <section>
+            <div className="rounded-[30px] border border-[rgba(255,88,120,0.26)] bg-[rgba(44,45,95,0.94)] p-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+              <div
+                className={`mb-4 flex items-center gap-3 ${
+                  isRTL ? "flex-row-reverse" : ""
+                }`}
+              >
+                <Trash2 size={23} className="text-[#ff6a8d]" />
+                <h2 className="text-[24px] font-extrabold text-[#ff7d9d]">
+                  {t.profilePage.dangerZone || "Danger Zone"}
+                </h2>
+              </div>
 
-            <button
-              type="button"
-              className="rounded-[14px] border border-[rgba(255,88,120,0.45)] bg-transparent px-6 py-3 text-[16px] font-bold text-[#ff7d9d] transition hover:bg-[rgba(255,88,120,0.08)]"
-            >
-              Delete My Account
-            </button>
-          </div>
+              <p className="mb-6 text-[16px] leading-8 text-[#c9cde6]">
+                {t.profilePage.dangerText ||
+                  "Permanently delete your account and all associated data. This action cannot be undone."}
+              </p>
+
+              <button
+                type="button"
+                className="rounded-[16px] border border-[rgba(255,88,120,0.45)] bg-transparent px-6 py-3 text-[15px] font-bold text-[#ff7d9d] transition hover:bg-[rgba(255,88,120,0.08)]"
+              >
+                {t.profilePage.deleteAccount || "Delete My Account"}
+              </button>
+            </div>
+          </section>
         </div>
       </div>
 
@@ -469,7 +497,9 @@ function ProfilePage() {
             <button
               type="button"
               onClick={() => setShowPremiumModal(false)}
-              className="absolute right-5 top-5 text-[#9aa4cf] transition hover:text-white"
+              className={`absolute top-5 text-[#9aa4cf] transition hover:text-white ${
+                isRTL ? "left-5" : "right-5"
+              }`}
             >
               <X size={22} />
             </button>
@@ -481,56 +511,57 @@ function ProfilePage() {
             </div>
 
             <h2 className="mb-2 text-center text-[24px] font-extrabold">
-              Upgrade to Premium
+              {t.profilePage.upgradePremium || "Upgrade to Premium"}
             </h2>
 
             <p className="mb-8 text-center text-[16px] text-[#aeb4d6]">
-              Unlock the full power of AI-driven job matching
+              {t.profilePage.modalSubtitle ||
+                "Unlock the full power of AI-driven job matching"}
             </p>
 
             <div className="mb-7 grid grid-cols-2 gap-4 max-[560px]:grid-cols-1">
               <div className="rounded-[20px] border border-white/10 bg-white/[0.04] p-5">
                 <p className="mb-2 text-[15px] font-semibold text-[#aeb4d6]">
-                  Basic
+                  {t.profilePage.basicLabel || "Basic"}
                 </p>
                 <h3 className="mb-5 text-[20px] font-extrabold text-white">
-                  Free
+                  {t.profilePage.freeLabel || "Free"}
                 </h3>
 
                 <div className="space-y-3 text-[15px] text-[#d8ddf6]">
-                  <div className="flex items-start gap-2">
+                  <div className={`flex items-start gap-2 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
                     <CheckCircle2
                       size={18}
                       className="mt-[2px] shrink-0 text-[#31d0aa]"
                     />
-                    <span>Job browsing</span>
+                    <span>{t.profilePage.basicFeature1 || "Job browsing"}</span>
                   </div>
 
-                  <div className="flex items-start gap-2">
+                  <div className={`flex items-start gap-2 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
                     <CheckCircle2
                       size={18}
                       className="mt-[2px] shrink-0 text-[#31d0aa]"
                     />
-                    <span>5 applications/mo</span>
+                    <span>{t.profilePage.basicFeature2 || "5 applications/mo"}</span>
                   </div>
 
-                  <div className="flex items-start gap-2">
+                  <div className={`flex items-start gap-2 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
                     <CheckCircle2
                       size={18}
                       className="mt-[2px] shrink-0 text-[#31d0aa]"
                     />
-                    <span>Basic profile</span>
+                    <span>{t.profilePage.basicFeature3 || "Basic profile"}</span>
                   </div>
                 </div>
               </div>
 
               <div className="relative rounded-[20px] border border-[#7f4cff] bg-[rgba(75,46,140,0.18)] p-5 shadow-[0_0_0_1px_rgba(127,76,255,0.12)]">
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#a855f7] px-3 py-1 text-[12px] font-bold text-white">
-                  Popular
+                  {t.profilePage.popularLabel || "Popular"}
                 </div>
 
                 <p className="mb-2 text-[15px] font-semibold text-[#cdb8ff]">
-                  Premium
+                  {t.profilePage.premiumLabel || "Premium"}
                 </p>
 
                 <h3 className="mb-5 text-[20px] font-extrabold text-white">
@@ -538,44 +569,44 @@ function ProfilePage() {
                 </h3>
 
                 <div className="space-y-3 text-[15px] text-[#ece7ff]">
-                  <div className="flex items-start gap-2">
+                  <div className={`flex items-start gap-2 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
                     <Zap
                       size={17}
                       className="mt-[3px] shrink-0 text-[#b97cff]"
                     />
-                    <span>AI Pre-Interview Module</span>
+                    <span>{t.profilePage.premiumFeature1 || "AI Pre-Interview Module"}</span>
                   </div>
 
-                  <div className="flex items-start gap-2">
+                  <div className={`flex items-start gap-2 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
                     <Zap
                       size={17}
                       className="mt-[3px] shrink-0 text-[#b97cff]"
                     />
-                    <span>Advanced Resume Scoring</span>
+                    <span>{t.profilePage.premiumFeature2 || "Advanced Resume Scoring"}</span>
                   </div>
 
-                  <div className="flex items-start gap-2">
+                  <div className={`flex items-start gap-2 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
                     <Zap
                       size={17}
                       className="mt-[3px] shrink-0 text-[#b97cff]"
                     />
-                    <span>Detailed AI Match Insights</span>
+                    <span>{t.profilePage.premiumFeature3 || "Detailed AI Match Insights"}</span>
                   </div>
 
-                  <div className="flex items-start gap-2">
+                  <div className={`flex items-start gap-2 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
                     <Zap
                       size={17}
                       className="mt-[3px] shrink-0 text-[#b97cff]"
                     />
-                    <span>Priority Application Status</span>
+                    <span>{t.profilePage.premiumFeature4 || "Priority Application Status"}</span>
                   </div>
 
-                  <div className="flex items-start gap-2">
+                  <div className={`flex items-start gap-2 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
                     <Zap
                       size={17}
                       className="mt-[3px] shrink-0 text-[#b97cff]"
                     />
-                    <span>Unlimited Job Applications</span>
+                    <span>{t.profilePage.premiumFeature5 || "Unlimited Job Applications"}</span>
                   </div>
                 </div>
               </div>
@@ -587,14 +618,14 @@ function ProfilePage() {
                 onClick={() => setShowPremiumModal(false)}
                 className="rounded-[14px] border border-white/15 bg-transparent px-5 py-3 text-[16px] font-bold text-white transition hover:bg-white/[0.05]"
               >
-                Maybe Later
+                {t.profilePage.maybeLater || "Maybe Later"}
               </button>
 
               <button
                 type="button"
                 className="rounded-[14px] bg-gradient-to-r from-[#a855f7] to-[#6366f1] px-5 py-3 text-[16px] font-bold text-white transition hover:opacity-90"
               >
-                Upgrade Now
+                {t.profilePage.upgradeNow || "Upgrade Now"}
               </button>
             </div>
           </div>

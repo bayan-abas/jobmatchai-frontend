@@ -18,10 +18,7 @@ type CandidateSidebarProps = {
   setIsCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
-function CandidateSidebar({
-  isCollapsed,
-  setIsCollapsed,
-}: CandidateSidebarProps) {
+function CandidateSidebar({ isCollapsed, setIsCollapsed }: CandidateSidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { language, setLanguage } = useLanguage();
@@ -29,13 +26,23 @@ function CandidateSidebar({
   const t = translations[language];
 
   const menuItems = [
-    { label: t.sidebar.dashboard, path: "/candidate-dashboard", icon: LayoutDashboard },
-    { label: t.sidebar.jobMatches, path: "/job-matches", icon: BriefcaseBusiness },
-    { label: t.sidebar.applications, path: "/applications", icon: FileText },
-    { label: t.sidebar.myProfile, path: "/profile", icon: User },
-    { label: t.sidebar.myResume, path: "/resume-manager", icon: FileBadge },
-    { label: t.sidebar.notifications, path: "/notifications", icon: Bell },
+    { label: t.sidebar.dashboard,      path: "/candidate-dashboard", icon: LayoutDashboard },
+    { label: t.sidebar.jobMatches,     path: "/job-matches",         icon: BriefcaseBusiness },
+    { label: t.sidebar.applications,   path: "/applications",        icon: FileText },
+    { label: t.sidebar.myProfile,      path: "/profile",             icon: User },
+    { label: t.sidebar.myResume,       path: "/resume-manager",      icon: FileBadge },
+    { label: t.sidebar.notifications,  path: "/notifications",       icon: Bell },
   ];
+
+  const handleLogout = () => {
+    const keys = [
+      "currentUser","currentCompany","registeredUser","isLoggedIn","name","email",
+      "role","phone","location","currentTitle","experience","skills","summary",
+      "resumeName","isFirstLogin",
+    ];
+    keys.forEach((k) => localStorage.removeItem(k));
+    navigate("/login");
+  };
 
   return (
     <aside
@@ -44,57 +51,40 @@ function CandidateSidebar({
       } ${isRTL ? "right-0 border-l" : "left-0 border-r"} max-[980px]:hidden`}
     >
       <div>
-        {/* TOP SECTION */}
         <div
-          className={`flex items-center justify-between border-b border-white/10 px-5 pb-5 pt-5 ${
-            isRTL ? "flex-row-reverse" : ""
-          }`}
+          className={`flex items-center justify-between border-b border-white/10 px-5 pb-5 pt-5 ${isRTL ? "flex-row-reverse" : ""}`}
         >
-          {/* Logo + Title */}
           <button
             type="button"
             onClick={() => navigate("/candidate-dashboard")}
             className={`flex items-center transition hover:opacity-90 ${
-              isCollapsed
-                ? "justify-center"
-                : `gap-4 ${isRTL ? "flex-row-reverse" : ""}`
+              isCollapsed ? "justify-center" : `gap-4 ${isRTL ? "flex-row-reverse" : ""}`
             }`}
           >
             <div className="flex h-[46px] w-[46px] items-center justify-center rounded-[16px] bg-gradient-to-br from-[#7c4dff] to-[#a855f7] shadow-[0_12px_28px_rgba(124,77,255,0.35)]">
               <Sparkles size={20} />
             </div>
-
             {!isCollapsed && (
               <div className={isRTL ? "text-right" : "text-left"}>
-                <h2 className="text-[23px] font-extrabold leading-none">
-                  JobMatch
-                </h2>
-                <p className="mt-2 text-[14px] text-[#8ea2ff]">
-                  {t.sidebar.brandSubtitle}
-                </p>
+                <h2 className="text-[23px] font-extrabold leading-none">JobMatch</h2>
+                <p className="mt-2 text-[14px] text-[#8ea2ff]">{t.sidebar.brandSubtitle}</p>
               </div>
             )}
           </button>
-
-          {/* Collapse Button */}
           <button
             type="button"
             onClick={() => setIsCollapsed((prev) => !prev)}
-            className={`rounded-full p-2 text-[#8a8fbe] transition hover:bg-white/10 hover:text-white ${
-              isCollapsed ? "rotate-180" : "rotate-0"
-            }`}
+            className={`rounded-full p-2 text-[#8a8fbe] transition hover:bg-white/10 hover:text-white ${isCollapsed ? "rotate-180" : "rotate-0"}`}
           >
             <ChevronLeft size={18} />
           </button>
         </div>
 
-        {/* MENU ITEMS */}
         <div className="px-3 pt-5">
           <div className="flex flex-col gap-2">
             {menuItems.map((item) => {
               const active = location.pathname === item.path;
               const Icon = item.icon;
-
               return (
                 <button
                   key={item.path}
@@ -104,33 +94,14 @@ function CandidateSidebar({
                   className={`flex w-full items-center rounded-[22px] transition ${
                     isCollapsed
                       ? "justify-center px-3 py-4"
-                      : `justify-between px-5 py-4 ${
-                          isRTL ? "text-right flex-row-reverse" : "text-left"
-                        }`
-                  } ${
-                    active
-                      ? "bg-[rgba(99,102,241,0.28)] text-white"
-                      : "bg-transparent text-[#9ca3c5] hover:bg-white/[0.04] hover:text-white"
-                  }`}
+                      : `justify-between px-5 py-4 ${isRTL ? "text-right flex-row-reverse" : "text-left"}`
+                  } ${active ? "bg-[rgba(99,102,241,0.28)] text-white" : "bg-transparent text-[#9ca3c5] hover:bg-white/[0.04] hover:text-white"}`}
                 >
-                  <div
-                    className={`flex items-center ${
-                      isCollapsed
-                        ? "justify-center"
-                        : `gap-4 ${isRTL ? "flex-row-reverse" : ""}`
-                    }`}
-                  >
+                  <div className={`flex items-center ${isCollapsed ? "justify-center" : `gap-4 ${isRTL ? "flex-row-reverse" : ""}`}`}>
                     <Icon size={22} strokeWidth={2.1} />
-                    {!isCollapsed && (
-                      <span className="text-[17px] font-semibold">
-                        {item.label}
-                      </span>
-                    )}
+                    {!isCollapsed && <span className="text-[17px] font-semibold">{item.label}</span>}
                   </div>
-
-                  {!isCollapsed && active && (
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#8ea2ff]" />
-                  )}
+                  {!isCollapsed && active && <span className="h-2.5 w-2.5 rounded-full bg-[#8ea2ff]" />}
                 </button>
               );
             })}
@@ -138,7 +109,6 @@ function CandidateSidebar({
         </div>
       </div>
 
-      {/* BOTTOM SECTION */}
       <div className="border-t border-white/10 px-3 pb-5 pt-4">
         {!isCollapsed && (
           <div className="mb-4 flex rounded-[18px] border border-white/10 bg-white/[0.03] p-1">
@@ -152,9 +122,7 @@ function CandidateSidebar({
                 type="button"
                 onClick={() => setLanguage(lang.key as "en" | "ar" | "he")}
                 className={`flex-1 rounded-[14px] px-3 py-2.5 text-[13px] font-semibold transition ${
-                  language === lang.key
-                    ? "bg-[rgba(99,102,241,0.45)] text-[#dce3ff]"
-                    : "text-[#9ca3c5]"
+                  language === lang.key ? "bg-[rgba(99,102,241,0.45)] text-[#dce3ff]" : "text-[#9ca3c5]"
                 }`}
               >
                 {lang.label}
@@ -162,17 +130,12 @@ function CandidateSidebar({
             ))}
           </div>
         )}
-
         <button
           type="button"
-          onClick={() => navigate("/login")}
+          onClick={handleLogout}
           title={isCollapsed ? t.common.logout : ""}
           className={`flex w-full items-center rounded-[18px] text-[17px] font-semibold text-[#b7bddb] transition hover:bg-white/[0.04] hover:text-white ${
-            isCollapsed
-              ? "justify-center px-3 py-3"
-              : `gap-3 px-4 py-3 ${
-                  isRTL ? "text-right flex-row-reverse" : "text-left"
-                }`
+            isCollapsed ? "justify-center px-3 py-3" : `gap-3 px-4 py-3 ${isRTL ? "text-right flex-row-reverse" : "text-left"}`
           }`}
         >
           <LogOut size={21} />

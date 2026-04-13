@@ -3,12 +3,55 @@ import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
 import {
-  Briefcase,
+  BriefcaseBusiness,
   FileText,
   CalendarDays,
   Sparkles,
   ChevronRight,
+  ArrowLeft,
+  Building2,
+  MapPin,
+  Wifi,
+  CheckCircle2,
 } from "lucide-react";
+
+type RecentApplication = {
+  id: number;
+  title: string;
+  company: string;
+  location: string;
+  percent: number;
+  status: string;
+  days: string;
+  statusClass: string;
+};
+
+type MatchItem = {
+  title: string;
+  company: string;
+  location: string;
+  remote: boolean;
+  score: number;
+};
+
+function ScoreRing({ value }: { value: number }) {
+  const ringColor = value >= 85 ? "#49e38d" : value >= 75 ? "#8b93ff" : "#f5c542";
+
+  return (
+    <div className="relative h-[88px] w-[88px] shrink-0">
+      <div
+        className="h-full w-full rounded-full transition-all duration-[1800ms] ease-out"
+        style={{
+          background: `conic-gradient(${ringColor} ${value * 3.6}deg, #2a2c5a 0deg)`,
+          boxShadow: `0 0 24px ${ringColor}22`,
+        }}
+      />
+      <div className="absolute inset-[8px] flex items-center justify-center rounded-full bg-[#252654] text-[20px] font-extrabold text-white shadow-inner">
+        {value}%
+      </div>
+    </div>
+  );
+}
 
 function CandidateDashboard() {
   const navigate = useNavigate();
@@ -25,185 +68,199 @@ function CandidateDashboard() {
     }
   }, [isFirstLogin]);
 
-  const profilePercent = 78;
-
   const stats = [
     {
-      icon: <Briefcase size={22} />,
+      icon: <BriefcaseBusiness size={22} />,
       value: "24",
       label: t.dashboard.stats.jobMatches,
-      iconBg: "bg-[rgba(99,102,241,0.24)]",
-      iconColor: "text-[#8ea2ff]",
+      iconBg: "bg-[#5e66ff1f]",
+      iconColor: "text-[#7c88ff]",
       onClick: () => navigate("/job-matches"),
     },
     {
       icon: <FileText size={22} />,
-      value: "8",
+      value: "5",
       label: t.dashboard.stats.applications,
-      iconBg: "bg-[rgba(34,211,238,0.18)]",
-      iconColor: "text-[#22d3ee]",
+      iconBg: "bg-[#22d3ee1f]",
+      iconColor: "text-[#67e8f9]",
       onClick: () => navigate("/applications"),
     },
     {
       icon: <CalendarDays size={22} />,
       value: "3",
       label: t.dashboard.stats.interviews,
-      iconBg: "bg-[rgba(52,211,153,0.18)]",
-      iconColor: "text-[#34d399]",
+      iconBg: "bg-[#34d3991f]",
+      iconColor: "text-[#6ee7b7]",
     },
     {
       icon: <Sparkles size={22} />,
       value: "78%",
       label: t.dashboard.stats.profileScore,
-      iconBg: "bg-[rgba(168,85,247,0.18)]",
-      iconColor: "text-[#c084fc]",
+      iconBg: "bg-[#a855f71f]",
+      iconColor: "text-[#d8b4fe]",
       onClick: () => navigate("/profile"),
     },
   ];
 
-  const topMatches = [
+  const topMatches: MatchItem[] = [
     {
       score: 92,
       title: "Senior Frontend Developer",
-      company: "Check Point • Tel Aviv",
+      company: "Check Point",
+      location: "Tel Aviv",
+      remote: true,
     },
     {
       score: 87,
       title: "Full Stack Engineer",
-      company: "Wix • Tel Aviv",
+      company: "Wix",
+      location: "Tel Aviv",
+      remote: true,
     },
     {
       score: 85,
       title: "React Developer",
-      company: "Monday.com • Ramat Gan",
+      company: "InnovateLab",
+      location: "Ramat Gan",
+      remote: false,
     },
   ];
 
-  // ✅ أضفنا id لكل application يطابق الـ id في Applications.tsx
-  const applications = [
+  const applications: RecentApplication[] = [
     {
       id: 1,
-      title: "Product Designer",
-      company: "Fiverr",
+      title: "Senior Frontend Developer",
+      company: "TechCorp",
+      location: "Tel Aviv",
+      percent: 92,
       status: t.dashboard.applications.underReview,
       days: t.dashboard.applications.daysAgo2,
       statusClass:
-        "bg-[rgba(255,190,47,0.16)] text-[#f7c948] border border-[rgba(255,190,47,0.35)]",
+        "border border-yellow-400/20 bg-yellow-500/12 text-yellow-300",
     },
     {
       id: 2,
-      title: "UX Engineer",
-      company: "IronSource",
+      title: "Full Stack Engineer",
+      company: "StartupXYZ",
+      location: "Herzliya",
+      percent: 87,
       status: t.dashboard.applications.aiScreening,
       days: t.dashboard.applications.daysAgo5,
       statusClass:
-        "bg-[rgba(168,85,247,0.16)] text-[#d8a4ff] border border-[rgba(168,85,247,0.35)]",
+        "border border-emerald-400/20 bg-emerald-500/12 text-emerald-300",
+    },
+    {
+      id: 3,
+      title: "React Developer",
+      company: "InnovateLab",
+      location: "Ramat Gan",
+      percent: 85,
+      status: "Shortlisted",
+      days: "1 day ago",
+      statusClass:
+        "border border-violet-400/20 bg-violet-500/12 text-violet-300",
     },
   ];
 
-  const renderProgressCircle = (percent: number) => {
-    const radius = 28;
-    const stroke = 5;
-    const normalizedRadius = radius;
-    const circumference = 2 * Math.PI * normalizedRadius;
-    const strokeDashoffset = circumference - (percent / 100) * circumference;
-
-    return (
-      <div className="relative flex h-[62px] w-[62px] items-center justify-center">
-        <svg height="62" width="62" viewBox="0 0 62 62" className="-rotate-90">
-          <circle
-            cx="31"
-            cy="31"
-            r={normalizedRadius}
-            fill="transparent"
-            stroke="rgba(65,228,143,0.16)"
-            strokeWidth={stroke}
-          />
-          <circle
-            cx="31"
-            cy="31"
-            r={normalizedRadius}
-            fill="transparent"
-            stroke="#41e48f"
-            strokeWidth={stroke}
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-          />
-        </svg>
-        <div className="absolute text-[15px] font-extrabold text-white">
-          {percent}%
-        </div>
-      </div>
-    );
-  };
+  const profilePercent = 78;
 
   return (
     <div
-      className={`min-h-screen bg-transparent pb-10 ${
-        isRTL ? "text-right" : "text-left"
-      }`}
+      dir={isRTL ? "rtl" : "ltr"}
+      className="min-h-[calc(100vh-78px)] bg-[radial-gradient(circle_at_top_left,rgba(86,45,255,0.16),transparent_24%),radial-gradient(circle_at_bottom_right,rgba(32,146,255,0.13),transparent_22%),linear-gradient(135deg,#0a0d2e_0%,#101548_45%,#181b58_100%)] px-4 py-7 lg:px-8"
     >
-      <div className="px-8 py-5">
-        <div className="mb-8">
-          <h1 className="mb-2 text-[48px] font-extrabold leading-none text-white">
-            {isFirstLogin
-              ? `${t.dashboard.welcome}, ${userName}`
-              : `${t.dashboard.welcomeBack}, ${userName}`}{" "}
-            <span className="text-[38px]">👋</span>
-          </h1>
-          <p className="text-[17px] text-[#aeb4d6]">{t.dashboard.subtitle}</p>
-        </div>
+      <div className="mx-auto w-full max-w-[1250px]">
+        <section className="mb-8">
+          <div
+            className={`mb-5 flex items-center ${
+              isRTL ? "justify-end" : "justify-start"
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white ${
+                isRTL ? "flex-row-reverse" : ""
+              }`}
+            >
+              <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
+              <span>{t.common?.back || "Back"}</span>
+            </button>
+          </div>
 
-        <div className="mb-8 grid grid-cols-4 gap-4 max-[1300px]:grid-cols-2 max-[700px]:grid-cols-1">
+          <div className="mb-6 flex items-start gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
+              <Sparkles size={26} />
+            </div>
+
+            <div className={isRTL ? "text-right" : "text-left"}>
+              <h1 className="text-[42px] font-extrabold leading-tight text-white">
+                {isFirstLogin
+                  ? `${t.dashboard.welcome}, ${userName}`
+                  : `${t.dashboard.welcomeBack}, ${userName}`}{" "}
+                👋
+              </h1>
+              <p className="mt-2 text-[17px] text-[#aeb4d6]">
+                {t.dashboard.subtitle}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {stats.map((stat) => (
             <button
               key={stat.label}
               type="button"
               onClick={stat.onClick}
-              className={`rounded-[24px] border border-white/10 bg-[rgba(52,50,110,0.78)] px-5 py-5 text-inherit shadow-[0_12px_28px_rgba(0,0,0,0.16)] transition hover:-translate-y-1 hover:bg-[rgba(58,56,122,0.92)] ${
+              className={`rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-6 py-6 text-inherit shadow-[0_18px_50px_rgba(0,0,0,0.16)] transition hover:border-white/20 hover:bg-[rgba(50,52,108,0.96)] ${
                 stat.onClick ? "cursor-pointer" : "cursor-default"
               }`}
             >
               <div
-                className={`mb-7 flex items-start justify-between ${
+                className={`mb-6 flex items-start justify-between ${
                   isRTL ? "flex-row-reverse" : ""
                 }`}
               >
                 <div
-                  className={`flex h-[46px] w-[46px] items-center justify-center rounded-[15px] ${stat.iconBg} ${stat.iconColor}`}
+                  className={`flex h-12 w-12 items-center justify-center rounded-2xl ${stat.iconBg} ${stat.iconColor}`}
                 >
                   {stat.icon}
                 </div>
-                <span className="text-[#747caf]">
-                  <ChevronRight size={22} className={isRTL ? "rotate-180" : ""} />
-                </span>
+                <ChevronRight
+                  size={20}
+                  className={`text-white/30 ${isRTL ? "rotate-180" : ""}`}
+                />
               </div>
-              <h2 className="mb-1 text-[44px] font-extrabold leading-none text-white">
+
+              <h2 className="mb-1 text-[40px] font-extrabold leading-none text-white">
                 {stat.value}
               </h2>
-              <p className="text-[16px] text-[#aeb4d6]">{stat.label}</p>
+              <p className="text-[15px] text-[#aeb4d6]">{stat.label}</p>
             </button>
           ))}
-        </div>
+        </section>
 
-        <div className="grid grid-cols-[1.9fr_0.95fr] gap-6 max-[1300px]:grid-cols-1">
-          {/* Top Matches */}
-          <div className="rounded-[28px] border border-white/10 bg-[rgba(52,50,110,0.82)] p-6 shadow-[0_12px_30px_rgba(0,0,0,0.16)]">
+        <section className="mb-8 grid grid-cols-1 gap-6 xl:grid-cols-[1.25fr_0.95fr]">
+          <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
             <div
               className={`mb-6 flex items-center justify-between ${
                 isRTL ? "flex-row-reverse" : ""
               }`}
             >
-              <div className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
-                <div className="flex h-[46px] w-[46px] items-center justify-center rounded-[15px] bg-[rgba(99,102,241,0.24)] text-[#8ea2ff]">
-                  <Sparkles size={22} />
+              <div
+                className={`flex items-center gap-4 ${
+                  isRTL ? "flex-row-reverse" : ""
+                }`}
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#5e66ff1f] text-[#7c88ff]">
+                  <BriefcaseBusiness size={22} />
                 </div>
-                <div>
-                  <h3 className="text-[21px] font-extrabold text-white">
+                <div className={isRTL ? "text-right" : "text-left"}>
+                  <h3 className="text-[22px] font-extrabold text-white">
                     {t.dashboard.topMatches.title}
                   </h3>
-                  <p className="text-[15px] text-[#aeb4d6]">
+                  <p className="mt-1 text-[15px] text-[#aeb4d6]">
                     {t.dashboard.topMatches.subtitle}
                   </p>
                 </div>
@@ -212,7 +269,7 @@ function CandidateDashboard() {
               <button
                 type="button"
                 onClick={() => navigate("/job-matches")}
-                className={`flex items-center gap-2 text-[15px] font-semibold text-[#8ea2ff] transition hover:text-white ${
+                className={`inline-flex items-center gap-2 text-[15px] font-semibold text-[#dbe2ff] transition hover:text-white ${
                   isRTL ? "flex-row-reverse" : ""
                 }`}
               >
@@ -221,54 +278,103 @@ function CandidateDashboard() {
               </button>
             </div>
 
-            <div className="flex flex-col gap-4">
+            <div className="space-y-5">
               {topMatches.map((job) => (
-                <button
+                <article
                   key={job.title}
-                  type="button"
-                  // ✅ يفتح تفاصيل الوظيفة المحددة مباشرة
                   onClick={() =>
                     navigate("/job-matches", {
                       state: { selectedJobTitle: job.title },
                     })
                   }
-                  className={`flex items-center justify-between rounded-[20px] border border-white/10 bg-[rgba(66,68,122,0.72)] px-5 py-4 text-inherit transition hover:bg-[rgba(74,77,136,0.84)] ${
-                    isRTL ? "flex-row-reverse" : ""
-                  }`}
+                  className="group cursor-pointer rounded-[28px] border border-white/10 bg-[rgba(50,52,108,0.78)] px-5 py-5 transition hover:border-white/20 hover:bg-[rgba(56,58,118,0.95)]"
                 >
-                  <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
-                    {renderProgressCircle(job.score)}
-                    <div className={isRTL ? "text-right" : "text-left"}>
-                      <h4 className="mb-1 text-[19px] font-bold text-white">
-                        {job.title}
-                      </h4>
-                      <p className="text-[15px] text-[#aeb4d6]">{job.company}</p>
+                  <div className="flex flex-col gap-5 md:flex-row md:items-center">
+                    <div className="flex flex-col items-center justify-center md:justify-start">
+                      <ScoreRing value={job.score} />
+                    </div>
+
+                    <div className="flex-1">
+                      <div
+                        className={`mb-3 flex flex-wrap items-center gap-3 ${
+                          isRTL ? "md:flex-row-reverse" : ""
+                        }`}
+                      >
+                        <h2 className="text-[22px] font-extrabold text-white">
+                          {job.title}
+                        </h2>
+
+                        <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-semibold text-emerald-300">
+                          Match
+                        </span>
+                      </div>
+
+                      <div
+                        className={`mb-3 flex items-center gap-2 text-[#c4cae9] ${
+                          isRTL
+                            ? "flex-row-reverse justify-end md:justify-start"
+                            : ""
+                        }`}
+                      >
+                        <Building2 size={16} />
+                        <span className="text-[15px]">{job.company}</span>
+                      </div>
+
+                      <div
+                        className={`flex flex-wrap items-center gap-x-5 gap-y-2 text-[#aeb4d6] ${
+                          isRTL ? "md:flex-row-reverse" : ""
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <MapPin size={16} />
+                          <span>{job.location}</span>
+                        </div>
+
+                        {job.remote && (
+                          <div className="flex items-center gap-2 text-cyan-300">
+                            <Wifi size={16} />
+                            <span>Remote</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end">
+                      <button
+                        type="button"
+                        className="flex h-11 w-11 items-center justify-center rounded-full text-white/30 transition group-hover:bg-white/5 group-hover:text-white/70"
+                      >
+                        <ChevronRight
+                          size={22}
+                          className={isRTL ? "rotate-180" : ""}
+                        />
+                      </button>
                     </div>
                   </div>
-                  <span className="text-[#7076a6]">
-                    <ChevronRight size={24} className={isRTL ? "rotate-180" : ""} />
-                  </span>
-                </button>
+                </article>
               ))}
             </div>
           </div>
 
-          {/* Applications */}
-          <div className="rounded-[28px] border border-white/10 bg-[rgba(48,61,112,0.82)] p-6 shadow-[0_12px_30px_rgba(0,0,0,0.16)]">
+          <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
             <div
               className={`mb-6 flex items-center justify-between ${
                 isRTL ? "flex-row-reverse" : ""
               }`}
             >
-              <div className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
-                <div className="flex h-[46px] w-[46px] items-center justify-center rounded-[15px] bg-[rgba(34,211,238,0.18)] text-[#22d3ee]">
+              <div
+                className={`flex items-center gap-4 ${
+                  isRTL ? "flex-row-reverse" : ""
+                }`}
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#22d3ee1f] text-[#67e8f9]">
                   <FileText size={22} />
                 </div>
-                <div>
-                  <h3 className="text-[21px] font-extrabold text-white">
+                <div className={isRTL ? "text-right" : "text-left"}>
+                  <h3 className="text-[22px] font-extrabold text-white">
                     {t.dashboard.applications.title}
                   </h3>
-                  <p className="text-[15px] text-[#aeb4d6]">
+                  <p className="mt-1 text-[15px] text-[#aeb4d6]">
                     {t.dashboard.applications.subtitle}
                   </p>
                 </div>
@@ -277,7 +383,7 @@ function CandidateDashboard() {
               <button
                 type="button"
                 onClick={() => navigate("/applications")}
-                className={`flex items-center gap-2 text-[15px] font-semibold text-[#8ea2ff] transition hover:text-white ${
+                className={`inline-flex items-center gap-2 text-[15px] font-semibold text-[#dbe2ff] transition hover:text-white ${
                   isRTL ? "flex-row-reverse" : ""
                 }`}
               >
@@ -286,94 +392,134 @@ function CandidateDashboard() {
               </button>
             </div>
 
-            <div className="flex flex-col gap-4">
+            <div className="space-y-4">
               {applications.map((app) => (
-                <button
+                <article
                   key={app.id}
-                  type="button"
-                  // ✅ يفتح تفاصيل الطلب المحدد مباشرة عبر الـ id
                   onClick={() =>
                     navigate("/applications", {
                       state: { selectedApplicationId: app.id },
                     })
                   }
-                  className="rounded-[20px] border border-white/10 bg-[rgba(70,86,138,0.48)] px-5 py-4 text-left transition hover:bg-[rgba(78,95,152,0.58)]"
+                  className="group cursor-pointer rounded-[26px] border border-white/10 bg-[rgba(50,52,108,0.78)] px-5 py-5 transition hover:border-white/20 hover:bg-[rgba(56,58,118,0.95)]"
                 >
-                  <h4 className="mb-2 text-[18px] font-bold text-white">
-                    {app.title}
-                  </h4>
-                  <p className="mb-4 text-[15px] text-[#aeb4d6]">{app.company}</p>
-                  <div
-                    className={`flex items-center justify-between gap-3 ${
-                      isRTL ? "flex-row-reverse" : ""
-                    }`}
-                  >
-                    <span className={`rounded-full px-4 py-2 text-[13px] font-bold ${app.statusClass}`}>
-                      {app.status}
-                    </span>
-                    <span className="text-[14px] text-[#98a0c7]">{app.days}</span>
+                  <div className="flex items-start gap-4">
+                    <ScoreRing value={app.percent} />
+
+                    <div className="min-w-0 flex-1">
+                      <div
+                        className={`mb-2 flex flex-wrap items-center gap-3 ${
+                          isRTL ? "flex-row-reverse" : ""
+                        }`}
+                      >
+                        <h4 className="truncate text-[20px] font-extrabold text-white">
+                          {app.title}
+                        </h4>
+                        <span
+                          className={`rounded-full px-3 py-1 text-sm font-semibold ${app.statusClass}`}
+                        >
+                          {app.status}
+                        </span>
+                      </div>
+
+                      <div className="mb-2 flex items-center gap-2 text-[#c4cae9]">
+                        <Building2 size={16} />
+                        <span className="text-[15px]">{app.company}</span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[#aeb4d6]">
+                        <div className="flex items-center gap-2">
+                          <MapPin size={16} />
+                          <span>{app.location}</span>
+                        </div>
+                        <div className="text-[14px] text-white/45">{app.days}</div>
+                      </div>
+                    </div>
+
+                    <ChevronRight
+                      size={22}
+                      className={`mt-1 text-white/30 transition group-hover:text-white/70 ${
+                        isRTL ? "rotate-180" : ""
+                      }`}
+                    />
                   </div>
-                </button>
+                </article>
               ))}
             </div>
 
             <button
               type="button"
               onClick={() => navigate("/applications")}
-              className="mt-6 w-full rounded-[16px] border border-white/10 bg-white/[0.04] py-3 text-center text-[16px] font-bold text-[#e3e7ff] transition hover:bg-white/[0.08]"
+              className="mt-6 w-full rounded-[18px] border border-white/10 bg-white/[0.04] py-3.5 text-center text-[16px] font-bold text-white/80 transition hover:bg-white/[0.08] hover:text-white"
             >
               {t.dashboard.applications.viewAll}
             </button>
           </div>
-        </div>
+        </section>
 
-        <div
-          className={`mt-10 flex items-center justify-between rounded-[28px] border border-white/10 bg-gradient-to-r from-[#2b2e6a] to-[#243b6b] p-8 shadow-[0_12px_30px_rgba(0,0,0,0.2)] max-[900px]:flex-col max-[900px]:items-start max-[900px]:gap-6 ${
-            isRTL ? "flex-row-reverse" : ""
-          }`}
-        >
-          <div className={`flex items-center gap-6 ${isRTL ? "flex-row-reverse" : ""}`}>
+        <section className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-7 py-7 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div
-              className="relative flex h-[90px] w-[90px] items-center justify-center rounded-full"
-              style={{
-                background: `conic-gradient(#facc15 ${profilePercent}%, #2e325f ${profilePercent}% 100%)`,
-              }}
+              className={`flex items-center gap-5 ${
+                isRTL ? "flex-row-reverse" : ""
+              }`}
             >
-              <div className="absolute flex h-[70px] w-[70px] items-center justify-center rounded-full bg-[#1a1d4d] text-lg font-bold text-white">
-                {profilePercent}%
+              <div
+                className="relative h-[98px] w-[98px] shrink-0 rounded-full"
+                style={{
+                  background: `conic-gradient(#facc15 ${profilePercent * 3.6}deg, #2a2c5a 0deg)`,
+                  boxShadow: "0 0 24px rgba(250,204,21,0.15)",
+                }}
+              >
+                <div className="absolute inset-[8px] flex items-center justify-center rounded-full bg-[#252654] text-[22px] font-extrabold text-white shadow-inner">
+                  {profilePercent}%
+                </div>
+              </div>
+
+              <div className={isRTL ? "text-right" : "text-left"}>
+                <h3 className="text-[24px] font-extrabold text-white">
+                  {t.dashboard.profileBox.title}
+                </h3>
+                <p className="mt-2 max-w-[520px] text-[16px] leading-7 text-[#aeb4d6]">
+                  {t.dashboard.profileBox.subtitle}
+                </p>
+
+                <div
+                  className={`mt-4 flex items-center gap-2 text-emerald-300 ${
+                    isRTL ? "flex-row-reverse" : ""
+                  }`}
+                >
+                  <CheckCircle2 size={18} />
+                  <span className="text-sm font-semibold">
+                    Your profile is on the right track
+                  </span>
+                </div>
               </div>
             </div>
-            <div className={isRTL ? "text-right" : "text-left"}>
-              <h3 className="text-[20px] font-bold text-white">
-                {t.dashboard.profileBox.title}
-              </h3>
-              <p className="text-[15px] text-[#aeb4d6]">
-                {t.dashboard.profileBox.subtitle}
-              </p>
+
+            <div
+              className={`flex items-center gap-4 max-[640px]:flex-col ${
+                isRTL ? "flex-row-reverse" : ""
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => navigate("/resume-manager")}
+                className="rounded-[16px] border border-cyan-400/25 bg-cyan-400/10 px-6 py-3 text-[15px] font-semibold text-cyan-300 transition hover:bg-cyan-400/15"
+              >
+                {t.dashboard.profileBox.uploadResume}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate("/profile")}
+                className="rounded-[16px] bg-gradient-to-r from-[#7f4cff] to-[#a855f7] px-6 py-3 text-[15px] font-semibold text-white transition hover:opacity-90"
+              >
+                {t.dashboard.profileBox.editProfile}
+              </button>
             </div>
           </div>
-
-          <div
-            className={`flex items-center gap-4 max-[600px]:w-full max-[600px]:flex-col ${
-              isRTL ? "flex-row-reverse" : ""
-            }`}
-          >
-            <button
-              type="button"
-              onClick={() => navigate("/resume-manager")}
-              className="rounded-[12px] border border-cyan-400 px-5 py-2 text-cyan-300 transition hover:bg-cyan-400/10 max-[600px]:w-full"
-            >
-              {t.dashboard.profileBox.uploadResume}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("/profile")}
-              className="rounded-[12px] bg-gradient-to-r from-[#7f4cff] to-[#a855f7] px-5 py-2 font-semibold text-white transition hover:opacity-90 max-[600px]:w-full"
-            >
-              {t.dashboard.profileBox.editProfile}
-            </button>
-          </div>
-        </div>
+        </section>
       </div>
     </div>
   );
