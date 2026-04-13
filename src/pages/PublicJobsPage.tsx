@@ -6,7 +6,6 @@ import {
   BriefcaseBusiness,
   Clock3,
   Sparkles,
-  Bookmark,
   ArrowRight,
   X,
 } from "lucide-react";
@@ -245,7 +244,7 @@ function PublicJobsPage() {
               key={job.id}
               className="rounded-[28px] border border-white/10 bg-white/[0.045] p-6 shadow-[0_12px_35px_rgba(0,0,0,0.16)] transition hover:bg-white/[0.06]"
             >
-              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0 flex-1">
                   <div className="mb-3 flex flex-wrap items-center gap-3">
                     <span className="rounded-full bg-violet-500/15 px-3 py-1 text-xs font-semibold text-violet-300">
@@ -292,22 +291,13 @@ function PublicJobsPage() {
                   </div>
                 </div>
 
-                <div className="flex w-full shrink-0 flex-col gap-3 lg:w-[220px]">
+                <div className="flex w-full shrink-0 flex-col justify-center gap-3 lg:w-[220px]">
                   <button
                     type="button"
                     onClick={handleProtectedAction}
                     className="rounded-[16px] bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-4 py-3 text-sm font-bold text-white shadow-[0_12px_28px_rgba(99,102,241,0.28)] transition hover:scale-[1.02]"
                   >
                     Apply Now
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleProtectedAction}
-                    className="inline-flex items-center justify-center gap-2 rounded-[16px] border border-white/10 bg-white/[0.05] px-4 py-3 text-sm font-semibold text-white/85 transition hover:bg-white/[0.08]"
-                  >
-                    <Bookmark size={16} />
-                    Save Job
                   </button>
 
                   <button

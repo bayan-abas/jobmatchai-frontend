@@ -1,5 +1,5 @@
-import { useNavigate } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 import {
   BriefcaseBusiness,
   MapPin,
@@ -80,12 +80,9 @@ function CircleProgress({ percent }: { percent: string }) {
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
           className="transition-all duration-700 ease-out"
-          style={{
-            filter: "drop-shadow(0 0 12px rgba(139,147,255,0.28))",
-          }}
+          style={{ filter: "drop-shadow(0 0 12px rgba(139,147,255,0.28))" }}
         />
       </svg>
-
       <div className="absolute inset-0 flex items-center justify-center text-[18px] font-extrabold text-white">
         {percent}
       </div>
@@ -95,6 +92,7 @@ function CircleProgress({ percent }: { percent: string }) {
 
 function Applications() {
   const navigate = useNavigate();
+  const location = useLocation(); // ✅ إضافة useLocation
   const [filter, setFilter] = useState<FilterType>("all");
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
@@ -229,6 +227,19 @@ function Applications() {
     },
   ];
 
+  // ✅ التعديل الرئيسي: قراءة الـ id من navigation state وفتح الطلب مباشرة
+  useEffect(() => {
+    const idFromNav = location.state?.selectedApplicationId;
+    if (idFromNav) {
+      const found = applications.find((a) => a.id === idFromNav);
+      if (found) {
+        setSelectedId(found.id);
+      }
+      // تنظيف الـ state
+      window.history.replaceState({}, document.title);
+    }
+  }, []);
+
   const filteredApplications = useMemo(() => {
     return applications.filter((app) => {
       if (filter === "all") return true;
@@ -277,7 +288,6 @@ function Applications() {
   const renderStep = (index: number, progress: number) => {
     const done = index < progress;
     const current = index === progress;
-
     const icons = ["✈", "✦", "◉", "☆", "✓"];
     const icon = icons[index - 1];
 
@@ -294,7 +304,6 @@ function Applications() {
         >
           {icon}
         </div>
-
         {index !== 5 && (
           <div
             className={`mx-2 h-[2px] w-8 lg:w-10 ${
@@ -323,7 +332,6 @@ function Applications() {
               <div className="flex h-[74px] w-[74px] items-center justify-center rounded-[24px] bg-gradient-to-b from-sky-500 to-blue-600 shadow-[0_0_30px_rgba(59,130,246,0.35)]">
                 <FileText size={34} className="text-white" />
               </div>
-
               <div>
                 <h1 className="text-[52px] font-extrabold leading-none text-white">
                   My Applications
@@ -335,22 +343,13 @@ function Applications() {
             </div>
 
             <div className="mb-12 inline-flex rounded-[22px] border border-white/10 bg-white/[0.05] p-1.5">
-              <button
-                onClick={() => setFilter("all")}
-                className={filterButtonClass("all")}
-              >
+              <button onClick={() => setFilter("all")} className={filterButtonClass("all")}>
                 All
               </button>
-              <button
-                onClick={() => setFilter("active")}
-                className={filterButtonClass("active")}
-              >
+              <button onClick={() => setFilter("active")} className={filterButtonClass("active")}>
                 Active
               </button>
-              <button
-                onClick={() => setFilter("completed")}
-                className={filterButtonClass("completed")}
-              >
+              <button onClick={() => setFilter("completed")} className={filterButtonClass("completed")}>
                 Completed
               </button>
             </div>
@@ -366,24 +365,20 @@ function Applications() {
                   <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
                     <div className="flex min-w-0 items-center gap-6">
                       <CircleProgress percent={app.percent} />
-
                       <div className="min-w-0">
                         <h3 className="truncate text-[30px] font-extrabold text-white">
                           {app.title}
                         </h3>
-
                         <div className="mt-3 flex flex-wrap items-center gap-5 text-[17px] text-white/55">
                           <span className="flex items-center gap-2">
                             <BriefcaseBusiness size={17} />
                             {app.company}
                           </span>
-
                           <span className="flex items-center gap-2">
                             <MapPin size={17} />
                             {app.location}
                           </span>
                         </div>
-
                         <p className="mt-3 text-[16px] text-white/40">
                           Applied {app.date}
                         </p>
@@ -391,9 +386,7 @@ function Applications() {
                     </div>
 
                     <div className="flex flex-wrap items-center xl:justify-center">
-                      {[1, 2, 3, 4, 5].map((step) =>
-                        renderStep(step, app.progress)
-                      )}
+                      {[1, 2, 3, 4, 5].map((step) => renderStep(step, app.progress))}
                     </div>
 
                     <div className="flex min-w-[190px] items-center justify-between gap-4 xl:justify-end">
@@ -413,7 +406,6 @@ function Applications() {
                           </>
                         )}
                       </div>
-
                       <span className="text-white/35 transition hover:text-white">
                         <ChevronRight size={34} />
                       </span>
@@ -447,32 +439,27 @@ function Applications() {
             <div className="mb-8 rounded-[34px] border border-white/10 bg-white/[0.07] px-7 py-7 shadow-[0_8px_30px_rgba(0,0,0,0.15)] backdrop-blur-sm lg:px-9">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
                 <CircleProgress percent={selectedApplication.percent} />
-
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div className="min-w-0">
                       <h1 className="truncate text-[38px] font-extrabold text-white">
                         {selectedApplication.title}
                       </h1>
-
                       <div className="mt-4 flex flex-wrap items-center gap-6 text-[18px] text-white/60">
                         <span className="flex items-center gap-2">
                           <BriefcaseBusiness size={18} />
                           {selectedApplication.company}
                         </span>
-
                         <span className="flex items-center gap-2">
                           <MapPin size={18} />
                           {selectedApplication.location}
                         </span>
-
                         <span className="flex items-center gap-2">
                           <CalendarDays size={18} />
                           Applied {selectedApplication.date}
                         </span>
                       </div>
                     </div>
-
                     <div
                       className={`shrink-0 rounded-full px-6 py-3 text-[16px] font-semibold ${statusBadgeClass(
                         selectedApplication.reviewStatus
@@ -489,13 +476,10 @@ function Applications() {
               <h2 className="mb-10 text-[26px] font-extrabold text-white">
                 Application Progress
               </h2>
-
               <div className="grid grid-cols-1 gap-8 md:grid-cols-5 md:gap-4">
                 {steps.map((step, index) => {
                   const Icon = step.icon;
-                  const currentIndex = getCurrentStepIndex(
-                    selectedApplication.currentStep
-                  );
+                  const currentIndex = getCurrentStepIndex(selectedApplication.currentStep);
                   const isDone = index < currentIndex;
                   const isCurrent = index === currentIndex;
 
@@ -517,19 +501,15 @@ function Applications() {
                           <Icon size={30} />
                         </div>
                       </div>
-
                       {index !== steps.length - 1 && (
                         <div className="absolute left-[58%] top-[36px] hidden h-[2px] w-[88%] md:block">
                           <div
                             className={`h-full w-full ${
-                              index < currentIndex
-                                ? "bg-cyan-400/70"
-                                : "bg-white/10"
+                              index < currentIndex ? "bg-cyan-400/70" : "bg-white/10"
                             }`}
                           />
                         </div>
                       )}
-
                       <p
                         className={`text-[15px] font-medium ${
                           isDone
@@ -552,25 +532,17 @@ function Applications() {
                 <h2 className="mb-6 text-[24px] font-extrabold text-white">
                   About the Role
                 </h2>
-
                 <p className="mb-8 text-[18px] leading-10 text-white/70">
                   {selectedApplication.about}
                 </p>
-
-                <h3 className="mb-5 text-[18px] font-bold text-white">
-                  Requirements
-                </h3>
-
+                <h3 className="mb-5 text-[18px] font-bold text-white">Requirements</h3>
                 <div className="space-y-4">
                   {selectedApplication.requirements.map((item) => (
                     <div
                       key={item}
                       className="flex items-start gap-3 text-[17px] text-white/70"
                     >
-                      <CheckCircle2
-                        size={22}
-                        className="mt-0.5 shrink-0 text-indigo-300"
-                      />
+                      <CheckCircle2 size={22} className="mt-0.5 shrink-0 text-indigo-300" />
                       <span>{item}</span>
                     </div>
                   ))}
@@ -581,7 +553,6 @@ function Applications() {
                 <h2 className="mb-6 text-[24px] font-extrabold text-white">
                   Required Skills
                 </h2>
-
                 <div className="mb-10 flex flex-wrap gap-3">
                   {selectedApplication.skills.map((skill) => (
                     <span
@@ -596,7 +567,6 @@ function Applications() {
                 <h3 className="mb-5 text-[22px] font-extrabold text-white">
                   Pre-Interview
                 </h3>
-
                 {selectedApplication.preInterviewScore ? (
                   <>
                     <div className="mb-4 flex items-end gap-4">
@@ -604,15 +574,12 @@ function Applications() {
                         {selectedApplication.preInterviewScore}
                       </span>
                       <div className="pb-1">
-                        <p className="text-[18px] text-white/55">
-                          Interview Score
-                        </p>
+                        <p className="text-[18px] text-white/55">Interview Score</p>
                         <p className="text-[16px] font-semibold text-emerald-400">
                           {selectedApplication.preInterviewStrength}
                         </p>
                       </div>
                     </div>
-
                     <p className="text-[18px] leading-9 text-white/70">
                       {selectedApplication.preInterviewText}
                     </p>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   BriefcaseBusiness,
   Building2,
@@ -50,6 +50,7 @@ type JobDetailExtra = {
 
 function JobMatches() {
   const navigate = useNavigate();
+  const location = useLocation(); // ✅ إضافة useLocation
 
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [industry, setIndustry] = useState("");
@@ -68,29 +69,6 @@ function JobMatches() {
   const { language } = useLanguage();
   const t = translations[language];
   const isRTL = language === "ar" || language === "he";
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-
-      if (industryRef.current && !industryRef.current.contains(target)) {
-        setIndustryOpen(false);
-      }
-
-      if (seniorityRef.current && !seniorityRef.current.contains(target)) {
-        setSeniorityOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    if (selectedJob) {
-      window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
-    }
-  }, [selectedJob]);
 
   const jobs: Job[] = [
     {
@@ -364,6 +342,42 @@ function JobMatches() {
       industry: "logistics",
     },
   ];
+
+  // ✅ التعديل الرئيسي: قراءة الوظيفة المطلوبة من navigation state
+  useEffect(() => {
+    const titleFromNav = location.state?.selectedJobTitle;
+    if (titleFromNav) {
+      const found = jobs.find((j) => j.title === titleFromNav);
+      if (found) {
+        setSelectedJob(found);
+      }
+      // تنظيف الـ state حتى ما يبقى محفوظ لو رجع المستخدم
+      window.history.replaceState({}, document.title);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+
+      if (industryRef.current && !industryRef.current.contains(target)) {
+        setIndustryOpen(false);
+      }
+
+      if (seniorityRef.current && !seniorityRef.current.contains(target)) {
+        setSeniorityOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (selectedJob) {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+    }
+  }, [selectedJob]);
 
   const jobDetailsMap: Record<string, JobDetailExtra> = {
     "Senior Frontend Developer": {

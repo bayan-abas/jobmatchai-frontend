@@ -27,39 +27,39 @@ function CandidateDashboard() {
 
   const profilePercent = 78;
 
-const stats = [
-  {
-    icon: <Briefcase size={22} />,
-    value: "24",
-    label: t.dashboard.stats.jobMatches,
-    iconBg: "bg-[rgba(99,102,241,0.24)]",
-    iconColor: "text-[#8ea2ff]",
-    onClick: () => navigate("/job-matches"),
-  },
-  {
-    icon: <FileText size={22} />,
-    value: "8",
-    label: t.dashboard.stats.applications,
-    iconBg: "bg-[rgba(34,211,238,0.18)]",
-    iconColor: "text-[#22d3ee]",
-    onClick: () => navigate("/applications"),
-  },
-  {
-    icon: <CalendarDays size={22} />,
-    value: "3",
-    label: t.dashboard.stats.interviews,
-    iconBg: "bg-[rgba(52,211,153,0.18)]",
-    iconColor: "text-[#34d399]",
-  },
-  {
-    icon: <Sparkles size={22} />,
-    value: "78%",
-    label: t.dashboard.stats.profileScore,
-    iconBg: "bg-[rgba(168,85,247,0.18)]",
-    iconColor: "text-[#c084fc]",
-    onClick: () => navigate("/profile"), // 🔥 هذا المهم
-  },
-];
+  const stats = [
+    {
+      icon: <Briefcase size={22} />,
+      value: "24",
+      label: t.dashboard.stats.jobMatches,
+      iconBg: "bg-[rgba(99,102,241,0.24)]",
+      iconColor: "text-[#8ea2ff]",
+      onClick: () => navigate("/job-matches"),
+    },
+    {
+      icon: <FileText size={22} />,
+      value: "8",
+      label: t.dashboard.stats.applications,
+      iconBg: "bg-[rgba(34,211,238,0.18)]",
+      iconColor: "text-[#22d3ee]",
+      onClick: () => navigate("/applications"),
+    },
+    {
+      icon: <CalendarDays size={22} />,
+      value: "3",
+      label: t.dashboard.stats.interviews,
+      iconBg: "bg-[rgba(52,211,153,0.18)]",
+      iconColor: "text-[#34d399]",
+    },
+    {
+      icon: <Sparkles size={22} />,
+      value: "78%",
+      label: t.dashboard.stats.profileScore,
+      iconBg: "bg-[rgba(168,85,247,0.18)]",
+      iconColor: "text-[#c084fc]",
+      onClick: () => navigate("/profile"),
+    },
+  ];
 
   const topMatches = [
     {
@@ -79,8 +79,10 @@ const stats = [
     },
   ];
 
+  // ✅ أضفنا id لكل application يطابق الـ id في Applications.tsx
   const applications = [
     {
+      id: 1,
       title: "Product Designer",
       company: "Fiverr",
       status: t.dashboard.applications.underReview,
@@ -89,6 +91,7 @@ const stats = [
         "bg-[rgba(255,190,47,0.16)] text-[#f7c948] border border-[rgba(255,190,47,0.35)]",
     },
     {
+      id: 2,
       title: "UX Engineer",
       company: "IronSource",
       status: t.dashboard.applications.aiScreening,
@@ -103,17 +106,11 @@ const stats = [
     const stroke = 5;
     const normalizedRadius = radius;
     const circumference = 2 * Math.PI * normalizedRadius;
-    const strokeDashoffset =
-      circumference - (percent / 100) * circumference;
+    const strokeDashoffset = circumference - (percent / 100) * circumference;
 
     return (
       <div className="relative flex h-[62px] w-[62px] items-center justify-center">
-        <svg
-          height="62"
-          width="62"
-          viewBox="0 0 62 62"
-          className="-rotate-90"
-        >
+        <svg height="62" width="62" viewBox="0 0 62 62" className="-rotate-90">
           <circle
             cx="31"
             cy="31"
@@ -134,7 +131,6 @@ const stats = [
             strokeDashoffset={strokeDashoffset}
           />
         </svg>
-
         <div className="absolute text-[15px] font-extrabold text-white">
           {percent}%
         </div>
@@ -180,13 +176,9 @@ const stats = [
                   {stat.icon}
                 </div>
                 <span className="text-[#747caf]">
-                  <ChevronRight
-                    size={22}
-                    className={isRTL ? "rotate-180" : ""}
-                  />
+                  <ChevronRight size={22} className={isRTL ? "rotate-180" : ""} />
                 </span>
               </div>
-
               <h2 className="mb-1 text-[44px] font-extrabold leading-none text-white">
                 {stat.value}
               </h2>
@@ -196,21 +188,17 @@ const stats = [
         </div>
 
         <div className="grid grid-cols-[1.9fr_0.95fr] gap-6 max-[1300px]:grid-cols-1">
+          {/* Top Matches */}
           <div className="rounded-[28px] border border-white/10 bg-[rgba(52,50,110,0.82)] p-6 shadow-[0_12px_30px_rgba(0,0,0,0.16)]">
             <div
               className={`mb-6 flex items-center justify-between ${
                 isRTL ? "flex-row-reverse" : ""
               }`}
             >
-              <div
-                className={`flex items-center gap-3 ${
-                  isRTL ? "flex-row-reverse" : ""
-                }`}
-              >
+              <div className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
                 <div className="flex h-[46px] w-[46px] items-center justify-center rounded-[15px] bg-[rgba(99,102,241,0.24)] text-[#8ea2ff]">
                   <Sparkles size={22} />
                 </div>
-
                 <div>
                   <h3 className="text-[21px] font-extrabold text-white">
                     {t.dashboard.topMatches.title}
@@ -229,10 +217,7 @@ const stats = [
                 }`}
               >
                 {t.dashboard.topMatches.viewAll}
-                <ChevronRight
-                  size={18}
-                  className={isRTL ? "rotate-180" : ""}
-                />
+                <ChevronRight size={18} className={isRTL ? "rotate-180" : ""} />
               </button>
             </div>
 
@@ -241,54 +226,44 @@ const stats = [
                 <button
                   key={job.title}
                   type="button"
-                  onClick={() => navigate("/job-matches")}
+                  // ✅ يفتح تفاصيل الوظيفة المحددة مباشرة
+                  onClick={() =>
+                    navigate("/job-matches", {
+                      state: { selectedJobTitle: job.title },
+                    })
+                  }
                   className={`flex items-center justify-between rounded-[20px] border border-white/10 bg-[rgba(66,68,122,0.72)] px-5 py-4 text-inherit transition hover:bg-[rgba(74,77,136,0.84)] ${
                     isRTL ? "flex-row-reverse" : ""
                   }`}
                 >
-                  <div
-                    className={`flex items-center gap-4 ${
-                      isRTL ? "flex-row-reverse" : ""
-                    }`}
-                  >
+                  <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
                     {renderProgressCircle(job.score)}
-
                     <div className={isRTL ? "text-right" : "text-left"}>
                       <h4 className="mb-1 text-[19px] font-bold text-white">
                         {job.title}
                       </h4>
-                      <p className="text-[15px] text-[#aeb4d6]">
-                        {job.company}
-                      </p>
+                      <p className="text-[15px] text-[#aeb4d6]">{job.company}</p>
                     </div>
                   </div>
-
                   <span className="text-[#7076a6]">
-                    <ChevronRight
-                      size={24}
-                      className={isRTL ? "rotate-180" : ""}
-                    />
+                    <ChevronRight size={24} className={isRTL ? "rotate-180" : ""} />
                   </span>
                 </button>
               ))}
             </div>
           </div>
 
+          {/* Applications */}
           <div className="rounded-[28px] border border-white/10 bg-[rgba(48,61,112,0.82)] p-6 shadow-[0_12px_30px_rgba(0,0,0,0.16)]">
             <div
               className={`mb-6 flex items-center justify-between ${
                 isRTL ? "flex-row-reverse" : ""
               }`}
             >
-              <div
-                className={`flex items-center gap-3 ${
-                  isRTL ? "flex-row-reverse" : ""
-                }`}
-              >
+              <div className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
                 <div className="flex h-[46px] w-[46px] items-center justify-center rounded-[15px] bg-[rgba(34,211,238,0.18)] text-[#22d3ee]">
                   <FileText size={22} />
                 </div>
-
                 <div>
                   <h3 className="text-[21px] font-extrabold text-white">
                     {t.dashboard.applications.title}
@@ -307,41 +282,36 @@ const stats = [
                 }`}
               >
                 {t.dashboard.applications.viewAll}
-                <ChevronRight
-                  size={18}
-                  className={isRTL ? "rotate-180" : ""}
-                />
+                <ChevronRight size={18} className={isRTL ? "rotate-180" : ""} />
               </button>
             </div>
 
             <div className="flex flex-col gap-4">
               {applications.map((app) => (
                 <button
-                  key={app.title}
+                  key={app.id}
                   type="button"
-                  onClick={() => navigate("/applications")}
+                  // ✅ يفتح تفاصيل الطلب المحدد مباشرة عبر الـ id
+                  onClick={() =>
+                    navigate("/applications", {
+                      state: { selectedApplicationId: app.id },
+                    })
+                  }
                   className="rounded-[20px] border border-white/10 bg-[rgba(70,86,138,0.48)] px-5 py-4 text-left transition hover:bg-[rgba(78,95,152,0.58)]"
                 >
                   <h4 className="mb-2 text-[18px] font-bold text-white">
                     {app.title}
                   </h4>
-                  <p className="mb-4 text-[15px] text-[#aeb4d6]">
-                    {app.company}
-                  </p>
-
+                  <p className="mb-4 text-[15px] text-[#aeb4d6]">{app.company}</p>
                   <div
                     className={`flex items-center justify-between gap-3 ${
                       isRTL ? "flex-row-reverse" : ""
                     }`}
                   >
-                    <span
-                      className={`rounded-full px-4 py-2 text-[13px] font-bold ${app.statusClass}`}
-                    >
+                    <span className={`rounded-full px-4 py-2 text-[13px] font-bold ${app.statusClass}`}>
                       {app.status}
                     </span>
-                    <span className="text-[14px] text-[#98a0c7]">
-                      {app.days}
-                    </span>
+                    <span className="text-[14px] text-[#98a0c7]">{app.days}</span>
                   </div>
                 </button>
               ))}
@@ -362,11 +332,7 @@ const stats = [
             isRTL ? "flex-row-reverse" : ""
           }`}
         >
-          <div
-            className={`flex items-center gap-6 ${
-              isRTL ? "flex-row-reverse" : ""
-            }`}
-          >
+          <div className={`flex items-center gap-6 ${isRTL ? "flex-row-reverse" : ""}`}>
             <div
               className="relative flex h-[90px] w-[90px] items-center justify-center rounded-full"
               style={{
@@ -377,7 +343,6 @@ const stats = [
                 {profilePercent}%
               </div>
             </div>
-
             <div className={isRTL ? "text-right" : "text-left"}>
               <h3 className="text-[20px] font-bold text-white">
                 {t.dashboard.profileBox.title}
@@ -395,15 +360,14 @@ const stats = [
           >
             <button
               type="button"
-              onClick={() => navigate("/resume-manager")}   // بودي على My Resume
+              onClick={() => navigate("/resume-manager")}
               className="rounded-[12px] border border-cyan-400 px-5 py-2 text-cyan-300 transition hover:bg-cyan-400/10 max-[600px]:w-full"
             >
               {t.dashboard.profileBox.uploadResume}
             </button>
-
             <button
               type="button"
-              onClick={() => navigate("/profile")}   //بودي على My Profile
+              onClick={() => navigate("/profile")}
               className="rounded-[12px] bg-gradient-to-r from-[#7f4cff] to-[#a855f7] px-5 py-2 font-semibold text-white transition hover:opacity-90 max-[600px]:w-full"
             >
               {t.dashboard.profileBox.editProfile}
