@@ -51,13 +51,13 @@ function CompanySidebar({ isCollapsed, setIsCollapsed }: CompanySidebarProps) {
     >
       <div>
         <div
-          className={`flex items-center justify-between border-b border-white/10 px-5 pb-5 pt-5 ${isRTL ? "flex-row-reverse" : ""}`}
+          className={`flex items-center justify-between border-b border-white/10 px-5 pb-5 pt-5`}
         >
           <button
             type="button"
             onClick={() => navigate("/company-dashboard")}
             className={`flex items-center transition hover:opacity-90 ${
-              isCollapsed ? "justify-center" : `gap-4 ${isRTL ? "flex-row-reverse" : ""}`
+              isCollapsed ? "justify-center" : `gap-4`
             }`}
           >
             <div className="flex h-[46px] w-[46px] items-center justify-center rounded-[16px] bg-gradient-to-br from-[#7c4dff] to-[#a855f7] shadow-[0_12px_28px_rgba(124,77,255,0.35)]">
@@ -93,10 +93,10 @@ function CompanySidebar({ isCollapsed, setIsCollapsed }: CompanySidebarProps) {
                   className={`flex w-full items-center rounded-[22px] transition ${
                     isCollapsed
                       ? "justify-center px-3 py-4"
-                      : `justify-between px-5 py-4 ${isRTL ? "text-right flex-row-reverse" : "text-left"}`
+                      : `justify-between px-5 py-4 ${isRTL ? "text-right" : "text-left"}`
                   } ${active ? "bg-[rgba(99,102,241,0.28)] text-white" : "bg-transparent text-[#9ca3c5] hover:bg-white/[0.04] hover:text-white"}`}
                 >
-                  <div className={`flex items-center ${isCollapsed ? "justify-center" : `gap-4 ${isRTL ? "flex-row-reverse" : ""}`}`}>
+                  <div className={`flex items-center ${isCollapsed ? "justify-center" : `gap-4`}`}>
                     <Icon size={22} strokeWidth={2.1} />
                     {!isCollapsed && <span className="text-[17px] font-semibold">{item.label}</span>}
                   </div>
@@ -134,7 +134,7 @@ function CompanySidebar({ isCollapsed, setIsCollapsed }: CompanySidebarProps) {
           onClick={handleLogout}
           title={isCollapsed ? t.common.logout : ""}
           className={`flex w-full items-center rounded-[18px] text-[17px] font-semibold text-[#b7bddb] transition hover:bg-white/[0.04] hover:text-white ${
-            isCollapsed ? "justify-center px-3 py-3" : `gap-3 px-4 py-3 ${isRTL ? "text-right flex-row-reverse" : "text-left"}`
+            isCollapsed ? "justify-center px-3 py-3" : `gap-3 px-4 py-3 ${isRTL ? "text-right" : "text-left"}`
           }`}
         >
           <LogOut size={21} />

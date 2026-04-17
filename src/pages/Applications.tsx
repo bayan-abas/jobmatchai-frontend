@@ -328,9 +328,7 @@ function Applications() {
                 <button
                   type="button"
                   onClick={() => navigate("/candidate-dashboard")}
-                  className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white ${
-                    isRTL ? "flex-row-reverse" : ""
-                  }`}
+                  className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white`}
                 >
                   <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
                   <span>{t.common.back}</span>
@@ -339,7 +337,7 @@ function Applications() {
 
               <div
                 className={`mb-6 flex items-start gap-4 ${
-                  isRTL ? "flex-row-reverse text-right" : ""
+                  isRTL ? "text-right" : ""
                 }`}
               >
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#22d3ee] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
@@ -359,7 +357,7 @@ function Applications() {
               <div className="rounded-[28px] border border-white/10 bg-white/[0.05] px-5 py-5 shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
                 <div
                   className={`flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between ${
-                    isRTL ? "lg:flex-row-reverse" : ""
+                    isRTL ? "" : ""
                   }`}
                 >
                   <div className={isRTL ? "text-right" : "text-left"}>
@@ -402,7 +400,7 @@ function Applications() {
                 >
                   <div
                     className={`flex flex-col gap-6 lg:flex-row lg:items-center ${
-                      isRTL ? "lg:flex-row-reverse" : ""
+                      isRTL ? "" : ""
                     }`}
                   >
                     <div className="flex justify-center lg:justify-start">
@@ -411,9 +409,7 @@ function Applications() {
 
                     <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
                       <div
-                        className={`mb-3 flex flex-wrap items-center gap-3 ${
-                          isRTL ? "flex-row-reverse" : ""
-                        }`}
+                        className={`mb-3 flex flex-wrap items-center gap-3`}
                       >
                         <h2 className="text-[22px] font-extrabold text-white">
                           {app.title}
@@ -429,18 +425,14 @@ function Applications() {
                       </div>
 
                       <div
-                        className={`mb-3 flex items-center gap-2 text-[#c4cae9] ${
-                          isRTL ? "flex-row-reverse" : ""
-                        }`}
+                        className={`mb-3 flex items-center gap-2 text-[#c4cae9]`}
                       >
                         <Building2 size={16} />
                         <span className="text-[15px]">{app.company}</span>
                       </div>
 
                       <div
-                        className={`mb-4 flex flex-wrap gap-x-5 gap-y-2 text-[#aeb4d6] ${
-                          isRTL ? "flex-row-reverse" : ""
-                        }`}
+                        className={`mb-4 flex flex-wrap gap-x-5 gap-y-2 text-[#aeb4d6]`}
                       >
                         <div className="flex items-center gap-2">
                           <MapPin size={16} />
@@ -466,7 +458,7 @@ function Applications() {
 
                     <div
                       className={`flex flex-row items-center justify-between gap-4 lg:min-w-[170px] ${
-                        isRTL ? "lg:flex-row-reverse" : ""
+                        isRTL ? "" : ""
                       }`}
                     >
                       <div className={`${isRTL ? "text-left" : "text-right"} min-w-[88px]`}>
@@ -524,9 +516,7 @@ function Applications() {
                     });
                   }, 0);
                 }}
-                className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white ${
-                  isRTL ? "flex-row-reverse" : ""
-                }`}
+                className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white`}
               >
                 <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
                 <span>{t.common.back}</span>
@@ -536,7 +526,7 @@ function Applications() {
             <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-7 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
               <div
                 className={`flex flex-col gap-6 lg:flex-row lg:items-center ${
-                  isRTL ? "lg:flex-row-reverse" : ""
+                  isRTL ? "" : ""
                 }`}
               >
                 <ScoreRing percent={selectedApplication.percent} />
@@ -544,14 +534,12 @@ function Applications() {
                 <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
                   <div
                     className={`flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between ${
-                      isRTL ? "lg:flex-row-reverse" : ""
+                      isRTL ? "" : ""
                     }`}
                   >
                     <div className="min-w-0">
                       <div
-                        className={`mb-3 flex flex-wrap items-center gap-3 ${
-                          isRTL ? "flex-row-reverse" : ""
-                        }`}
+                        className={`mb-3 flex flex-wrap items-center gap-3`}
                       >
                         <h1 className="truncate text-[38px] font-extrabold text-white">
                           {selectedApplication.title}
@@ -567,18 +555,14 @@ function Applications() {
                       </div>
 
                       <div
-                        className={`mb-3 flex items-center gap-2 text-[#c4cae9] ${
-                          isRTL ? "flex-row-reverse" : ""
-                        }`}
+                        className={`mb-3 flex items-center gap-2 text-[#c4cae9]`}
                       >
                         <Building2 size={17} />
                         <span className="text-[16px]">{selectedApplication.company}</span>
                       </div>
 
                       <div
-                        className={`flex flex-wrap gap-x-5 gap-y-2 text-[#aeb4d6] ${
-                          isRTL ? "flex-row-reverse" : ""
-                        }`}
+                        className={`flex flex-wrap gap-x-5 gap-y-2 text-[#aeb4d6]`}
                       >
                         <div className="flex items-center gap-2">
                           <MapPin size={16} />

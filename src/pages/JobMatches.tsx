@@ -520,9 +520,7 @@ function JobMatches() {
                 <button
                   type="button"
                   onClick={() => navigate("/candidate-dashboard")}
-                  className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white ${
-                    isRTL ? "flex-row-reverse" : ""
-                  }`}
+                  className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white`}
                 >
                   <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
                   <span>{t.common?.back || "Back"}</span>
@@ -546,14 +544,10 @@ function JobMatches() {
 
               <div className="mb-5 overflow-visible rounded-[28px] border border-white/10 bg-white/[0.05] px-5 py-5 shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
                 <div
-                  className={`flex items-start justify-between gap-4 ${
-                    isRTL ? "flex-row-reverse" : ""
-                  }`}
+                  className={`flex items-start justify-between gap-4`}
                 >
                   <div
-                    className={`flex items-center gap-4 ${
-                      isRTL ? "flex-row-reverse" : ""
-                    }`}
+                    className={`flex items-center gap-4`}
                   >
                     <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#5e66ff1f] text-[#7c88ff]">
                       <SlidersHorizontal size={24} />
@@ -570,9 +564,7 @@ function JobMatches() {
                   </div>
 
                   <div
-                    className={`flex items-center gap-5 ${
-                      isRTL ? "flex-row-reverse" : ""
-                    }`}
+                    className={`flex items-center gap-5`}
                   >
                     <button
                       type="button"
@@ -605,7 +597,7 @@ function JobMatches() {
                       <div ref={industryRef} className="relative overflow-visible">
                         <label
                           className={`mb-3 flex items-center gap-2 text-[15px] text-[#d7dbf7] ${
-                            isRTL ? "flex-row-reverse justify-end" : ""
+                            isRTL ? "justify-end" : ""
                           }`}
                         >
                           <Landmark size={17} />
@@ -619,7 +611,7 @@ function JobMatches() {
                             setSeniorityOpen(false);
                           }}
                           className={`flex h-[48px] w-full items-center justify-between rounded-[12px] border border-white/10 bg-[#2a2f68] px-4 text-[15px] text-[#d7dbf7] outline-none transition hover:bg-[#313776] ${
-                            isRTL ? "flex-row-reverse text-right" : "text-left"
+                            isRTL ? "text-right" : "text-left"
                           }`}
                         >
                           <span className="truncate">
@@ -674,7 +666,7 @@ function JobMatches() {
                       <div ref={seniorityRef} className="relative overflow-visible">
                         <label
                           className={`mb-3 flex items-center gap-2 text-[15px] text-[#d7dbf7] ${
-                            isRTL ? "flex-row-reverse justify-end" : ""
+                            isRTL ? "justify-end" : ""
                           }`}
                         >
                           <TrendingUp size={17} />
@@ -688,7 +680,7 @@ function JobMatches() {
                             setIndustryOpen(false);
                           }}
                           className={`flex h-[48px] w-full items-center justify-between rounded-[12px] border border-white/10 bg-[#2a2f68] px-4 text-[15px] text-[#d7dbf7] outline-none transition hover:bg-[#313776] ${
-                            isRTL ? "flex-row-reverse text-right" : "text-left"
+                            isRTL ? "text-right" : "text-left"
                           }`}
                         >
                           <span className="truncate">
@@ -743,7 +735,7 @@ function JobMatches() {
                       <div>
                         <label
                           className={`mb-3 flex items-center gap-2 text-[15px] text-[#d7dbf7] ${
-                            isRTL ? "flex-row-reverse justify-end" : ""
+                            isRTL ? "justify-end" : ""
                           }`}
                         >
                           <DollarSign size={17} />
@@ -766,7 +758,7 @@ function JobMatches() {
                       <div>
                         <label
                           className={`mb-3 flex items-center gap-2 text-[15px] text-[#d7dbf7] ${
-                            isRTL ? "flex-row-reverse justify-end" : ""
+                            isRTL ? "justify-end" : ""
                           }`}
                         >
                           <Target size={17} />
@@ -791,9 +783,7 @@ function JobMatches() {
               </div>
 
               <div
-                className={`mb-5 flex items-start gap-3 rounded-2xl border border-[#5e66ff55] bg-[#5e66ff14] px-5 py-4 text-white/80 ${
-                  isRTL ? "flex-row-reverse" : ""
-                }`}
+                className={`mb-5 flex items-start gap-3 rounded-2xl border border-[#5e66ff55] bg-[#5e66ff14] px-5 py-4 text-white/80`}
               >
                 <Scale size={18} className="mt-0.5 shrink-0 text-[#f6c453]" />
                 <p
@@ -861,7 +851,7 @@ function JobMatches() {
                       <div className="flex-1">
                         <div
                           className={`mb-3 flex flex-wrap items-center gap-3 ${
-                            isRTL ? "md:flex-row-reverse" : ""
+                            isRTL ? "" : ""
                           }`}
                         >
                           <h2 className="text-[22px] font-extrabold text-white">
@@ -876,7 +866,7 @@ function JobMatches() {
                         <div
                           className={`mb-3 flex items-center gap-2 text-[#c4cae9] ${
                             isRTL
-                              ? "flex-row-reverse justify-end md:justify-start"
+                              ? "justify-end md:justify-start"
                               : ""
                           }`}
                         >
@@ -886,7 +876,7 @@ function JobMatches() {
 
                         <div
                           className={`mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[#aeb4d6] ${
-                            isRTL ? "md:flex-row-reverse" : ""
+                            isRTL ? "" : ""
                           }`}
                         >
                           <div className="flex items-center gap-2">
@@ -931,7 +921,7 @@ function JobMatches() {
                         {(job.skills.length > 0 || job.dangerSkills.length > 0) && (
                           <div
                             className={`flex flex-wrap gap-2 ${
-                              isRTL ? "md:flex-row-reverse" : ""
+                              isRTL ? "" : ""
                             }`}
                           >
                             {job.skills.map((skill) => (
@@ -992,9 +982,7 @@ function JobMatches() {
                     });
                   }, 0);
                 }}
-                className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white ${
-                  isRTL ? "flex-row-reverse" : ""
-                }`}
+                className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white`}
               >
                 <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
                 <span>{t.common?.back || "Back"}</span>
@@ -1006,7 +994,7 @@ function JobMatches() {
                 <div className="flex-1">
                   <div
                     className={`mb-4 flex flex-wrap items-center gap-3 ${
-                      isRTL ? "xl:flex-row-reverse" : ""
+                      isRTL ? "" : ""
                     }`}
                   >
                     <h1 className="text-[28px] font-extrabold text-white lg:text-[34px]">
@@ -1019,9 +1007,7 @@ function JobMatches() {
                   </div>
 
                   <div
-                    className={`mb-4 flex items-center gap-2 text-[#c4cae9] ${
-                      isRTL ? "flex-row-reverse" : ""
-                    }`}
+                    className={`mb-4 flex items-center gap-2 text-[#c4cae9]`}
                   >
                     <Building2 size={18} />
                     <span className="text-[16px]">{selectedJob.company}</span>
@@ -1029,7 +1015,7 @@ function JobMatches() {
 
                   <div
                     className={`flex flex-wrap items-center gap-x-6 gap-y-3 text-[16px] text-[#aeb4d6] ${
-                      isRTL ? "xl:flex-row-reverse" : ""
+                      isRTL ? "" : ""
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -1066,7 +1052,7 @@ function JobMatches() {
                 <button
                   type="button"
                   className={`inline-flex h-fit items-center gap-3 rounded-[14px] bg-gradient-to-r from-[#7f4cff] to-[#a855f7] px-6 py-3 text-[18px] font-bold text-white shadow-[0_10px_24px_rgba(127,76,255,0.28)] transition hover:opacity-90 ${
-                    isRTL ? "flex-row-reverse self-start" : "self-start"
+                    isRTL ? "self-start" : "self-start"
                   }`}
                 >
                   <Send size={18} />
@@ -1077,9 +1063,7 @@ function JobMatches() {
 
             <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-7 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
               <div
-                className={`mb-6 flex items-center gap-4 ${
-                  isRTL ? "flex-row-reverse" : ""
-                }`}
+                className={`mb-6 flex items-center gap-4`}
               >
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
                   <Zap size={24} />
@@ -1124,9 +1108,7 @@ function JobMatches() {
                 <div className="space-y-6">
                   <div>
                     <div
-                      className={`mb-4 flex items-center gap-3 ${
-                        isRTL ? "flex-row-reverse" : ""
-                      }`}
+                      className={`mb-4 flex items-center gap-3`}
                     >
                       <CheckCircle2 size={20} className="text-emerald-300" />
                       <h3 className="text-[18px] font-extrabold text-white">
@@ -1135,9 +1117,7 @@ function JobMatches() {
                     </div>
 
                     <div
-                      className={`flex flex-wrap gap-3 ${
-                        isRTL ? "flex-row-reverse" : ""
-                      }`}
+                      className={`flex flex-wrap gap-3`}
                     >
                       {selectedJob.skills.length > 0 ? (
                         selectedJob.skills.map((skill) => (
@@ -1156,9 +1136,7 @@ function JobMatches() {
 
                   <div>
                     <div
-                      className={`mb-4 flex items-center gap-3 ${
-                        isRTL ? "flex-row-reverse" : ""
-                      }`}
+                      className={`mb-4 flex items-center gap-3`}
                     >
                       <AlertTriangle size={20} className="text-yellow-300" />
                       <h3 className="text-[18px] font-extrabold text-white">
@@ -1167,9 +1145,7 @@ function JobMatches() {
                     </div>
 
                     <div
-                      className={`flex flex-wrap gap-3 ${
-                        isRTL ? "flex-row-reverse" : ""
-                      }`}
+                      className={`flex flex-wrap gap-3`}
                     >
                       {selectedJob.dangerSkills.length > 0 ? (
                         selectedJob.dangerSkills.map((skill) => (
@@ -1189,7 +1165,7 @@ function JobMatches() {
                   <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-6">
                     <div
                       className={`flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between ${
-                        isRTL ? "lg:flex-row-reverse" : ""
+                        isRTL ? "" : ""
                       }`}
                     >
                       <div>
@@ -1197,9 +1173,7 @@ function JobMatches() {
                           Experience Comparison
                         </h3>
                         <div
-                          className={`mt-4 flex items-end gap-6 ${
-                            isRTL ? "flex-row-reverse" : ""
-                          }`}
+                          className={`mt-4 flex items-end gap-6`}
                         >
                           <div>
                             <p className="text-[38px] font-extrabold leading-none text-white">
@@ -1286,9 +1260,7 @@ function JobMatches() {
                     ]).map((item) => (
                       <div
                         key={item}
-                        className={`flex items-start gap-4 ${
-                          isRTL ? "flex-row-reverse" : ""
-                        }`}
+                        className={`flex items-start gap-4`}
                       >
                         <CheckCircle2
                           size={22}
@@ -1308,9 +1280,7 @@ function JobMatches() {
                   </h2>
 
                   <div
-                    className={`flex flex-wrap gap-3 ${
-                      isRTL ? "flex-row-reverse" : ""
-                    }`}
+                    className={`flex flex-wrap gap-3`}
                   >
                     {[...selectedJob.skills, ...selectedJob.dangerSkills].map((skill) => (
                       <span
@@ -1332,9 +1302,7 @@ function JobMatches() {
                   </h3>
 
                   <div
-                    className={`flex flex-wrap gap-3 ${
-                      isRTL ? "flex-row-reverse" : ""
-                    }`}
+                    className={`flex flex-wrap gap-3`}
                   >
                     {(selectedDetails?.niceToHave || ["Leadership", "Testing", "CI/CD"]).map(
                       (item) => (

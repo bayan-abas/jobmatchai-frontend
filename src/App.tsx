@@ -1,6 +1,4 @@
-import { useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
-import { useLanguage } from "./context/LanguageContext";
 
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
@@ -27,14 +25,6 @@ import CandidateLayout from "./components/CandidateLayout";
 import CompanyLayout from "./components/CompanyLayout";
 
 function App() {
-  const { language } = useLanguage();
-
-  useEffect(() => {
-    const isRTL = language === "ar" || language === "he";
-    document.documentElement.dir = isRTL ? "rtl" : "ltr";
-    document.documentElement.lang = language;
-  }, [language]);
-
   return (
     <>
       <ScrollToTop />

@@ -30,10 +30,10 @@ function CompanyLayout({ children }: CompanyLayoutProps) {
         style={isRTL ? { marginRight: `${sidebarWidth}px` } : { marginLeft: `${sidebarWidth}px` }}
       >
         <header
-          className={`fixed top-0 z-40 flex h-[78px] items-center justify-between border-b border-white/10 bg-[rgba(10,14,50,0.88)] px-6 backdrop-blur-[14px] transition-all duration-300 max-[980px]:left-0 max-[980px]:right-0 ${isRTL ? "left-0 flex-row-reverse" : "right-0"}`}
+          className={`fixed top-0 z-40 flex h-[78px] items-center justify-between border-b border-white/10 bg-[rgba(10,14,50,0.88)] px-6 backdrop-blur-[14px] transition-all duration-300 max-[980px]:left-0 max-[980px]:right-0 ${isRTL ? "left-0" : "right-0"}`}
           style={isRTL ? { right: `${sidebarWidth}px` } : { left: `${sidebarWidth}px` }}
         >
-          <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className={`flex items-center gap-4`}>
             <button
               type="button"
               onClick={() => navigate(-1)}
@@ -41,7 +41,7 @@ function CompanyLayout({ children }: CompanyLayoutProps) {
             >
               <ArrowLeft size={20} className={isRTL ? "rotate-180" : ""} />
             </button>
-            <div className={`flex h-[46px] w-[430px] max-w-full items-center gap-3 rounded-[16px] border border-white/10 bg-white/[0.04] px-4 text-[#8d94bd] transition focus-within:border-[#7f4cff] focus-within:bg-white/[0.06] ${isRTL ? "flex-row-reverse" : ""}`}>
+            <div className={`flex h-[46px] w-[430px] max-w-full items-center gap-3 rounded-[16px] border border-white/10 bg-white/[0.04] px-4 text-[#8d94bd] transition focus-within:border-[#7f4cff] focus-within:bg-white/[0.06]`}>
               <Search size={18} />
               <input
                 type="text"
@@ -51,7 +51,7 @@ function CompanyLayout({ children }: CompanyLayoutProps) {
             </div>
           </div>
 
-          <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className={`flex items-center gap-4`}>
             <button
               type="button"
               onClick={() => navigate("/company-notifications")}
@@ -63,7 +63,7 @@ function CompanyLayout({ children }: CompanyLayoutProps) {
               </span>
             </button>
             <div className="h-9 w-px bg-white/10" />
-            <div className={`flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+            <div className={`flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2`}>
               <div className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-[16px] font-bold text-white shadow-[0_8px_18px_rgba(127,76,255,0.35)]">
                 {companyName.charAt(0).toUpperCase()}
               </div>

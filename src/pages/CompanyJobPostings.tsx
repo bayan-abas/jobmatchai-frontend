@@ -138,9 +138,7 @@ function CompanyJobPostings() {
         <button
           type="button"
           onClick={() => navigate("/company-dashboard")}
-          className={`mb-10 inline-flex items-center gap-3 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-6 py-3 text-[16px] font-semibold text-white/80 backdrop-blur-[8px] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-white ${
-            isRTL ? "flex-row-reverse" : ""
-          }`}
+          className={`mb-10 inline-flex items-center gap-3 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-6 py-3 text-[16px] font-semibold text-white/80 backdrop-blur-[8px] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-white`}
         >
           <ArrowLeft size={18} className={isRTL ? "rotate-180" : ""} />
           Back
@@ -152,9 +150,7 @@ function CompanyJobPostings() {
           }`}
         >
           <div
-            className={`flex items-center gap-5 ${
-              isRTL ? "flex-row-reverse" : ""
-            }`}
+            className={`flex items-center gap-5`}
           >
             <div className="flex h-[62px] w-[62px] items-center justify-center rounded-[20px] bg-[linear-gradient(135deg,#7b61ff,#b13dff)] shadow-[0_12px_30px_rgba(139,92,246,0.28)]">
               <BriefcaseBusiness size={30} className="text-white" />
@@ -173,9 +169,7 @@ function CompanyJobPostings() {
           <button
             type="button"
             onClick={() => navigate("/post-job")}
-            className={`inline-flex items-center gap-3 rounded-[14px] bg-[linear-gradient(135deg,#7f6bff,#9b3ff5)] px-6 py-3.5 text-[16px] font-bold text-white shadow-[0_14px_30px_rgba(139,92,246,0.25)] transition hover:scale-[1.02] hover:opacity-95 ${
-              isRTL ? "flex-row-reverse" : ""
-            }`}
+            className={`inline-flex items-center gap-3 rounded-[14px] bg-[linear-gradient(135deg,#7f6bff,#9b3ff5)] px-6 py-3.5 text-[16px] font-bold text-white shadow-[0_14px_30px_rgba(139,92,246,0.25)] transition hover:scale-[1.02] hover:opacity-95`}
           >
             <Plus size={18} />
             Post New Job
@@ -193,7 +187,7 @@ function CompanyJobPostings() {
                 <div className="min-w-0 flex-1">
                   <div
                     className={`mb-4 flex flex-wrap items-center gap-4 ${
-                      isRTL ? "flex-row-reverse justify-end xl:justify-start" : ""
+                      isRTL ? "justify-end xl:justify-start" : ""
                     }`}
                   >
                     <h2 className="text-[24px] font-extrabold text-white">
@@ -210,23 +204,17 @@ function CompanyJobPostings() {
                   </div>
 
                   <div
-                    className={`flex flex-wrap items-center gap-x-8 gap-y-3 text-[15px] text-white/50 ${
-                      isRTL ? "flex-row-reverse" : ""
-                    }`}
+                    className={`flex flex-wrap items-center gap-x-8 gap-y-3 text-[15px] text-white/50`}
                   >
                     <div
-                      className={`flex items-center gap-2 ${
-                        isRTL ? "flex-row-reverse" : ""
-                      }`}
+                      className={`flex items-center gap-2`}
                     >
                       <MapPin size={16} />
                       <span>{job.location}</span>
                     </div>
 
                     <div
-                      className={`flex items-center gap-2 ${
-                        isRTL ? "flex-row-reverse" : ""
-                      }`}
+                      className={`flex items-center gap-2`}
                     >
                       <CircleDollarSign size={16} />
                       <span>{job.salary}</span>
@@ -240,7 +228,7 @@ function CompanyJobPostings() {
 
                 <div
                   className={`flex flex-wrap items-center gap-6 xl:flex-nowrap ${
-                    isRTL ? "xl:flex-row-reverse" : ""
+                    isRTL ? "" : ""
                   }`}
                 >
                   <div className="min-w-[95px] text-center">
@@ -262,9 +250,7 @@ function CompanyJobPostings() {
                   <button
                     type="button"
                     onClick={() => navigate("/company-applications")}
-                    className={`inline-flex items-center gap-3 rounded-[14px] border border-[rgba(140,157,255,0.25)] bg-[rgba(255,255,255,0.02)] px-5 py-3 text-[15px] font-semibold text-[#b8c4ff] transition hover:bg-[rgba(255,255,255,0.06)] ${
-                      isRTL ? "flex-row-reverse" : ""
-                    }`}
+                    className={`inline-flex items-center gap-3 rounded-[14px] border border-[rgba(140,157,255,0.25)] bg-[rgba(255,255,255,0.02)] px-5 py-3 text-[15px] font-semibold text-[#b8c4ff] transition hover:bg-[rgba(255,255,255,0.06)]`}
                   >
                     <Users size={18} />
                     View Applicants

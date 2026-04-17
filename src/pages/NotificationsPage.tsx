@@ -116,9 +116,7 @@ function NotificationsPage() {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white ${
-              isRTL ? "flex-row-reverse" : ""
-            }`}
+            className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white`}
           >
             <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
             <span>{t.common.back}</span>
@@ -127,9 +125,7 @@ function NotificationsPage() {
 
         <section className="mb-8">
           <div
-            className={`mb-6 flex items-start gap-4 ${
-              isRTL ? "flex-row-reverse" : ""
-            }`}
+            className={`mb-6 flex items-start gap-4`}
           >
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
               <Bell size={26} />
@@ -148,13 +144,11 @@ function NotificationsPage() {
           <div className="overflow-visible rounded-[28px] border border-white/10 bg-white/[0.05] px-5 py-5 shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
             <div
               className={`flex flex-col gap-4 md:flex-row md:items-center md:justify-between ${
-                isRTL ? "md:flex-row-reverse" : ""
+                isRTL ? "" : ""
               }`}
             >
               <div
-                className={`flex items-center gap-4 ${
-                  isRTL ? "flex-row-reverse" : ""
-                }`}
+                className={`flex items-center gap-4`}
               >
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#5e66ff1f] text-[#7c88ff]">
                   <Bell size={24} />
@@ -172,15 +166,13 @@ function NotificationsPage() {
 
               <div
                 className={`flex flex-wrap items-center gap-3 ${
-                  isRTL ? "flex-row-reverse self-start md:self-auto" : ""
+                  isRTL ? "self-start md:self-auto" : ""
                 }`}
               >
                 <button
                   type="button"
                   onClick={handleMarkAllAsRead}
-                  className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white ${
-                    isRTL ? "flex-row-reverse" : ""
-                  }`}
+                  className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white`}
                 >
                   <CheckCircle2 size={16} />
                   {t.notificationsPage.markAllAsRead}
@@ -189,9 +181,7 @@ function NotificationsPage() {
                 <button
                   type="button"
                   onClick={handleClearAll}
-                  className={`inline-flex items-center gap-2 rounded-full border border-rose-400/20 bg-rose-400/10 px-4 py-2 text-sm font-semibold text-rose-300 transition hover:bg-rose-400/15 ${
-                    isRTL ? "flex-row-reverse" : ""
-                  }`}
+                  className={`inline-flex items-center gap-2 rounded-full border border-rose-400/20 bg-rose-400/10 px-4 py-2 text-sm font-semibold text-rose-300 transition hover:bg-rose-400/15`}
                 >
                   <Trash2 size={16} />
                   {t.notificationsPage.clearAll}
@@ -225,7 +215,7 @@ function NotificationsPage() {
               >
                 <div
                   className={`flex flex-col gap-5 md:flex-row md:items-start ${
-                    isRTL ? "md:flex-row-reverse" : ""
+                    isRTL ? "" : ""
                   }`}
                 >
                   <div
@@ -237,7 +227,7 @@ function NotificationsPage() {
                   <div className={`flex-1 ${isRTL ? "text-right" : "text-left"}`}>
                     <div
                       className={`mb-3 flex flex-wrap items-center gap-3 ${
-                        isRTL ? "md:flex-row-reverse" : ""
+                        isRTL ? "" : ""
                       }`}
                     >
                       <h2 className="text-[22px] font-extrabold text-white">
@@ -261,7 +251,7 @@ function NotificationsPage() {
 
                     <div
                       className={`flex items-center gap-2 text-[#8f98c6] ${
-                        isRTL ? "flex-row-reverse justify-end md:justify-start" : ""
+                        isRTL ? "justify-end md:justify-start" : ""
                       }`}
                     >
                       <Bell size={14} />

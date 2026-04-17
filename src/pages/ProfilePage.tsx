@@ -112,16 +112,12 @@ function ProfilePage() {
         <div className="mx-auto w-full max-w-[1080px]">
           <section className="mb-8">
             <div
-              className={`mb-5 flex items-center justify-between ${
-                isRTL ? "flex-row-reverse" : ""
-              }`}
+              className={`mb-5 flex items-center justify-between`}
             >
               <button
                 type="button"
                 onClick={() => navigate(-1)}
-                className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white ${
-                  isRTL ? "flex-row-reverse" : ""
-                }`}
+                className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white`}
               >
                 <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
                 <span>{t.common.back}</span>
@@ -131,9 +127,7 @@ function ProfilePage() {
                 <button
                   type="button"
                   onClick={() => setIsEditing(true)}
-                  className={`inline-flex items-center gap-2 rounded-[16px] bg-gradient-to-r from-[#7f4cff] to-[#a855f7] px-6 py-3 text-[15px] font-semibold text-white shadow-[0_10px_24px_rgba(127,76,255,0.28)] transition hover:opacity-90 ${
-                    isRTL ? "flex-row-reverse" : ""
-                  }`}
+                  className={`inline-flex items-center gap-2 rounded-[16px] bg-gradient-to-r from-[#7f4cff] to-[#a855f7] px-6 py-3 text-[15px] font-semibold text-white shadow-[0_10px_24px_rgba(127,76,255,0.28)] transition hover:opacity-90`}
                 >
                   <Pencil size={18} />
                   {t.profilePage.editProfile}
@@ -142,9 +136,7 @@ function ProfilePage() {
                 <button
                   type="button"
                   onClick={handleSaveChanges}
-                  className={`inline-flex items-center gap-2 rounded-[16px] bg-gradient-to-r from-[#22c55e] to-[#16a34a] px-6 py-3 text-[15px] font-semibold text-white shadow-[0_10px_24px_rgba(34,197,94,0.28)] transition hover:opacity-90 ${
-                    isRTL ? "flex-row-reverse" : ""
-                  }`}
+                  className={`inline-flex items-center gap-2 rounded-[16px] bg-gradient-to-r from-[#22c55e] to-[#16a34a] px-6 py-3 text-[15px] font-semibold text-white shadow-[0_10px_24px_rgba(34,197,94,0.28)] transition hover:opacity-90`}
                 >
                   <Save size={18} />
                   {t.profilePage.saveChanges}
@@ -153,9 +145,7 @@ function ProfilePage() {
             </div>
 
             <div
-              className={`mb-6 flex items-start gap-4 ${
-                isRTL ? "flex-row-reverse" : ""
-              }`}
+              className={`mb-6 flex items-start gap-4`}
             >
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#22d3ee] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
                 <User size={26} />
@@ -174,13 +164,11 @@ function ProfilePage() {
             <div className="rounded-[28px] border border-white/10 bg-white/[0.05] px-5 py-5 shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
               <div
                 className={`flex items-center justify-between gap-6 max-[860px]:flex-col max-[860px]:items-start ${
-                  isRTL ? "flex-row-reverse max-[860px]:items-end" : ""
+                  isRTL ? "max-[860px]:items-end" : ""
                 }`}
               >
                 <div
-                  className={`flex items-center gap-4 ${
-                    isRTL ? "flex-row-reverse" : ""
-                  }`}
+                  className={`flex items-center gap-4`}
                 >
                   <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[16px] bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-white shadow-[0_10px_24px_rgba(127,76,255,0.28)]">
                     <Crown size={22} />
@@ -200,9 +188,7 @@ function ProfilePage() {
                 <button
                   type="button"
                   onClick={() => setShowPremiumModal(true)}
-                  className={`inline-flex items-center gap-3 rounded-[16px] bg-gradient-to-r from-[#a855f7] to-[#7f4cff] px-6 py-3 text-[15px] font-bold text-white transition hover:opacity-90 ${
-                    isRTL ? "flex-row-reverse" : ""
-                  }`}
+                  className={`inline-flex items-center gap-3 rounded-[16px] bg-gradient-to-r from-[#a855f7] to-[#7f4cff] px-6 py-3 text-[15px] font-bold text-white transition hover:opacity-90`}
                 >
                   <Crown size={18} />
                   {t.profilePage.upgradePremium || "Upgrade to Premium"}
@@ -257,9 +243,7 @@ function ProfilePage() {
               <div className="grid grid-cols-2 gap-x-10 gap-y-8 max-[760px]:grid-cols-1">
                 <div>
                   <div
-                    className={`mb-2 flex items-center gap-3 text-[#b7bedf] ${
-                      isRTL ? "flex-row-reverse" : ""
-                    }`}
+                    className={`mb-2 flex items-center gap-3 text-[#b7bedf]`}
                   >
                     <User size={18} />
                     <span className="text-[15px]">{t.common.fullName}</span>
@@ -279,9 +263,7 @@ function ProfilePage() {
 
                 <div>
                   <div
-                    className={`mb-2 flex items-center gap-3 text-[#b7bedf] ${
-                      isRTL ? "flex-row-reverse" : ""
-                    }`}
+                    className={`mb-2 flex items-center gap-3 text-[#b7bedf]`}
                   >
                     <Mail size={18} />
                     <span className="text-[15px]">{t.common.email}</span>
@@ -301,9 +283,7 @@ function ProfilePage() {
 
                 <div>
                   <div
-                    className={`mb-2 flex items-center gap-3 text-[#b7bedf] ${
-                      isRTL ? "flex-row-reverse" : ""
-                    }`}
+                    className={`mb-2 flex items-center gap-3 text-[#b7bedf]`}
                   >
                     <Phone size={18} />
                     <span className="text-[15px]">
@@ -325,9 +305,7 @@ function ProfilePage() {
 
                 <div>
                   <div
-                    className={`mb-2 flex items-center gap-3 text-[#b7bedf] ${
-                      isRTL ? "flex-row-reverse" : ""
-                    }`}
+                    className={`mb-2 flex items-center gap-3 text-[#b7bedf]`}
                   >
                     <MapPin size={18} />
                     <span className="text-[15px]">
@@ -349,9 +327,7 @@ function ProfilePage() {
 
                 <div>
                   <div
-                    className={`mb-2 flex items-center gap-3 text-[#b7bedf] ${
-                      isRTL ? "flex-row-reverse" : ""
-                    }`}
+                    className={`mb-2 flex items-center gap-3 text-[#b7bedf]`}
                   >
                     <Briefcase size={18} />
                     <span className="text-[15px]">
@@ -373,9 +349,7 @@ function ProfilePage() {
 
                 <div>
                   <div
-                    className={`mb-2 flex items-center gap-3 text-[#b7bedf] ${
-                      isRTL ? "flex-row-reverse" : ""
-                    }`}
+                    className={`mb-2 flex items-center gap-3 text-[#b7bedf]`}
                   >
                     <Briefcase size={18} />
                     <span className="text-[15px]">
@@ -418,9 +392,7 @@ function ProfilePage() {
           <section className="mb-8">
             <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] p-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
               <div
-                className={`mb-6 flex items-center gap-3 ${
-                  isRTL ? "flex-row-reverse" : ""
-                }`}
+                className={`mb-6 flex items-center gap-3`}
               >
                 <Code2 size={22} className="text-[#7f8bff]" />
                 <h2 className="text-[24px] font-extrabold text-white">
@@ -459,9 +431,7 @@ function ProfilePage() {
           <section>
             <div className="rounded-[30px] border border-[rgba(255,88,120,0.26)] bg-[rgba(44,45,95,0.94)] p-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
               <div
-                className={`mb-4 flex items-center gap-3 ${
-                  isRTL ? "flex-row-reverse" : ""
-                }`}
+                className={`mb-4 flex items-center gap-3`}
               >
                 <Trash2 size={23} className="text-[#ff6a8d]" />
                 <h2 className="text-[24px] font-extrabold text-[#ff7d9d]">
@@ -529,7 +499,7 @@ function ProfilePage() {
                 </h3>
 
                 <div className="space-y-3 text-[15px] text-[#d8ddf6]">
-                  <div className={`flex items-start gap-2 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+                  <div className={`flex items-start gap-2 ${isRTL ? "text-right" : ""}`}>
                     <CheckCircle2
                       size={18}
                       className="mt-[2px] shrink-0 text-[#31d0aa]"
@@ -537,7 +507,7 @@ function ProfilePage() {
                     <span>{t.profilePage.basicFeature1 || "Job browsing"}</span>
                   </div>
 
-                  <div className={`flex items-start gap-2 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+                  <div className={`flex items-start gap-2 ${isRTL ? "text-right" : ""}`}>
                     <CheckCircle2
                       size={18}
                       className="mt-[2px] shrink-0 text-[#31d0aa]"
@@ -545,7 +515,7 @@ function ProfilePage() {
                     <span>{t.profilePage.basicFeature2 || "5 applications/mo"}</span>
                   </div>
 
-                  <div className={`flex items-start gap-2 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+                  <div className={`flex items-start gap-2 ${isRTL ? "text-right" : ""}`}>
                     <CheckCircle2
                       size={18}
                       className="mt-[2px] shrink-0 text-[#31d0aa]"
@@ -569,7 +539,7 @@ function ProfilePage() {
                 </h3>
 
                 <div className="space-y-3 text-[15px] text-[#ece7ff]">
-                  <div className={`flex items-start gap-2 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+                  <div className={`flex items-start gap-2 ${isRTL ? "text-right" : ""}`}>
                     <Zap
                       size={17}
                       className="mt-[3px] shrink-0 text-[#b97cff]"
@@ -577,7 +547,7 @@ function ProfilePage() {
                     <span>{t.profilePage.premiumFeature1 || "AI Pre-Interview Module"}</span>
                   </div>
 
-                  <div className={`flex items-start gap-2 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+                  <div className={`flex items-start gap-2 ${isRTL ? "text-right" : ""}`}>
                     <Zap
                       size={17}
                       className="mt-[3px] shrink-0 text-[#b97cff]"
@@ -585,7 +555,7 @@ function ProfilePage() {
                     <span>{t.profilePage.premiumFeature2 || "Advanced Resume Scoring"}</span>
                   </div>
 
-                  <div className={`flex items-start gap-2 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+                  <div className={`flex items-start gap-2 ${isRTL ? "text-right" : ""}`}>
                     <Zap
                       size={17}
                       className="mt-[3px] shrink-0 text-[#b97cff]"
@@ -593,7 +563,7 @@ function ProfilePage() {
                     <span>{t.profilePage.premiumFeature3 || "Detailed AI Match Insights"}</span>
                   </div>
 
-                  <div className={`flex items-start gap-2 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+                  <div className={`flex items-start gap-2 ${isRTL ? "text-right" : ""}`}>
                     <Zap
                       size={17}
                       className="mt-[3px] shrink-0 text-[#b97cff]"
@@ -601,7 +571,7 @@ function ProfilePage() {
                     <span>{t.profilePage.premiumFeature4 || "Priority Application Status"}</span>
                   </div>
 
-                  <div className={`flex items-start gap-2 ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+                  <div className={`flex items-start gap-2 ${isRTL ? "text-right" : ""}`}>
                     <Zap
                       size={17}
                       className="mt-[3px] shrink-0 text-[#b97cff]"

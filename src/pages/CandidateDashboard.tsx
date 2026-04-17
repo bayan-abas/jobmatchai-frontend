@@ -179,9 +179,7 @@ function CandidateDashboard() {
             <button
               type="button"
               onClick={() => navigate("/")}
-              className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white ${
-                isRTL ? "flex-row-reverse" : ""
-              }`}
+              className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white`}
             >
               <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
               <span>{t.common?.back || "Back"}</span>
@@ -218,9 +216,7 @@ function CandidateDashboard() {
               }`}
             >
               <div
-                className={`mb-6 flex items-start justify-between ${
-                  isRTL ? "flex-row-reverse" : ""
-                }`}
+                className={`mb-6 flex items-start justify-between`}
               >
                 <div
                   className={`flex h-12 w-12 items-center justify-center rounded-2xl ${stat.iconBg} ${stat.iconColor}`}
@@ -244,14 +240,10 @@ function CandidateDashboard() {
         <section className="mb-8 grid grid-cols-1 gap-6 xl:grid-cols-[1.25fr_0.95fr]">
           <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
             <div
-              className={`mb-6 flex items-center justify-between ${
-                isRTL ? "flex-row-reverse" : ""
-              }`}
+              className={`mb-6 flex items-center justify-between`}
             >
               <div
-                className={`flex items-center gap-4 ${
-                  isRTL ? "flex-row-reverse" : ""
-                }`}
+                className={`flex items-center gap-4`}
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#5e66ff1f] text-[#7c88ff]">
                   <BriefcaseBusiness size={22} />
@@ -269,9 +261,7 @@ function CandidateDashboard() {
               <button
                 type="button"
                 onClick={() => navigate("/job-matches")}
-                className={`inline-flex items-center gap-2 text-[15px] font-semibold text-[#dbe2ff] transition hover:text-white ${
-                  isRTL ? "flex-row-reverse" : ""
-                }`}
+                className={`inline-flex items-center gap-2 text-[15px] font-semibold text-[#dbe2ff] transition hover:text-white`}
               >
                 {t.dashboard.topMatches.viewAll}
                 <ChevronRight size={18} className={isRTL ? "rotate-180" : ""} />
@@ -297,7 +287,7 @@ function CandidateDashboard() {
                     <div className="flex-1">
                       <div
                         className={`mb-3 flex flex-wrap items-center gap-3 ${
-                          isRTL ? "md:flex-row-reverse" : ""
+                          isRTL ? "" : ""
                         }`}
                       >
                         <h2 className="text-[22px] font-extrabold text-white">
@@ -312,7 +302,7 @@ function CandidateDashboard() {
                       <div
                         className={`mb-3 flex items-center gap-2 text-[#c4cae9] ${
                           isRTL
-                            ? "flex-row-reverse justify-end md:justify-start"
+                            ? "justify-end md:justify-start"
                             : ""
                         }`}
                       >
@@ -322,7 +312,7 @@ function CandidateDashboard() {
 
                       <div
                         className={`flex flex-wrap items-center gap-x-5 gap-y-2 text-[#aeb4d6] ${
-                          isRTL ? "md:flex-row-reverse" : ""
+                          isRTL ? "" : ""
                         }`}
                       >
                         <div className="flex items-center gap-2">
@@ -358,14 +348,10 @@ function CandidateDashboard() {
 
           <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
             <div
-              className={`mb-6 flex items-center justify-between ${
-                isRTL ? "flex-row-reverse" : ""
-              }`}
+              className={`mb-6 flex items-center justify-between`}
             >
               <div
-                className={`flex items-center gap-4 ${
-                  isRTL ? "flex-row-reverse" : ""
-                }`}
+                className={`flex items-center gap-4`}
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#22d3ee1f] text-[#67e8f9]">
                   <FileText size={22} />
@@ -383,9 +369,7 @@ function CandidateDashboard() {
               <button
                 type="button"
                 onClick={() => navigate("/applications")}
-                className={`inline-flex items-center gap-2 text-[15px] font-semibold text-[#dbe2ff] transition hover:text-white ${
-                  isRTL ? "flex-row-reverse" : ""
-                }`}
+                className={`inline-flex items-center gap-2 text-[15px] font-semibold text-[#dbe2ff] transition hover:text-white`}
               >
                 {t.dashboard.applications.viewAll}
                 <ChevronRight size={18} className={isRTL ? "rotate-180" : ""} />
@@ -408,9 +392,7 @@ function CandidateDashboard() {
 
                     <div className="min-w-0 flex-1">
                       <div
-                        className={`mb-2 flex flex-wrap items-center gap-3 ${
-                          isRTL ? "flex-row-reverse" : ""
-                        }`}
+                        className={`mb-2 flex flex-wrap items-center gap-3`}
                       >
                         <h4 className="truncate text-[20px] font-extrabold text-white">
                           {app.title}
@@ -460,9 +442,7 @@ function CandidateDashboard() {
         <section className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-7 py-7 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div
-              className={`flex items-center gap-5 ${
-                isRTL ? "flex-row-reverse" : ""
-              }`}
+              className={`flex items-center gap-5`}
             >
               <div
                 className="relative h-[98px] w-[98px] shrink-0 rounded-full"
@@ -485,9 +465,7 @@ function CandidateDashboard() {
                 </p>
 
                 <div
-                  className={`mt-4 flex items-center gap-2 text-emerald-300 ${
-                    isRTL ? "flex-row-reverse" : ""
-                  }`}
+                  className={`mt-4 flex items-center gap-2 text-emerald-300`}
                 >
                   <CheckCircle2 size={18} />
                   <span className="text-sm font-semibold">
@@ -498,9 +476,7 @@ function CandidateDashboard() {
             </div>
 
             <div
-              className={`flex items-center gap-4 max-[640px]:flex-col ${
-                isRTL ? "flex-row-reverse" : ""
-              }`}
+              className={`flex items-center gap-4 max-[640px]:flex-col`}
             >
               <button
                 type="button"

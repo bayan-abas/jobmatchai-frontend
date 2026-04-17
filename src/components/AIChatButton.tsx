@@ -213,7 +213,7 @@ function AIChatButton() {
           type="button"
           onClick={() => setIsOpen(true)}
           className={`fixed bottom-6 z-50 flex items-center gap-3 rounded-full border border-white/10 bg-[linear-gradient(135deg,#7f4cff_0%,#9d4edd_100%)] px-5 py-3 text-white shadow-[0_14px_40px_rgba(127,76,255,0.38)] transition hover:scale-[1.03] ${
-            isRTL ? "left-6 flex-row-reverse" : "right-6"
+            isRTL ? "left-6" : "right-6"
           }`}
         >
           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/15">
@@ -235,14 +235,10 @@ function AIChatButton() {
         >
           <div className="border-b border-white/10 bg-[linear-gradient(135deg,rgba(127,76,255,0.22),rgba(68,211,255,0.10))] px-5 py-4">
             <div
-              className={`mb-3 flex items-start justify-between gap-3 ${
-                isRTL ? "flex-row-reverse" : ""
-              }`}
+              className={`mb-3 flex items-start justify-between gap-3`}
             >
               <div
-                className={`flex items-center gap-3 ${
-                  isRTL ? "flex-row-reverse" : ""
-                }`}
+                className={`flex items-center gap-3`}
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#7f4cff]/20 text-white">
                   <Sparkles size={22} />
@@ -268,9 +264,7 @@ function AIChatButton() {
             </div>
 
             <div
-              className={`flex items-center gap-2 ${
-                isRTL ? "flex-row-reverse" : ""
-              }`}
+              className={`flex items-center gap-2`}
             >
               <button
                 type="button"
@@ -348,9 +342,7 @@ function AIChatButton() {
             className="border-t border-white/10 bg-[rgba(255,255,255,0.03)] p-4"
           >
             <div
-              className={`flex items-center gap-3 ${
-                isRTL ? "flex-row-reverse" : ""
-              }`}
+              className={`flex items-center gap-3`}
             >
               <div className="flex flex-1 items-center gap-3 rounded-[18px] border border-white/10 bg-white/5 px-4 py-3">
                 <MessageSquare size={18} className="text-[#98a2db]" />

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 
 export type Language = "en" | "ar" | "he";
 
@@ -9,21 +9,25 @@ type LanguageContextType = {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
+// Apply direction to <html> immediately so it's ready before first render
+function applyDirection(lang: Language) {
+  const isRTL = lang === "ar" || lang === "he";
+  document.documentElement.dir = isRTL ? "rtl" : "ltr";
+  document.documentElement.lang = lang;
+}
+
+// Set direction from saved preference before any component renders
+const _initialLang = (localStorage.getItem("jobmatch_language") as Language | null) || "en";
+applyDirection(_initialLang);
+
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>(() => {
-    const saved = localStorage.getItem("jobmatch_language") as Language | null;
-    return saved || "en";
-  });
+  const [language, setLanguageState] = useState<Language>(_initialLang);
 
   const setLanguage = (lang: Language) => {
+    applyDirection(lang);
     setLanguageState(lang);
     localStorage.setItem("jobmatch_language", lang);
   };
-
-  useEffect(() => {
-    document.documentElement.lang = language;
-    document.documentElement.dir = language === "en" ? "ltr" : "rtl";
-  }, [language]);
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage }}>

@@ -579,7 +579,7 @@ function HomePage() {
             />
 
             <div
-              className={`mt-5 flex gap-3 ${isRTL ? "flex-row-reverse" : ""}`}
+              className="mt-5 flex gap-3"
             >
               <button
                 type="button"

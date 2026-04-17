@@ -89,18 +89,14 @@ function PostJob() {
         <button
           type="button"
           onClick={() => navigate("/company-job-postings")}
-          className={`mb-10 inline-flex items-center gap-3 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-6 py-3 text-[16px] font-semibold text-white/85 backdrop-blur-[8px] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-white ${
-            isRTL ? "flex-row-reverse" : ""
-          }`}
+          className={`mb-10 inline-flex items-center gap-3 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-6 py-3 text-[16px] font-semibold text-white/85 backdrop-blur-[8px] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-white`}
         >
           <ArrowLeft size={18} className={isRTL ? "rotate-180" : ""} />
           Back to Jobs
         </button>
 
         <div
-          className={`mb-10 flex items-center gap-5 ${
-            isRTL ? "flex-row-reverse" : ""
-          }`}
+          className={`mb-10 flex items-center gap-5`}
         >
           <div className="flex h-[62px] w-[62px] items-center justify-center rounded-[20px] bg-[linear-gradient(135deg,#7b61ff,#b13dff)] shadow-[0_12px_30px_rgba(139,92,246,0.28)]">
             <BriefcaseBusiness size={30} className="text-white" />
@@ -166,9 +162,7 @@ function PostJob() {
 
                 <div className="flex items-end">
                   <label
-                    className={`flex items-center gap-4 text-[16px] font-medium text-white/75 ${
-                      isRTL ? "flex-row-reverse" : ""
-                    }`}
+                    className={`flex items-center gap-4 text-[16px] font-medium text-white/75`}
                   >
                     <div className="relative">
                       <input
@@ -382,7 +376,7 @@ function PostJob() {
 
           <div
             className={`flex items-center justify-end gap-5 ${
-              isRTL ? "flex-row-reverse justify-start" : ""
+              isRTL ? "justify-start" : ""
             }`}
           >
             <button
@@ -396,9 +390,7 @@ function PostJob() {
             <button
               type="button"
               onClick={handlePostJob}
-              className={`inline-flex h-14 items-center gap-3 rounded-[14px] bg-[linear-gradient(135deg,#7f6bff,#9b3ff5)] px-8 text-[16px] font-bold text-white shadow-[0_14px_30px_rgba(139,92,246,0.25)] transition hover:scale-[1.02] ${
-                isRTL ? "flex-row-reverse" : ""
-              }`}
+              className={`inline-flex h-14 items-center gap-3 rounded-[14px] bg-[linear-gradient(135deg,#7f6bff,#9b3ff5)] px-8 text-[16px] font-bold text-white shadow-[0_14px_30px_rgba(139,92,246,0.25)] transition hover:scale-[1.02]`}
             >
               <Save size={18} />
               Post Job
