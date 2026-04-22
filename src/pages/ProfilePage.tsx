@@ -176,11 +176,11 @@ function ProfilePage() {
 
                   <div>
                     <h3 className="text-[20px] font-extrabold text-white">
-                      {t.profilePage.basicPlan || "You're on the Basic Plan"}
+                      Current Plan: Free
                     </h3>
+
                     <p className="mt-1 text-[15px] text-[#aeb4d6]">
-                      {t.profilePage.premiumHint ||
-                        "Upgrade to Premium to unlock AI-powered features"}
+                      7 of 10 applications used this month
                     </p>
                   </div>
                 </div>
@@ -535,7 +535,7 @@ function ProfilePage() {
                 </p>
 
                 <h3 className="mb-5 text-[20px] font-extrabold text-white">
-                  $19<span className="text-[15px] text-[#aeb4d6]">/mo</span>
+                  $9.99<span className="text-[15px] text-[#aeb4d6]">/mo</span>
                 </h3>
 
                 <div className="space-y-3 text-[15px] text-[#ece7ff]">
