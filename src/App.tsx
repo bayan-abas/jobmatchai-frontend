@@ -24,6 +24,8 @@ import ScrollToTop from "./components/ScrollToTop";
 import CandidateLayout from "./components/CandidateLayout";
 import CompanyLayout from "./components/CompanyLayout";
 
+import PaymentPage from "./pages/PaymentPage";
+
 function App() {
   return (
     <>
@@ -54,6 +56,8 @@ function App() {
         <Route path="/company-applications"   element={<CompanyLayout><CompanyApplications /></CompanyLayout>} />
         <Route path="/company-profile"        element={<CompanyLayout><CompanyProfile /></CompanyLayout>} />
         <Route path="/company-notifications"  element={<CompanyLayout><CompanyNotifications /></CompanyLayout>} />
+
+        <Route path="/payment" element={<PaymentPage />} />
       </Routes>
     </>
   );
