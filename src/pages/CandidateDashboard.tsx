@@ -439,6 +439,7 @@ function CandidateDashboard() {
           </div>
         </section>
 
+
         <section className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-7 py-7 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div
@@ -492,6 +493,50 @@ function CandidateDashboard() {
                 className="rounded-[16px] bg-gradient-to-r from-[#7f4cff] to-[#a855f7] px-6 py-3 text-[15px] font-semibold text-white transition hover:opacity-90"
               >
                 {t.dashboard.profileBox.editProfile}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-[30px] border border-white/10 bg-[linear-gradient(135deg,rgba(32,35,88,0.96),rgba(49,37,98,0.96))] px-7 py-7 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-[640px]">
+              <div className="mb-4 inline-flex items-center rounded-full border border-[#c084fc]/20 bg-[#c084fc]/10 px-3 py-1 text-[13px] font-semibold text-[#e9c7ff]">
+                Free Plan
+              </div>
+
+              <h3 className="text-[28px] font-extrabold text-white">
+                7 of 10 applications used
+              </h3>
+
+              <p className="mt-2 text-[16px] leading-7 text-[#b9c0ea]">
+                You still have{" "}
+                <span className="font-bold text-white">3 applications</span> left this month.
+                Upgrade your plan to unlock unlimited job applications and premium career tools.
+              </p>
+
+              <div className="mt-5 flex items-center gap-3">
+                <span className="text-[14px] font-semibold text-white/80">
+                  Monthly usage
+                </span>
+
+                <span className="rounded-full bg-white/8 px-3 py-1 text-[13px] font-semibold text-white/70">
+                  70%
+                </span>
+              </div>
+
+              <div className="mt-3 h-[10px] w-full max-w-[420px] overflow-hidden rounded-full bg-white/10">
+                <div className="h-full w-[70%] rounded-full bg-gradient-to-r from-[#8b5cf6] via-[#a855f7] to-[#ec4899]" />
+              </div>
+            </div>
+
+            <div className="flex flex-col items-stretch gap-3 sm:w-auto sm:min-w-[240px]">
+              <button
+                type="button"
+                onClick={() => navigate("/payment")}
+                className="rounded-[16px] bg-gradient-to-r from-[#8b5cf6] to-[#d946ef] px-6 py-3 text-[15px] font-semibold text-white shadow-[0_10px_30px_rgba(168,85,247,0.35)] transition hover:scale-[1.02]"
+              >
+                Upgrade to Premium
               </button>
             </div>
           </div>
