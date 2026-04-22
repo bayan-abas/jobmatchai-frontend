@@ -807,6 +807,38 @@ function JobMatches() {
               </p>
             </section>
 
+            <section className="mb-6 rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,rgba(32,35,88,0.96),rgba(49,37,98,0.96))] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+
+                <div className="max-w-[620px]">
+                  <div className="mb-3 inline-flex rounded-full border border-[#c084fc]/20 bg-[#c084fc]/10 px-3 py-1 text-[13px] font-semibold text-[#e9c7ff]">
+                    Free Plan
+                  </div>
+
+                  <h3 className="text-[26px] font-extrabold text-white">
+                    7 of 10 applications used
+                  </h3>
+
+                  <p className="mt-2 text-[15px] leading-7 text-[#b9c0ea]">
+                    Apply to 3 more jobs this month or upgrade to Premium for unlimited applications.
+                  </p>
+
+                  <div className="mt-4 h-[10px] w-full max-w-[400px] overflow-hidden rounded-full bg-white/10">
+                    <div className="h-full w-[70%] rounded-full bg-gradient-to-r from-[#8b5cf6] via-[#a855f7] to-[#ec4899]" />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => navigate("/payment")}
+                  className="rounded-[16px] bg-gradient-to-r from-[#8b5cf6] to-[#d946ef] px-6 py-3 text-[15px] font-semibold text-white shadow-[0_10px_30px_rgba(168,85,247,0.35)] transition hover:scale-[1.02]"
+                >
+                  Upgrade to Premium
+                </button>
+
+              </div>
+            </section>
+
             <section className="space-y-5">
               {filteredJobs.map((job, index) => {
                 const numeric = job.noScore ? 0 : Number(job.percent.replace("%", ""));
