@@ -11,9 +11,16 @@ import {
   Users,
   FileText,
 } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
+import { translations } from "../translations";
 
 function CompanyRegisterPage() {
   const navigate = useNavigate();
+  const { language, setLanguage } = useLanguage();
+
+  const t = translations[language];
+  const tr = t.companyRegisterPage;
+  const isRTL = language === "ar" || language === "he";
 
   const [formData, setFormData] = useState({
     companyName: "",
@@ -110,23 +117,23 @@ function CompanyRegisterPage() {
       !industry ||
       !companySize
     ) {
-      setError("Please fill in all required fields.");
+      setError(tr.errors.requiredFields);
       return;
     }
 
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailPattern.test(cleanEmail)) {
-      setError("Please enter a valid email address.");
+      setError(tr.errors.invalidEmail);
       return;
     }
 
     if (cleanPassword.length < 6) {
-      setError("Password must be at least 6 characters.");
+      setError(tr.errors.passwordLength);
       return;
     }
 
     if (cleanPassword !== cleanConfirmPassword) {
-      setError("Passwords do not match.");
+      setError(tr.errors.passwordMismatch);
       return;
     }
 
@@ -137,7 +144,7 @@ function CompanyRegisterPage() {
     );
 
     if (emailExists) {
-      setError("This email is already registered.");
+      setError(tr.errors.emailExists);
       return;
     }
 
@@ -173,18 +180,22 @@ function CompanyRegisterPage() {
     localStorage.setItem("description", newCompany.description);
     localStorage.setItem("isFirstLogin", "false");
 
-    setSuccess("Company account created successfully!");
+    setSuccess(tr.success);
 
     setTimeout(() => {
       navigate("/company-dashboard");
     }, 900);
   };
 
-  const inputClass =
-    "w-full rounded-2xl border border-white/10 bg-white/5 pl-12 pr-4 py-3.5 text-white placeholder:text-white/40 outline-none transition focus:border-cyan-400/60 focus:bg-white/10";
+  const inputClass = `w-full rounded-2xl border border-white/10 bg-white/5 ${
+    isRTL ? "pr-12 pl-4 text-right" : "pl-12 pr-4 text-left"
+  } py-3.5 text-white placeholder:text-white/40 outline-none transition focus:border-cyan-400/60 focus:bg-white/10`;
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(135deg,#17184a_0%,#1a1b56_40%,#17234f_100%)] px-4 py-10">
+    <div
+      dir={isRTL ? "rtl" : "ltr"}
+      className="min-h-screen bg-[linear-gradient(135deg,#17184a_0%,#1a1b56_40%,#17234f_100%)] px-4 py-10"
+    >
       <div className="mx-auto max-w-6xl overflow-hidden rounded-[32px] border border-white/10 bg-white/5 shadow-[0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl">
         <div className="grid min-h-[760px] lg:grid-cols-2">
           <div className="relative hidden overflow-hidden lg:flex">
@@ -193,31 +204,30 @@ function CompanyRegisterPage() {
               <div>
                 <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-medium text-cyan-300">
                   <Building2 size={16} />
-                  Company Portal
+                  {tr.badge}
                 </div>
 
                 <h1 className="max-w-md text-4xl font-extrabold leading-tight text-white">
-                  Build your team with smarter hiring.
+                  {tr.heroTitle}
                 </h1>
 
                 <p className="mt-5 max-w-lg text-[16px] leading-7 text-white/70">
-                  Create your company account to publish opportunities, discover matching
-                  candidates, and manage your recruitment flow in one modern dashboard.
+                  {tr.heroText}
                 </p>
               </div>
 
               <div className="space-y-4">
                 <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-                  <p className="text-sm text-white/50">Why companies use JobMatchAI</p>
+                  <p className="text-sm text-white/50">{tr.whyTitle}</p>
                   <div className="mt-4 grid gap-3">
                     <div className="rounded-2xl bg-white/5 px-4 py-3 text-white/80">
-                      Smart candidate matching
+                      {tr.why1}
                     </div>
                     <div className="rounded-2xl bg-white/5 px-4 py-3 text-white/80">
-                      Clean hiring workflow
+                      {tr.why2}
                     </div>
                     <div className="rounded-2xl bg-white/5 px-4 py-3 text-white/80">
-                      Faster screening experience
+                      {tr.why3}
                     </div>
                   </div>
                 </div>
@@ -226,28 +236,64 @@ function CompanyRegisterPage() {
           </div>
 
           <div className="p-6 sm:p-8 lg:p-10">
-            <button
-              onClick={() => navigate(-1)}
-              className="mb-6 rounded-2xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
-            >
-              ← Back
-            </button>
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+              <button
+                onClick={() => navigate(-1)}
+                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
+              >
+                {t.common.back}
+              </button>
 
-            <div className="mb-8">
-              <h2 className="text-3xl font-extrabold text-white">Create Company Account</h2>
-              <p className="mt-2 text-white/60">
-                Enter your company details to get started.
-              </p>
+              <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 p-1">
+                <button
+                  type="button"
+                  onClick={() => setLanguage("en")}
+                  className={`rounded-xl px-3 py-1.5 text-sm font-medium transition ${
+                    language === "en"
+                      ? "bg-cyan-400 text-slate-950"
+                      : "text-white/70 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  EN
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLanguage("ar")}
+                  className={`rounded-xl px-3 py-1.5 text-sm font-medium transition ${
+                    language === "ar"
+                      ? "bg-cyan-400 text-slate-950"
+                      : "text-white/70 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  AR
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLanguage("he")}
+                  className={`rounded-xl px-3 py-1.5 text-sm font-medium transition ${
+                    language === "he"
+                      ? "bg-cyan-400 text-slate-950"
+                      : "text-white/70 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  HE
+                </button>
+              </div>
+            </div>
+
+            <div className={isRTL ? "mb-8 text-right" : "mb-8 text-left"}>
+              <h2 className="text-3xl font-extrabold text-white">{tr.title}</h2>
+              <p className="mt-2 text-white/60">{tr.subtitle}</p>
             </div>
 
             <form onSubmit={handleRegister} className="space-y-5">
               <div className="grid gap-5 md:grid-cols-2">
                 <div className="relative">
-                  <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+                  <Building2 className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${isRTL ? "right-4" : "left-4"}`} size={18} />
                   <input
                     type="text"
                     name="companyName"
-                    placeholder="Company Name"
+                    placeholder={t.common.companyName}
                     value={formData.companyName}
                     onChange={handleChange}
                     className={inputClass}
@@ -255,11 +301,11 @@ function CompanyRegisterPage() {
                 </div>
 
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+                  <Mail className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${isRTL ? "right-4" : "left-4"}`} size={18} />
                   <input
                     type="email"
                     name="email"
-                    placeholder="Company Email"
+                    placeholder={t.common.email}
                     value={formData.email}
                     onChange={handleChange}
                     className={inputClass}
@@ -267,11 +313,11 @@ function CompanyRegisterPage() {
                 </div>
 
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+                  <Lock className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${isRTL ? "right-4" : "left-4"}`} size={18} />
                   <input
                     type="password"
                     name="password"
-                    placeholder="Password"
+                    placeholder={t.common.password}
                     value={formData.password}
                     onChange={handleChange}
                     className={inputClass}
@@ -279,11 +325,11 @@ function CompanyRegisterPage() {
                 </div>
 
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+                  <Lock className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${isRTL ? "right-4" : "left-4"}`} size={18} />
                   <input
                     type="password"
                     name="confirmPassword"
-                    placeholder="Confirm Password"
+                    placeholder={t.common.confirmPassword}
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     className={inputClass}
@@ -291,11 +337,11 @@ function CompanyRegisterPage() {
                 </div>
 
                 <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+                  <Phone className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${isRTL ? "right-4" : "left-4"}`} size={18} />
                   <input
                     type="text"
                     name="phone"
-                    placeholder="Phone Number"
+                    placeholder={t.candidateRegisterPage.phone}
                     value={formData.phone}
                     onChange={handleChange}
                     className={inputClass}
@@ -303,11 +349,11 @@ function CompanyRegisterPage() {
                 </div>
 
                 <div className="relative">
-                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+                  <MapPin className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${isRTL ? "right-4" : "left-4"}`} size={18} />
                   <input
                     type="text"
                     name="location"
-                    placeholder="Location"
+                    placeholder={tr.companyLocation}
                     value={formData.location}
                     onChange={handleChange}
                     className={inputClass}
@@ -315,7 +361,7 @@ function CompanyRegisterPage() {
                 </div>
 
                 <div className="relative">
-                  <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+                  <Briefcase className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${isRTL ? "right-4" : "left-4"}`} size={18} />
                   <select
                     name="industry"
                     value={formData.industry}
@@ -323,7 +369,7 @@ function CompanyRegisterPage() {
                     className={`${inputClass} appearance-none`}
                   >
                     <option value="" className="text-black">
-                      Select Industry
+                      {tr.industry}
                     </option>
                     {industries.map((industry) => (
                       <option key={industry} value={industry} className="text-black">
@@ -334,7 +380,7 @@ function CompanyRegisterPage() {
                 </div>
 
                 <div className="relative">
-                  <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+                  <Users className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${isRTL ? "right-4" : "left-4"}`} size={18} />
                   <select
                     name="companySize"
                     value={formData.companySize}
@@ -342,7 +388,7 @@ function CompanyRegisterPage() {
                     className={`${inputClass} appearance-none`}
                   >
                     <option value="" className="text-black">
-                      Company Size
+                      {tr.companySize}
                     </option>
                     {companySizes.map((size) => (
                       <option key={size} value={size} className="text-black">
@@ -353,11 +399,11 @@ function CompanyRegisterPage() {
                 </div>
 
                 <div className="relative md:col-span-2">
-                  <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+                  <Globe className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${isRTL ? "right-4" : "left-4"}`} size={18} />
                   <input
                     type="text"
                     name="website"
-                    placeholder="Website (optional)"
+                    placeholder={tr.website}
                     value={formData.website}
                     onChange={handleChange}
                     className={inputClass}
@@ -365,26 +411,28 @@ function CompanyRegisterPage() {
                 </div>
 
                 <div className="relative md:col-span-2">
-                  <FileText className="absolute left-4 top-5 text-white/40" size={18} />
+                  <FileText className={`absolute top-5 text-white/40 ${isRTL ? "right-4" : "left-4"}`} size={18} />
                   <textarea
                     name="description"
-                    placeholder="Company Description (optional)"
+                    placeholder={tr.aboutPlaceholder}
                     value={formData.description}
                     onChange={handleChange}
                     rows={5}
-                    className="w-full rounded-2xl border border-white/10 bg-white/5 pl-12 pr-4 py-3.5 text-white placeholder:text-white/40 outline-none transition focus:border-cyan-400/60 focus:bg-white/10 resize-none"
+                    className={`w-full rounded-2xl border border-white/10 bg-white/5 ${
+                      isRTL ? "pr-12 pl-4 text-right" : "pl-12 pr-4 text-left"
+                    } py-3.5 text-white placeholder:text-white/40 outline-none transition focus:border-cyan-400/60 focus:bg-white/10 resize-none`}
                   />
                 </div>
               </div>
 
               {error && (
-                <div className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                <div className={`rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300 ${isRTL ? "text-right" : "text-left"}`}>
                   {error}
                 </div>
               )}
 
               {success && (
-                <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+                <div className={`rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300 ${isRTL ? "text-right" : "text-left"}`}>
                   {success}
                 </div>
               )}
@@ -393,17 +441,17 @@ function CompanyRegisterPage() {
                 type="submit"
                 className="w-full rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-6 py-4 text-base font-bold text-white shadow-[0_12px_30px_rgba(34,211,238,0.25)] transition hover:scale-[1.01]"
               >
-                Create Company Account
+                {tr.createAccount}
               </button>
 
-              <p className="text-center text-sm text-white/55">
-                Already have an account?{" "}
+              <p className={`text-sm text-white/55 ${isRTL ? "text-right" : "text-center"}`}>
+                {t.common.alreadyHaveAccount}{" "}
                 <button
                   type="button"
                   onClick={() => navigate("/login")}
                   className="font-semibold text-cyan-300 transition hover:text-cyan-200"
                 >
-                  Sign In
+                  {t.common.login}
                 </button>
               </p>
             </form>

@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useLanguage } from "../context/LanguageContext";
+import { translations } from "../translations";
 import {
   ArrowLeft,
   Users,
@@ -56,26 +58,42 @@ type Candidate = {
 
 function CompanyCandidates() {
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const t = translations[language] || translations.en;
+  const isRTL = language === "ar" || language === "he";
+
+  const common = t.common || {};
+  const page = t.companyCandidatesPage || {};
+  const companyDashboard = t.companyDashboard || {};
+  const fitLabels = companyDashboard.fitLabels || {};
 
   const [showFilters, setShowFilters] = useState(true);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [savedScrollY, setSavedScrollY] = useState(0);
 
-  const [industry, setIndustry] = useState("All");
-  const [seniority, setSeniority] = useState("All");
-  const [recommendation, setRecommendation] = useState("All");
+  const [industry, setIndustry] = useState(page.all || "All");
+  const [seniority, setSeniority] = useState(page.all || "All");
+  const [recommendation, setRecommendation] = useState(page.all || "All");
   const [minSalary, setMinSalary] = useState(0);
   const [minMatch, setMinMatch] = useState(0);
   const [minPreInterview, setMinPreInterview] = useState(0);
   const [showContactModal, setShowContactModal] = useState(false);
   const [messageText, setMessageText] = useState("");
 
-  //Schedule Interview
   const [showInterviewModal, setShowInterviewModal] = useState(false);
   const [interviewDate, setInterviewDate] = useState("");
   const [interviewTime, setInterviewTime] = useState("");
-  const [interviewType, setInterviewType] = useState("Online");
+  const [interviewType, setInterviewType] = useState(page.online || "Online");
   const [interviewNotes, setInterviewNotes] = useState("");
+
+  const allLabel = page.all || "All";
+  const juniorLabel = page.junior || "Junior";
+  const midLabel = page.midLevel || "Mid-Level";
+  const seniorLabel = page.senior || "Senior";
+  const leadLabel = page.lead || "Lead";
+  const highFitLabel = fitLabels.high || "High Fit";
+  const mediumFitLabel = fitLabels.medium || "Medium Fit";
+  const lowFitLabel = page.lowFit || "Low Fit";
 
   const candidates: Candidate[] = [
     {
@@ -102,7 +120,7 @@ function CompanyCandidates() {
       fit: "High Fit",
       summary:
         "Passionate frontend developer with 7+ years of experience building scalable web applications. Led multiple teams and delivered enterprise-level products.",
-      recommendationTitle: "Highly Recommended",
+      recommendationTitle: page.highlyRecommended || "Highly Recommended",
       recommendationText:
         "This candidate shows strong alignment with job requirements and performed well in the pre-interview assessment.",
       preInterviewSummary:
@@ -132,7 +150,7 @@ function CompanyCandidates() {
       fit: "High Fit",
       summary:
         "Experienced frontend lead with a strong background in architecture and mentoring teams to deliver modern products.",
-      recommendationTitle: "Highly Recommended",
+      recommendationTitle: page.highlyRecommended || "Highly Recommended",
       recommendationText:
         "Excellent fit for leadership-oriented frontend roles with strong architecture and communication skills.",
       preInterviewSummary:
@@ -162,7 +180,7 @@ function CompanyCandidates() {
       fit: "High Fit",
       summary:
         "Full stack engineer with strong backend and deployment skills, experienced in cloud-native environments.",
-      recommendationTitle: "Recommended",
+      recommendationTitle: page.recommended || "Recommended",
       recommendationText:
         "Very good technical fit with strong backend and infrastructure knowledge.",
       preInterviewSummary:
@@ -192,7 +210,7 @@ function CompanyCandidates() {
       fit: "Medium Fit",
       summary:
         "Frontend-focused developer with good React experience and solid understanding of testing and UI delivery.",
-      recommendationTitle: "Consider for Interview",
+      recommendationTitle: page.considerForInterview || "Consider for Interview",
       recommendationText:
         "Good frontend fit, though more suitable for mid-level roles than senior positions.",
       preInterviewSummary:
@@ -222,7 +240,7 @@ function CompanyCandidates() {
       fit: "Medium Fit",
       summary:
         "Junior software engineer with solid fundamentals and a strong willingness to learn and improve.",
-      recommendationTitle: "Potential Fit",
+      recommendationTitle: page.potentialFit || "Potential Fit",
       recommendationText:
         "May fit junior roles well, especially with mentorship and structured onboarding.",
       preInterviewSummary:
@@ -233,13 +251,14 @@ function CompanyCandidates() {
   const filteredCandidates = useMemo(() => {
     return candidates.filter((candidate) => {
       const industryMatch =
-        industry === "All" || candidate.industry === industry;
+        industry === allLabel || candidate.industry === industry;
 
       const seniorityMatch =
-        seniority === "All" || candidate.seniority === seniority;
+        seniority === allLabel || candidate.seniority === seniority;
 
       const recommendationMatch =
-        recommendation === "All" || candidate.fit === recommendation;
+        recommendation === allLabel ||
+        mapFitLabel(candidate.fit, fitLabels, lowFitLabel) === recommendation;
 
       const salaryMatch = candidate.expectedSalary >= minSalary;
       const matchScore = candidate.match >= minMatch;
@@ -262,6 +281,9 @@ function CompanyCandidates() {
     minSalary,
     minMatch,
     minPreInterview,
+    fitLabels,
+    allLabel,
+    lowFitLabel,
   ]);
 
   const getFitStyles = (fit: Candidate["fit"]) => {
@@ -277,7 +299,10 @@ function CompanyCandidates() {
   const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(91,77,255,0.14),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(34,211,238,0.10),transparent_25%),linear-gradient(135deg,#151748_0%,#141755_45%,#0f143f_100%)] px-6 pb-10 pt-8 md:px-10 text-white">
+    <div
+      dir={isRTL ? "rtl" : "ltr"}
+      className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(91,77,255,0.14),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(34,211,238,0.10),transparent_25%),linear-gradient(135deg,#151748_0%,#141755_45%,#0f143f_100%)] px-6 pb-10 pt-8 md:px-10 text-white"
+    >
       <div className="mx-auto max-w-5xl">
         {!selectedCandidate ? (
           <>
@@ -285,8 +310,8 @@ function CompanyCandidates() {
               onClick={() => navigate(-1)}
               className="mb-8 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-[15px] font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
             >
-              <ArrowLeft size={18} />
-              Back
+              <ArrowLeft size={18} className={isRTL ? "rotate-180" : ""} />
+              {common.back || "Back"}
             </button>
 
             <div className="mb-8 flex items-start gap-4">
@@ -294,12 +319,12 @@ function CompanyCandidates() {
                 <Users size={28} />
               </div>
 
-              <div>
+              <div className={isRTL ? "text-right" : "text-left"}>
                 <h1 className="text-4xl font-extrabold tracking-tight text-white">
-                  Find Candidates
+                  {page.title || "Candidates"}
                 </h1>
                 <p className="mt-2 text-[18px] text-white/60">
-                  AI-matched candidates for your job openings
+                  {page.subtitle || "Explore and review matched candidates"}
                 </p>
               </div>
             </div>
@@ -315,14 +340,21 @@ function CompanyCandidates() {
                     <Filter size={22} />
                   </div>
 
-                  <div>
-                    <p className="text-[22px] font-bold text-white">Smart Filters</p>
-                    <p className="text-sm text-white/50">Refine your search</p>
+                  <div className={isRTL ? "text-right" : "text-left"}>
+                    <p className="text-[22px] font-bold text-white">
+                      {page.smartFilters || "Smart Filters"}
+                    </p>
+                    <p className="text-sm text-white/50">
+                      {page.refineSearch || "Refine your search"}
+                    </p>
                   </div>
                 </div>
 
                 {showFilters ? (
-                  <ChevronDown size={22} className="rotate-180 text-white/40" />
+                  <ChevronDown
+                    size={22}
+                    className="rotate-180 text-white/40"
+                  />
                 ) : (
                   <ChevronDown size={22} className="text-white/40" />
                 )}
@@ -333,23 +365,28 @@ function CompanyCandidates() {
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                     <FilterSelect
                       icon={<BriefcaseBusiness size={16} />}
-                      label="Industry"
+                      label={page.filterByIndustry || "Filter by Industry"}
                       value={industry}
                       onChange={setIndustry}
-                      options={["All", "Software", "Cloud", "Frontend"]}
+                      options={[
+                        allLabel,
+                        page.software || "Software",
+                        page.cloud || "Cloud",
+                        page.frontend || "Frontend",
+                      ]}
                     />
 
                     <FilterSelect
                       icon={<TrendingUp size={16} />}
-                      label="Seniority Level"
+                      label={page.filterByLevel || "Filter by Level"}
                       value={seniority}
                       onChange={setSeniority}
-                      options={["All", "Junior", "Mid-Level", "Senior", "Lead"]}
+                      options={[allLabel, juniorLabel, midLabel, seniorLabel, leadLabel]}
                     />
 
                     <RangeFilter
                       icon={<DollarSign size={16} />}
-                      label={`Min Salary: $${minSalary}k`}
+                      label={`${page.minSalary || "Min Salary"}: $${minSalary}k`}
                       value={minSalary}
                       onChange={setMinSalary}
                       min={0}
@@ -358,7 +395,7 @@ function CompanyCandidates() {
 
                     <RangeFilter
                       icon={<Target size={16} />}
-                      label={`Min Match: ${minMatch}%`}
+                      label={`${page.minMatch || "Min Match"}: ${minMatch}%`}
                       value={minMatch}
                       onChange={setMinMatch}
                       min={0}
@@ -367,7 +404,7 @@ function CompanyCandidates() {
 
                     <RangeFilter
                       icon={<SlidersHorizontal size={16} />}
-                      label={`Min Pre-Interview Score: ${minPreInterview}%`}
+                      label={`${page.minPreInterviewScore || "Min Pre-Interview Score"}: ${minPreInterview}%`}
                       value={minPreInterview}
                       onChange={setMinPreInterview}
                       min={0}
@@ -376,10 +413,10 @@ function CompanyCandidates() {
 
                     <FilterSelect
                       icon={<Award size={16} />}
-                      label="Recommendation"
+                      label={page.recommendation || "Recommendation"}
                       value={recommendation}
                       onChange={setRecommendation}
-                      options={["All", "High Fit", "Medium Fit", "Low Fit"]}
+                      options={[allLabel, highFitLabel, mediumFitLabel, lowFitLabel]}
                     />
                   </div>
                 </div>
@@ -387,7 +424,8 @@ function CompanyCandidates() {
             </div>
 
             <p className="mb-5 text-lg text-white/55">
-              {filteredCandidates.length} candidates match your criteria
+              {filteredCandidates.length}{" "}
+              {page.candidatesMatchCriteria || "candidates match your criteria"}
             </p>
 
             <div className="space-y-5">
@@ -397,7 +435,7 @@ function CompanyCandidates() {
                   onClick={() => {
                     setSavedScrollY(window.scrollY);
                     setSelectedCandidate(candidate);
-                    window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+                    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
                   }}
                   className="cursor-pointer rounded-[30px] border border-white/10 bg-white/[0.045] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-sm transition hover:bg-white/[0.055]"
                 >
@@ -407,7 +445,7 @@ function CompanyCandidates() {
                         {getInitial(candidate.name)}
                       </div>
 
-                      <div className="min-w-0 flex-1">
+                      <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
                         <div className="mb-1 flex flex-wrap items-center gap-3">
                           <h2 className="text-[30px] font-extrabold leading-tight text-white">
                             {candidate.name}
@@ -418,7 +456,7 @@ function CompanyCandidates() {
                               candidate.fit
                             )}`}
                           >
-                            {candidate.fit}
+                            {mapFitLabel(candidate.fit, fitLabels, lowFitLabel)}
                           </span>
                         </div>
 
@@ -455,35 +493,29 @@ function CompanyCandidates() {
                     </div>
 
                     <button className="self-start rounded-full p-2 text-white/35 transition hover:bg-white/10 hover:text-white">
-                      <ChevronRight size={22} />
+                      <ChevronRight size={22} className={isRTL ? "rotate-180" : ""} />
                     </button>
                   </div>
 
                   <div className="mt-6 grid gap-4 lg:grid-cols-[160px_1fr]">
                     <div className="flex flex-col items-center justify-center rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-5 text-center">
-                      <div className="relative mb-3 flex h-[78px] w-[78px] items-center justify-center rounded-full border-[5px] border-emerald-400 text-[18px] font-extrabold text-white">
-                        {candidate.match}%
-                        <span className="absolute -bottom-5 text-xs font-medium text-white/60">
-                          Match
-                        </span>
-                      </div>
+                      <MatchRing value={candidate.match} label={page.match || companyDashboard.match || "Match"} />
                     </div>
 
                     <div className="rounded-[22px] border border-white/10 bg-white/[0.04] px-5 py-5">
                       <div className="mb-5">
-                        <p className="text-sm text-white/45">Pre-Interview Score</p>
+                        <p className="text-sm text-white/45">
+                          {page.preInterviewScore || "Pre-Interview Score"}
+                        </p>
                         <p className="mt-1 text-[18px] font-bold text-white">
                           {candidate.preInterview}%
                         </p>
                       </div>
 
                       <div className="space-y-4">
-                        <ScoreBar label="Technical" value={candidate.technical} />
-                        <ScoreBar
-                          label="Communication"
-                          value={candidate.communication}
-                        />
-                        <ScoreBar label="Overall Fit" value={candidate.overall} />
+                        <ScoreBar label={page.technical || "Technical"} value={candidate.technical} />
+                        <ScoreBar label={page.communication || "Communication"} value={candidate.communication} />
+                        <ScoreBar label={page.overallFit || "Overall Fit"} value={candidate.overall} />
                       </div>
                     </div>
                   </div>
@@ -492,7 +524,7 @@ function CompanyCandidates() {
 
               {filteredCandidates.length === 0 && (
                 <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-10 text-center text-white/65">
-                  No candidates match the selected filters.
+                  {page.noCandidatesForFilters || page.noCandidatesText || "No candidates match the selected filters."}
                 </div>
               )}
             </div>
@@ -506,14 +538,14 @@ function CompanyCandidates() {
                   window.scrollTo({
                     top: savedScrollY,
                     left: 0,
-                    behavior: "instant" as ScrollBehavior,
+                    behavior: "auto",
                   });
                 }, 0);
               }}
               className="mb-6 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-[15px] font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
             >
-              <ArrowLeft size={18} />
-              Back
+              <ArrowLeft size={18} className={isRTL ? "rotate-180" : ""} />
+              {common.back || "Back"}
             </button>
 
             <div className="mb-6 rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
@@ -523,7 +555,7 @@ function CompanyCandidates() {
                     {getInitial(selectedCandidate.name)}
                   </div>
 
-                  <div className="min-w-0 flex-1">
+                  <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
                     <div className="mb-2 flex flex-wrap items-center gap-3">
                       <h1 className="text-[26px] font-extrabold text-white md:text-[40px]">
                         {selectedCandidate.name}
@@ -533,7 +565,7 @@ function CompanyCandidates() {
                           selectedCandidate.fit
                         )}`}
                       >
-                        {selectedCandidate.fit}
+                        {mapFitLabel(selectedCandidate.fit, fitLabels, lowFitLabel)}
                       </span>
                     </div>
 
@@ -580,21 +612,21 @@ function CompanyCandidates() {
                     className="flex items-center justify-center gap-2 rounded-[14px] bg-[linear-gradient(135deg,#7f6bff,#9b3ff5)] px-5 py-3.5 text-[15px] font-bold text-white transition hover:opacity-95"
                   >
                     <Send size={17} />
-                    Contact Candidate
+                    {page.contactCandidate || "Contact Candidate"}
                   </button>
 
                   <button
                     onClick={() => {
                       setInterviewDate("");
                       setInterviewTime("");
-                      setInterviewType("Online");
+                      setInterviewType(page.online || "Online");
                       setInterviewNotes("");
                       setShowInterviewModal(true);
                     }}
                     className="flex items-center justify-center gap-2 rounded-[14px] border border-white/15 bg-white/[0.03] px-5 py-3.5 text-[15px] font-semibold text-[#b8c4ff] transition hover:bg-white/[0.06]"
                   >
                     <Calendar size={17} />
-                    Schedule Interview
+                    {page.scheduleInterview || "Schedule Interview"}
                   </button>
 
                   <button
@@ -607,7 +639,7 @@ function CompanyCandidates() {
                     className="flex items-center justify-center gap-2 rounded-[14px] border border-cyan-400/30 bg-cyan-400/10 px-5 py-3.5 text-[15px] font-semibold text-cyan-300 transition hover:bg-cyan-400/20"
                   >
                     <Download size={17} />
-                    Download Resume
+                    {page.downloadResume || "Download Resume"}
                   </button>
                 </div>
               </div>
@@ -620,9 +652,13 @@ function CompanyCandidates() {
                     <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-500/15 text-violet-300">
                       <Brain size={20} />
                     </div>
-                    <div>
-                      <h2 className="text-[20px] font-extrabold">AI Decision Panel</h2>
-                      <p className="text-sm text-white/50">Smart hiring recommendation</p>
+                    <div className={isRTL ? "text-right" : "text-left"}>
+                      <h2 className="text-[20px] font-extrabold">
+                        {page.aiDecisionPanel || "AI Decision Panel"}
+                      </h2>
+                      <p className="text-sm text-white/50">
+                        {page.smartHiringRecommendation || "Smart hiring recommendation"}
+                      </p>
                     </div>
                   </div>
 
@@ -630,35 +666,37 @@ function CompanyCandidates() {
                     <StatCard
                       icon={<Target size={20} />}
                       value={`${selectedCandidate.match}%`}
-                      label="Match Score"
+                      label={page.matchScore || "Match Score"}
                     />
                     <StatCard
                       icon={<FileText size={20} />}
                       value={`${selectedCandidate.resumeScore}%`}
-                      label="Resume"
+                      label={page.resume || "Resume"}
                     />
                     <StatCard
                       icon={<MessageSquare size={20} />}
                       value={`${selectedCandidate.preInterview}%`}
-                      label="Pre-Interview"
+                      label={page.preInterview || "Pre-Interview"}
                     />
                   </div>
 
                   <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                    <h3 className="mb-4 text-[20px] font-bold">Confidence Meter</h3>
+                    <h3 className="mb-4 text-[20px] font-bold">
+                      {page.confidenceMeter || "Confidence Meter"}
+                    </h3>
                     <div className="space-y-4">
                       <ScoreBar
-                        label="Technical"
+                        label={page.technical || "Technical"}
                         value={selectedCandidate.technical}
                         gradient="from-violet-400 to-fuchsia-500"
                       />
                       <ScoreBar
-                        label="Communication"
+                        label={page.communication || "Communication"}
                         value={selectedCandidate.communication}
                         gradient="from-cyan-400 to-blue-500"
                       />
                       <ScoreBar
-                        label="Overall Fit"
+                        label={page.overallFit || "Overall Fit"}
                         value={selectedCandidate.overall}
                         gradient="from-emerald-400 to-cyan-400"
                       />
@@ -671,9 +709,9 @@ function CompanyCandidates() {
                         <ThumbsUp size={22} />
                       </div>
 
-                      <div>
+                      <div className={isRTL ? "text-right" : "text-left"}>
                         <p className="text-sm font-semibold uppercase tracking-wide text-violet-300">
-                          AI Recommendation
+                          {page.aiRecommendation || "AI Recommendation"}
                         </p>
                         <h3 className="text-[18px] font-extrabold text-emerald-300">
                           {selectedCandidate.recommendationTitle}
@@ -686,13 +724,15 @@ function CompanyCandidates() {
 
                     <button className="mt-3 flex items-center gap-2 rounded-full bg-emerald-500/20 px-5 py-3 text-sm font-bold text-emerald-300">
                       <CheckCircle2 size={16} />
-                      Proceed to Interview
+                      {page.proceedToInterview || "Proceed to Interview"}
                     </button>
                   </div>
                 </div>
 
                 <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
-                  <h2 className="mb-4 text-[20px] font-extrabold">Pre-Interview Summary</h2>
+                  <h2 className="mb-4 text-[20px] font-extrabold">
+                    {page.preInterviewSummary || "Pre-Interview Summary"}
+                  </h2>
                   <p className="text-[18px] leading-8 text-white/75">
                     {selectedCandidate.preInterviewSummary}
                   </p>
@@ -701,7 +741,9 @@ function CompanyCandidates() {
 
               <div className="space-y-6">
                 <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
-                  <h2 className="mb-5 text-[20px] font-extrabold">Skills</h2>
+                  <h2 className="mb-5 text-[20px] font-extrabold">
+                    {page.skills || "Skills"}
+                  </h2>
                   <div className="flex flex-wrap gap-3">
                     {selectedCandidate.skills.map((skill) => (
                       <span
@@ -715,7 +757,9 @@ function CompanyCandidates() {
                 </div>
 
                 <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
-                  <h2 className="mb-4 text-[20px] font-extrabold">Summary</h2>
+                  <h2 className="mb-4 text-[20px] font-extrabold">
+                    {page.summary || "Summary"}
+                  </h2>
                   <p className="text-[16px] leading-8 text-white/75">
                     {selectedCandidate.summary}
                   </p>
@@ -724,14 +768,16 @@ function CompanyCandidates() {
             </div>
           </>
         )}
+
         {showContactModal && selectedCandidate && (
           <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 px-4">
             <div className="w-full max-w-[560px] rounded-[28px] border border-white/10 bg-[#1b1d57] p-6 text-white shadow-[0_20px_80px_rgba(0,0,0,0.45)]">
-
               <div className="mb-5 flex items-center justify-between">
-                <div>
+                <div className={isRTL ? "text-right" : "text-left"}>
                   <h2 className="text-[24px] font-extrabold">
-                    Contact {selectedCandidate.name}
+                    {(page.contactCandidateWith || page.contactCandidate || "Contact") +
+                      " " +
+                      selectedCandidate.name}
                   </h2>
                   <p className="text-sm text-white/55">
                     {selectedCandidate.email}
@@ -750,41 +796,41 @@ function CompanyCandidates() {
                 value={messageText}
                 onChange={(e) => setMessageText(e.target.value)}
                 rows={5}
-                className="w-full mb-4 rounded-[14px] border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+                className="mb-4 w-full rounded-[14px] border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
               />
 
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setShowContactModal(false)}
-                  className="px-4 py-2 rounded bg-white/10"
+                  className="rounded bg-white/10 px-4 py-2"
                 >
-                  Cancel
+                  {common.cancel || "Cancel"}
                 </button>
 
                 <button
                   onClick={() => {
-                    alert("Message sent!");
+                    alert(page.messageSent || "Message sent!");
                     setShowContactModal(false);
                   }}
-                  className="px-4 py-2 rounded bg-purple-500"
+                  className="rounded bg-purple-500 px-4 py-2"
                 >
-                  Send
+                  {page.send || "Send"}
                 </button>
               </div>
-
             </div>
           </div>
         )}
+
         {showInterviewModal && selectedCandidate && (
           <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 px-4">
             <div className="w-full max-w-[560px] rounded-[28px] border border-white/10 bg-[#1b1d57] p-6 text-white shadow-[0_20px_80px_rgba(0,0,0,0.45)]">
               <div className="mb-5 flex items-center justify-between">
-                <div>
+                <div className={isRTL ? "text-right" : "text-left"}>
                   <h2 className="text-[24px] font-extrabold">
-                    Schedule Interview
+                    {page.scheduleInterview || "Schedule Interview"}
                   </h2>
                   <p className="text-sm text-white/55">
-                    With {selectedCandidate.name}
+                    {page.withCandidate || "With"} {selectedCandidate.name}
                   </p>
                 </div>
 
@@ -798,7 +844,9 @@ function CompanyCandidates() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm text-white/70">Date</label>
+                  <label className="mb-2 block text-sm text-white/70">
+                    {page.date || "Date"}
+                  </label>
                   <input
                     type="date"
                     value={interviewDate}
@@ -808,7 +856,9 @@ function CompanyCandidates() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm text-white/70">Time</label>
+                  <label className="mb-2 block text-sm text-white/70">
+                    {page.time || "Time"}
+                  </label>
                   <input
                     type="time"
                     value={interviewTime}
@@ -819,45 +869,55 @@ function CompanyCandidates() {
               </div>
 
               <div className="mt-4">
-                <label className="mb-2 block text-sm text-white/70">Interview Type</label>
+                <label className="mb-2 block text-sm text-white/70">
+                  {page.interviewType || "Interview Type"}
+                </label>
                 <select
                   value={interviewType}
                   onChange={(e) => setInterviewType(e.target.value)}
                   className="w-full rounded-[14px] border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
                 >
-                  <option value="Online" className="bg-[#1d2258] text-white">Online</option>
-                  <option value="In Person" className="bg-[#1d2258] text-white">In Person</option>
+                  <option value={page.online || "Online"} className="bg-[#1d2258] text-white">
+                    {page.online || "Online"}
+                  </option>
+                  <option value={page.inPerson || "In Person"} className="bg-[#1d2258] text-white">
+                    {page.inPerson || "In Person"}
+                  </option>
                 </select>
               </div>
 
               <div className="mt-4">
-                <label className="mb-2 block text-sm text-white/70">Notes</label>
+                <label className="mb-2 block text-sm text-white/70">
+                  {page.notes || "Notes"}
+                </label>
                 <textarea
                   value={interviewNotes}
                   onChange={(e) => setInterviewNotes(e.target.value)}
                   rows={4}
                   className="w-full rounded-[14px] border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
-                  placeholder="Add interview notes..."
+                  placeholder={page.addInterviewNotes || "Add interview notes..."}
                 />
               </div>
 
               <div className="mt-6 flex justify-end gap-3">
                 <button
                   onClick={() => setShowInterviewModal(false)}
-                  className="px-4 py-2 rounded bg-white/10"
+                  className="rounded bg-white/10 px-4 py-2"
                 >
-                  Cancel
+                  {common.cancel || "Cancel"}
                 </button>
 
                 <button
                   onClick={() => {
-                    alert(`Interview scheduled with ${selectedCandidate.name}`);
+                    alert(
+                      `${page.interviewScheduledWith || "Interview scheduled with"} ${selectedCandidate.name}`
+                    );
                     setShowInterviewModal(false);
                   }}
                   className="flex items-center gap-2 rounded bg-purple-500 px-4 py-2 text-white"
                 >
                   <Calendar size={16} />
-                  Confirm Schedule
+                  {page.confirmSchedule || "Confirm Schedule"}
                 </button>
               </div>
             </div>
@@ -866,6 +926,56 @@ function CompanyCandidates() {
       </div>
     </div>
   );
+}
+
+function MatchRing({ value, label }: { value: number; label: string }) {
+  const radius = 34;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference * (1 - value / 100);
+
+  return (
+    <div className="flex flex-col items-center justify-center">
+      <div className="relative mb-3 h-[78px] w-[78px]">
+        <svg className="h-full w-full -rotate-90" viewBox="0 0 78 78">
+          <circle
+            cx="39"
+            cy="39"
+            r={radius}
+            stroke="rgba(255,255,255,0.1)"
+            strokeWidth="6"
+            fill="none"
+          />
+          <circle
+            cx="39"
+            cy="39"
+            r={radius}
+            stroke="#34d399"
+            strokeWidth="6"
+            fill="none"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+          />
+        </svg>
+
+        <div className="absolute inset-0 flex items-center justify-center text-[18px] font-extrabold text-white">
+          {value}%
+        </div>
+      </div>
+
+      <span className="text-xs font-medium text-white/60">{label}</span>
+    </div>
+  );
+}
+
+function mapFitLabel(
+  fit: Candidate["fit"],
+  fitLabels: { high?: string; medium?: string },
+  lowFitLabel: string
+) {
+  if (fit === "High Fit") return fitLabels.high || "High Fit";
+  if (fit === "Medium Fit") return fitLabels.medium || "Medium Fit";
+  return lowFitLabel || "Low Fit";
 }
 
 function FilterSelect({

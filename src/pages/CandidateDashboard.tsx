@@ -35,7 +35,8 @@ type MatchItem = {
 };
 
 function ScoreRing({ value }: { value: number }) {
-  const ringColor = value >= 85 ? "#49e38d" : value >= 75 ? "#8b93ff" : "#f5c542";
+  const ringColor =
+    value >= 85 ? "#49e38d" : value >= 75 ? "#8b93ff" : "#f5c542";
 
   return (
     <div className="relative h-[88px] w-[88px] shrink-0">
@@ -56,7 +57,7 @@ function ScoreRing({ value }: { value: number }) {
 function CandidateDashboard() {
   const navigate = useNavigate();
   const { language } = useLanguage();
-  const t = translations[language];
+  const t = translations[language] || translations.en;
   const isRTL = language === "ar" || language === "he";
 
   const userName = localStorage.getItem("name") || "User";
@@ -155,8 +156,8 @@ function CandidateDashboard() {
       company: "InnovateLab",
       location: "Ramat Gan",
       percent: 85,
-      status: "Shortlisted",
-      days: "1 day ago",
+      status: t.dashboard.applications.shortlisted,
+      days: t.dashboard.applications.dayAgo1,
       statusClass:
         "border border-violet-400/20 bg-violet-500/12 text-violet-300",
     },
@@ -179,10 +180,10 @@ function CandidateDashboard() {
             <button
               type="button"
               onClick={() => navigate("/")}
-              className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white`}
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white"
             >
               <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
-              <span>{t.common?.back || "Back"}</span>
+              <span>{t.common.back}</span>
             </button>
           </div>
 
@@ -215,9 +216,7 @@ function CandidateDashboard() {
                 stat.onClick ? "cursor-pointer" : "cursor-default"
               }`}
             >
-              <div
-                className={`mb-6 flex items-start justify-between`}
-              >
+              <div className="mb-6 flex items-start justify-between">
                 <div
                   className={`flex h-12 w-12 items-center justify-center rounded-2xl ${stat.iconBg} ${stat.iconColor}`}
                 >
@@ -239,12 +238,8 @@ function CandidateDashboard() {
 
         <section className="mb-8 grid grid-cols-1 gap-6 xl:grid-cols-[1.25fr_0.95fr]">
           <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
-            <div
-              className={`mb-6 flex items-center justify-between`}
-            >
-              <div
-                className={`flex items-center gap-4`}
-              >
+            <div className="mb-6 flex items-center justify-between">
+              <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#5e66ff1f] text-[#7c88ff]">
                   <BriefcaseBusiness size={22} />
                 </div>
@@ -261,10 +256,13 @@ function CandidateDashboard() {
               <button
                 type="button"
                 onClick={() => navigate("/job-matches")}
-                className={`inline-flex items-center gap-2 text-[15px] font-semibold text-[#dbe2ff] transition hover:text-white`}
+                className="inline-flex items-center gap-2 text-[15px] font-semibold text-[#dbe2ff] transition hover:text-white"
               >
                 {t.dashboard.topMatches.viewAll}
-                <ChevronRight size={18} className={isRTL ? "rotate-180" : ""} />
+                <ChevronRight
+                  size={18}
+                  className={isRTL ? "rotate-180" : ""}
+                />
               </button>
             </div>
 
@@ -285,36 +283,26 @@ function CandidateDashboard() {
                     </div>
 
                     <div className="flex-1">
-                      <div
-                        className={`mb-3 flex flex-wrap items-center gap-3 ${
-                          isRTL ? "" : ""
-                        }`}
-                      >
+                      <div className="mb-3 flex flex-wrap items-center gap-3">
                         <h2 className="text-[22px] font-extrabold text-white">
                           {job.title}
                         </h2>
 
                         <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-semibold text-emerald-300">
-                          Match
+                          {t.dashboard.match}
                         </span>
                       </div>
 
                       <div
                         className={`mb-3 flex items-center gap-2 text-[#c4cae9] ${
-                          isRTL
-                            ? "justify-end md:justify-start"
-                            : ""
+                          isRTL ? "justify-end md:justify-start" : ""
                         }`}
                       >
                         <Building2 size={16} />
                         <span className="text-[15px]">{job.company}</span>
                       </div>
 
-                      <div
-                        className={`flex flex-wrap items-center gap-x-5 gap-y-2 text-[#aeb4d6] ${
-                          isRTL ? "" : ""
-                        }`}
-                      >
+                      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[#aeb4d6]">
                         <div className="flex items-center gap-2">
                           <MapPin size={16} />
                           <span>{job.location}</span>
@@ -323,7 +311,7 @@ function CandidateDashboard() {
                         {job.remote && (
                           <div className="flex items-center gap-2 text-cyan-300">
                             <Wifi size={16} />
-                            <span>Remote</span>
+                            <span>{t.dashboard.remote}</span>
                           </div>
                         )}
                       </div>
@@ -347,12 +335,8 @@ function CandidateDashboard() {
           </div>
 
           <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
-            <div
-              className={`mb-6 flex items-center justify-between`}
-            >
-              <div
-                className={`flex items-center gap-4`}
-              >
+            <div className="mb-6 flex items-center justify-between">
+              <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#22d3ee1f] text-[#67e8f9]">
                   <FileText size={22} />
                 </div>
@@ -369,10 +353,13 @@ function CandidateDashboard() {
               <button
                 type="button"
                 onClick={() => navigate("/applications")}
-                className={`inline-flex items-center gap-2 text-[15px] font-semibold text-[#dbe2ff] transition hover:text-white`}
+                className="inline-flex items-center gap-2 text-[15px] font-semibold text-[#dbe2ff] transition hover:text-white"
               >
                 {t.dashboard.applications.viewAll}
-                <ChevronRight size={18} className={isRTL ? "rotate-180" : ""} />
+                <ChevronRight
+                  size={18}
+                  className={isRTL ? "rotate-180" : ""}
+                />
               </button>
             </div>
 
@@ -391,9 +378,7 @@ function CandidateDashboard() {
                     <ScoreRing value={app.percent} />
 
                     <div className="min-w-0 flex-1">
-                      <div
-                        className={`mb-2 flex flex-wrap items-center gap-3`}
-                      >
+                      <div className="mb-2 flex flex-wrap items-center gap-3">
                         <h4 className="truncate text-[20px] font-extrabold text-white">
                           {app.title}
                         </h4>
@@ -414,7 +399,9 @@ function CandidateDashboard() {
                           <MapPin size={16} />
                           <span>{app.location}</span>
                         </div>
-                        <div className="text-[14px] text-white/45">{app.days}</div>
+                        <div className="text-[14px] text-white/45">
+                          {app.days}
+                        </div>
                       </div>
                     </div>
 
@@ -439,16 +426,15 @@ function CandidateDashboard() {
           </div>
         </section>
 
-
         <section className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-7 py-7 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div
-              className={`flex items-center gap-5`}
-            >
+            <div className="flex items-center gap-5">
               <div
                 className="relative h-[98px] w-[98px] shrink-0 rounded-full"
                 style={{
-                  background: `conic-gradient(#facc15 ${profilePercent * 3.6}deg, #2a2c5a 0deg)`,
+                  background: `conic-gradient(#facc15 ${
+                    profilePercent * 3.6
+                  }deg, #2a2c5a 0deg)`,
                   boxShadow: "0 0 24px rgba(250,204,21,0.15)",
                 }}
               >
@@ -465,20 +451,16 @@ function CandidateDashboard() {
                   {t.dashboard.profileBox.subtitle}
                 </p>
 
-                <div
-                  className={`mt-4 flex items-center gap-2 text-emerald-300`}
-                >
+                <div className="mt-4 flex items-center gap-2 text-emerald-300">
                   <CheckCircle2 size={18} />
                   <span className="text-sm font-semibold">
-                    Your profile is on the right track
+                    {t.dashboard.profileBox.progressText}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div
-              className={`flex items-center gap-4 max-[640px]:flex-col`}
-            >
+            <div className="flex items-center gap-4 max-[640px]:flex-col">
               <button
                 type="button"
                 onClick={() => navigate("/resume-manager")}
@@ -502,22 +484,24 @@ function CandidateDashboard() {
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-[640px]">
               <div className="mb-4 inline-flex items-center rounded-full border border-[#c084fc]/20 bg-[#c084fc]/10 px-3 py-1 text-[13px] font-semibold text-[#e9c7ff]">
-                Free Plan
+                {t.dashboard.plan.free}
               </div>
 
               <h3 className="text-[28px] font-extrabold text-white">
-                7 of 10 applications used
+                {t.dashboard.plan.used}
               </h3>
 
               <p className="mt-2 text-[16px] leading-7 text-[#b9c0ea]">
-                You still have{" "}
-                <span className="font-bold text-white">3 applications</span> left this month.
-                Upgrade your plan to unlock unlimited job applications and premium career tools.
+                {t.dashboard.plan.remaining}{" "}
+                <span className="font-bold text-white">
+                  {t.dashboard.plan.remainingCount}
+                </span>{" "}
+                {t.dashboard.plan.upgradeText}
               </p>
 
               <div className="mt-5 flex items-center gap-3">
                 <span className="text-[14px] font-semibold text-white/80">
-                  Monthly usage
+                  {t.dashboard.plan.monthlyUsage}
                 </span>
 
                 <span className="rounded-full bg-white/8 px-3 py-1 text-[13px] font-semibold text-white/70">
@@ -536,7 +520,7 @@ function CandidateDashboard() {
                 onClick={() => navigate("/payment")}
                 className="rounded-[16px] bg-gradient-to-r from-[#8b5cf6] to-[#d946ef] px-6 py-3 text-[15px] font-semibold text-white shadow-[0_10px_30px_rgba(168,85,247,0.35)] transition hover:scale-[1.02]"
               >
-                Upgrade to Premium
+                {t.dashboard.plan.upgradeButton}
               </button>
             </div>
           </div>

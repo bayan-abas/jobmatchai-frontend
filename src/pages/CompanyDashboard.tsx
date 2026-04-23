@@ -13,37 +13,47 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+import { useLanguage } from "../context/LanguageContext";
+import { translations } from "../translations";
+
 function CompanyDashboard() {
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const t = translations[language] || translations.en;
+  const isRTL = language === "ar" || language === "he";
 
   const stats = [
     {
-      title: "Active Jobs",
+      title: t.companyDashboard.stats.jobPosts,
       value: "12",
       icon: BriefcaseBusiness,
       iconBg: "bg-indigo-500/15",
       iconColor: "text-indigo-300",
+      route: "/company-job-postings",
     },
     {
-      title: "Total Candidates",
+      title: t.companyDashboard.stats.candidates,
       value: "156",
       icon: Users,
       iconBg: "bg-cyan-500/15",
       iconColor: "text-cyan-300",
+      route: "/company-candidates",
     },
     {
-      title: "New Applications",
+      title: t.companyDashboard.stats.applications,
       value: "23",
       icon: FileText,
       iconBg: "bg-amber-500/15",
       iconColor: "text-amber-300",
+      route: "/company-applications",
     },
     {
-      title: "Hired This Month",
+      title: t.companyDashboard.stats.companyScore,
       value: "4",
       icon: Star,
       iconBg: "bg-emerald-500/15",
       iconColor: "text-emerald-300",
+      route: "/company-applications",
     },
   ];
 
@@ -51,7 +61,7 @@ function CompanyDashboard() {
     {
       name: "Sarah Johnson",
       role: "Senior Frontend Developer",
-      fit: "High Fit",
+      fit: t.companyDashboard.fitLabels.high,
       fitColor: "text-emerald-300",
       fitBg: "bg-emerald-500/10",
       score: 95,
@@ -61,7 +71,7 @@ function CompanyDashboard() {
     {
       name: "Michael Chen",
       role: "Full Stack Engineer",
-      fit: "High Fit",
+      fit: t.companyDashboard.fitLabels.high,
       fitColor: "text-emerald-300",
       fitBg: "bg-emerald-500/10",
       score: 91,
@@ -71,7 +81,7 @@ function CompanyDashboard() {
     {
       name: "Emily Davis",
       role: "React Specialist",
-      fit: "Medium Fit",
+      fit: t.companyDashboard.fitLabels.medium,
       fitColor: "text-amber-300",
       fitBg: "bg-amber-500/10",
       score: 88,
@@ -84,60 +94,26 @@ function CompanyDashboard() {
     {
       name: "Sarah Johnson",
       role: "Senior Frontend Developer",
-      time: "2 hours ago",
-      status: "Shortlisted",
+      time: t.companyDashboard.time.hoursAgo2,
+      status: t.companyDashboard.statuses.shortlisted,
       statusClass:
         "bg-cyan-500/12 text-cyan-300 border-cyan-400/25",
     },
     {
       name: "Michael Chen",
       role: "Full Stack Engineer",
-      time: "5 hours ago",
-      status: "Under Review",
+      time: t.companyDashboard.time.hoursAgo5,
+      status: t.companyDashboard.statuses.underReview,
       statusClass:
         "bg-amber-500/12 text-amber-300 border-amber-400/25",
     },
     {
       name: "Emily Davis",
       role: "Frontend Developer",
-      time: "1 day ago",
-      status: "AI Screening",
+      time: t.companyDashboard.time.dayAgo1,
+      status: t.companyDashboard.statuses.aiScreening,
       statusClass:
         "bg-fuchsia-500/12 text-fuchsia-300 border-fuchsia-400/25",
-    },
-    {
-      name: "David Wilson",
-      role: "Frontend Developer",
-      time: "2 days ago",
-      status: "Applied",
-      statusClass:
-        "bg-blue-500/12 text-blue-300 border-blue-400/25",
-    },
-    {
-      name: "Jessica Martinez",
-      role: "Senior Frontend Developer",
-      time: "5 days ago",
-      status: "Final Decision",
-      statusClass:
-        "bg-indigo-500/12 text-indigo-300 border-indigo-400/25",
-    },
-  ];
-
-  const insights = [
-    {
-      title: "Tip",
-      text: "3 candidates are highly matched but haven’t been reviewed in 5+ days.",
-      icon: "💡",
-    },
-    {
-      title: "Trend",
-      text: "Application rate increased 25% this week for your Frontend role.",
-      icon: "📈",
-    },
-    {
-      title: "Action",
-      text: "2 shortlisted candidates are awaiting final decision.",
-      icon: "⚡",
     },
   ];
 
@@ -148,7 +124,10 @@ function CompanyDashboard() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[linear-gradient(135deg,#17184a_0%,#1a1b56_40%,#102a56_100%)] px-6 pb-10 pt-8 md:px-8 lg:px-10">
+    <div
+      dir={isRTL ? "rtl" : "ltr"}
+      className="min-h-screen w-full bg-[linear-gradient(135deg,#17184a_0%,#1a1b56_40%,#102a56_100%)] px-6 pb-10 pt-8 md:px-8 lg:px-10"
+    >
       <div className="mx-auto max-w-[1700px]">
         <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-[rgba(18,22,74,0.58)] p-6 shadow-[0_25px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl md:p-8 lg:p-10">
           <div className="pointer-events-none absolute inset-0">
@@ -158,13 +137,17 @@ function CompanyDashboard() {
           </div>
 
           <div className="relative z-10">
-            <div className="mb-8 flex flex-col gap-5 lg:mb-10 lg:flex-row lg:items-start lg:justify-between">
-              <div>
+            <div
+              className={`mb-8 flex flex-col gap-5 lg:mb-10 lg:flex-row lg:items-start ${
+                isRTL ? "lg:justify-between" : "lg:justify-between"
+              }`}
+            >
+              <div className={isRTL ? "text-right" : "text-left"}>
                 <h1 className="text-3xl font-extrabold tracking-tight text-white md:text-4xl">
-                  Company Dashboard
+                  {t.companyDashboard.title}
                 </h1>
                 <p className="mt-2 text-[15px] text-white/65 md:text-base">
-                  Manage your hiring pipeline with AI assistance
+                  {t.companyDashboard.subtitle}
                 </p>
               </div>
 
@@ -173,7 +156,7 @@ function CompanyDashboard() {
                 className="inline-flex items-center gap-2 self-start rounded-2xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-5 py-3.5 text-sm font-bold text-white shadow-[0_14px_35px_rgba(99,102,241,0.35)] transition hover:scale-[1.02]"
               >
                 <Plus size={18} />
-                Post New Job
+                {t.companyDashboard.quickActions.postJob}
               </button>
             </div>
 
@@ -183,21 +166,8 @@ function CompanyDashboard() {
                 return (
                   <div
                     key={item.title}
-                    onClick={() => {
-                      if (item.title === "Active Jobs") {
-                        navigate("/company-job-postings");
-                      }
-                      if (item.title === "Total Candidates") {
-                        navigate("/company-candidates");
-                      }
-                      if (item.title === "New Applications") {
-                        navigate("/company-applications");
-                      }
-                      if (item.title === "Hired This Month") {
-                        navigate("/company-applications");
-                      }
-                    }}
-                    className="group rounded-[28px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.14)] transition hover:-translate-y-1 hover:bg-white/[0.065]"
+                    onClick={() => navigate(item.route)}
+                    className="group rounded-[28px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.14)] transition hover:-translate-y-1 hover:bg-white/[0.065] cursor-pointer"
                   >
                     <div className="mb-8 flex items-start justify-between">
                       <div
@@ -207,7 +177,9 @@ function CompanyDashboard() {
                       </div>
 
                       <ChevronRight
-                        className="text-white/18 transition group-hover:text-white/35"
+                        className={`text-white/18 transition group-hover:text-white/35 ${
+                          isRTL ? "rotate-180" : ""
+                        }`}
                         size={18}
                       />
                     </div>
@@ -231,12 +203,12 @@ function CompanyDashboard() {
                       <Sparkles size={20} />
                     </div>
 
-                    <div>
+                    <div className={isRTL ? "text-right" : "text-left"}>
                       <h2 className="text-2xl font-bold text-white">
-                        Top Matching Candidates
+                        {t.companyDashboard.candidates.title}
                       </h2>
                       <p className="mt-1 text-sm text-white/55">
-                        AI-recommended for your openings
+                        {t.companyDashboard.candidateHints.recommended}
                       </p>
                     </div>
                   </div>
@@ -245,8 +217,11 @@ function CompanyDashboard() {
                     onClick={() => navigate("/company-candidates")}
                     className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-300 transition hover:text-emerald-200"
                   >
-                    View All
-                    <ArrowRight size={16} />
+                    {t.common.viewAll}
+                    <ArrowRight
+                      size={16}
+                      className={isRTL ? "rotate-180" : ""}
+                    />
                   </button>
                 </div>
 
@@ -264,7 +239,7 @@ function CompanyDashboard() {
                           {candidate.avatar}
                         </div>
 
-                        <div className="min-w-0">
+                        <div className={`min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="truncate text-lg font-bold text-white">
                               {candidate.name}
@@ -289,7 +264,10 @@ function CompanyDashboard() {
                         >
                           {candidate.score}%
                         </div>
-                        <ChevronRight className="text-white/22" size={20} />
+                        <ChevronRight
+                          className={`text-white/22 ${isRTL ? "rotate-180" : ""}`}
+                          size={20}
+                        />
                       </div>
                     </button>
                   ))}
@@ -302,12 +280,12 @@ function CompanyDashboard() {
                     <FileText size={20} />
                   </div>
 
-                  <div>
+                  <div className={isRTL ? "text-right" : "text-left"}>
                     <h2 className="text-2xl font-bold text-white">
-                      Recent Activity
+                      {t.companyDashboard.recentActivity.title}
                     </h2>
                     <p className="mt-1 text-sm text-white/55">
-                      Applications
+                      {t.companyDashboard.recentActivity.subtitle}
                     </p>
                   </div>
                 </div>
@@ -319,7 +297,7 @@ function CompanyDashboard() {
                       className="rounded-[22px] border border-white/10 bg-white/[0.045] p-4 transition hover:bg-white/[0.065]"
                     >
                       <div className="mb-3 flex items-start justify-between gap-3">
-                        <div>
+                        <div className={isRTL ? "text-right" : "text-left"}>
                           <h3 className="text-lg font-bold text-white">
                             {app.name}
                           </h3>
@@ -347,7 +325,7 @@ function CompanyDashboard() {
                   onClick={() => navigate("/company-applications")}
                   className="mt-6 w-full rounded-2xl border border-white/10 bg-white/[0.03] py-3.5 text-sm font-bold text-white/70 transition hover:bg-white/[0.07] hover:text-white"
                 >
-                  View All Applications
+                  {t.companyDashboard.recentActivity.viewAll}
                 </button>
               </div>
             </div>
@@ -358,34 +336,54 @@ function CompanyDashboard() {
                   <TrendingUp size={20} />
                 </div>
 
-                <div>
+                <div className={isRTL ? "text-right" : "text-left"}>
                   <h2 className="text-2xl font-bold text-white">
-                    AI Hiring Insights
+                    {t.companyDashboard.insights.title}
                   </h2>
                   <p className="mt-1 text-sm text-white/55">
-                    Smart recommendations for your hiring process
+                    {t.companyDashboard.insights.subtitle}
                   </p>
                 </div>
               </div>
 
               <div className="grid gap-4 lg:grid-cols-3">
-                {insights.map((item) => (
-                  <div
-                    key={item.title}
-                    className="rounded-[22px] border border-white/10 bg-white/[0.045] p-5 transition hover:bg-white/[0.065]"
-                  >
-                    <div className="mb-3 flex items-center gap-2 text-white/75">
-                      <span className="text-base">{item.icon}</span>
-                      <h3 className="text-lg font-semibold text-white/85">
-                        {item.title}
-                      </h3>
-                    </div>
-
-                    <p className="text-[15px] leading-7 text-white/58">
-                      {item.text}
-                    </p>
+                <div className="rounded-[22px] border border-white/10 bg-white/[0.045] p-5 transition hover:bg-white/[0.065]">
+                  <div className="mb-3 flex items-center gap-2 text-white/75">
+                    <span className="text-base">💡</span>
+                    <h3 className="text-lg font-semibold text-white/85">
+                      {t.companyDashboard.insights.tip}
+                    </h3>
                   </div>
-                ))}
+                  <p className="text-[15px] leading-7 text-white/58">
+                    3 candidates are highly matched but haven’t been reviewed in
+                    5+ days.
+                  </p>
+                </div>
+
+                <div className="rounded-[22px] border border-white/10 bg-white/[0.045] p-5 transition hover:bg-white/[0.065]">
+                  <div className="mb-3 flex items-center gap-2 text-white/75">
+                    <span className="text-base">📈</span>
+                    <h3 className="text-lg font-semibold text-white/85">
+                      {t.companyDashboard.insights.trend}
+                    </h3>
+                  </div>
+                  <p className="text-[15px] leading-7 text-white/58">
+                    Application rate increased 25% this week for your Frontend
+                    role.
+                  </p>
+                </div>
+
+                <div className="rounded-[22px] border border-white/10 bg-white/[0.045] p-5 transition hover:bg-white/[0.065]">
+                  <div className="mb-3 flex items-center gap-2 text-white/75">
+                    <span className="text-base">⚡</span>
+                    <h3 className="text-lg font-semibold text-white/85">
+                      {t.companyDashboard.insights.action}
+                    </h3>
+                  </div>
+                  <p className="text-[15px] leading-7 text-white/58">
+                    2 shortlisted candidates are awaiting final decision.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -395,7 +393,7 @@ function CompanyDashboard() {
                   <Zap size={20} />
                 </div>
                 <h3 className="text-lg font-bold text-white">
-                  Faster Hiring Flow
+                  {t.companyDashboard.cards.fasterHiring}
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-white/60">
                   Keep candidates moving through the pipeline with AI-assisted
@@ -408,7 +406,7 @@ function CompanyDashboard() {
                   <Users size={20} />
                 </div>
                 <h3 className="text-lg font-bold text-white">
-                  Better Candidate Quality
+                  {t.companyDashboard.cards.betterCandidates}
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-white/60">
                   Discover stronger profiles with clearer fit scores, skill
@@ -421,7 +419,7 @@ function CompanyDashboard() {
                   <BriefcaseBusiness size={20} />
                 </div>
                 <h3 className="text-lg font-bold text-white">
-                  Smarter Job Management
+                  {t.companyDashboard.cards.smarterJobs}
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-white/60">
                   Track all your openings, applications, and recommendations in

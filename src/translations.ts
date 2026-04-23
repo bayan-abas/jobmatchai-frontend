@@ -56,7 +56,6 @@ export const translations: Record<Language, any> = {
       title1: "Welcome back to",
       title2: "JobMatchAI",
       subtitle: "Sign in to continue your smart hiring journey.",
-
       secureAccess: "Secure Access",
       heroTitle: "Welcome back to your smarter hiring space.",
       heroText:
@@ -67,7 +66,6 @@ export const translations: Record<Language, any> = {
       secureSignin: "Secure sign-in experience",
       createCandidate: "Create Candidate Account",
       createCompany: "Create Company Account",
-
       errors: {
         emailRequired: "Please enter your email.",
         passwordRequired: "Please enter your password.",
@@ -186,20 +184,17 @@ export const translations: Record<Language, any> = {
       welcome: "Welcome",
       welcomeBack: "Welcome back",
       subtitle: "Here's what’s happening with your job search today",
-
       stats: {
         jobMatches: "Job Matches",
         applications: "Applications",
         interviews: "Interviews",
         profileScore: "Profile Score",
       },
-
       topMatches: {
         title: "Top Job Matches",
         subtitle: "Based on your profile",
         viewAll: "View All",
       },
-
       applications: {
         title: "Applications",
         subtitle: "Recent Activity",
@@ -209,14 +204,12 @@ export const translations: Record<Language, any> = {
         daysAgo2: "2 days ago",
         daysAgo5: "5 days ago",
       },
-
       profileBox: {
         title: "Complete Your Profile",
         subtitle: "Add more details to improve your match score",
         uploadResume: "Upload Resume",
         editProfile: "Edit Profile",
       },
-
       notifications: {
         title: "Notifications",
         newCount: "3 new",
@@ -224,15 +217,19 @@ export const translations: Record<Language, any> = {
         item2: "Your application to Fiverr is under review",
         item3: "Your profile score improved to 78%",
       },
-
       roles: {
         candidate: "Candidate",
         company: "Company",
       },
+      freePlan: "Free Plan",
+      profileOnTrack: "Your profile is on the right track",
+      upgradePremium: "Upgrade to Premium",
+      monthlyUsage: "Monthly usage",
     },
 
     companyDashboard: {
       welcome: "Welcome",
+      title: "Company Dashboard",
       subtitle: "Here's what’s happening with your hiring activity today",
       stats: {
         jobPosts: "Job Posts",
@@ -250,35 +247,101 @@ export const translations: Record<Language, any> = {
         subtitle: "Recommended for your roles",
         viewAll: "View All Candidates",
       },
+      recentActivity: {
+        title: "Recent Activity",
+        subtitle: "Applications",
+        viewAll: "View All Applications",
+      },
       quickActions: {
         title: "Quick Actions",
         postJob: "Post New Job",
         viewApplications: "View Applications",
         editProfile: "Edit Company Profile",
       },
+      insights: {
+        title: "AI Hiring Insights",
+        subtitle: "Smart recommendations for your hiring process",
+        tip: "Tip",
+        trend: "Trend",
+        action: "Action",
+      },
+      cards: {
+        fasterHiring: "Faster Hiring Flow",
+        betterCandidates: "Better Candidate Quality",
+        smarterJobs: "Smarter Job Management",
+      },
+      fitLabels: {
+        high: "High Fit",
+        medium: "Medium Fit",
+      },
+      statuses: {
+        applied: "Applied",
+        shortlisted: "Shortlisted",
+        underReview: "Under Review",
+        aiScreening: "AI Screening",
+        finalDecision: "Final Decision",
+      },
+      time: {
+        hoursAgo2: "2 hours ago",
+        hoursAgo5: "5 hours ago",
+        dayAgo1: "1 day ago",
+        daysAgo2: "2 days ago",
+        daysAgo5: "5 days ago",
+      },
+      candidateHints: {
+        recommended: "AI-recommended for your openings",
+      },
+      match: "Match",
+remote: "Remote",
+
+applications: {
+  title: "Applications",
+  subtitle: "Recent Activity",
+  viewAll: "View All Applications",
+  underReview: "Under Review",
+  aiScreening: "AI Screening",
+  shortlisted: "Shortlisted",
+  daysAgo2: "2 days ago",
+  daysAgo5: "5 days ago",
+  dayAgo1: "1 day ago",
+},
+
+profileBox: {
+  title: "Complete Your Profile",
+  subtitle: "Add more details to improve your match score",
+  uploadResume: "Upload Resume",
+  editProfile: "Edit Profile",
+  progressText: "Your profile is on the right track",
+},
+
+plan: {
+  free: "Free Plan",
+  used: "7 of 10 applications used",
+  remaining: "You still have",
+  remainingCount: "3 applications",
+  upgradeText:
+    "left this month. Upgrade your plan to unlock unlimited job applications and premium career tools.",
+  monthlyUsage: "Monthly usage",
+  upgradeButton: "Upgrade to Premium",
+},
     },
 
     jobMatches: {
       title: "Job Matches",
       subtitle: "Find jobs tailored to your profile",
-
       smartFilters: "Smart Filters",
       activeFilters: "active filters",
       clearAll: "Clear all",
-
       industry: "Industry",
       seniorityLevel: "Seniority Level",
       minSalary: "Min Salary",
       minMatch: "Min Match",
-
       allIndustries: "All industries",
       allLevels: "All levels",
-
       entry: "Entry Level",
       mid: "Mid Level",
       senior: "Senior",
       lead: "Lead / Manager",
-
       tech: "Technology",
       finance: "Finance",
       healthcare: "Healthcare",
@@ -288,16 +351,35 @@ export const translations: Record<Language, any> = {
       retail: "Retail",
       hospitality: "Hospitality",
       logistics: "Logistics",
-
       remote: "Remote",
       statusActive: "Active",
       noScore: "No score",
-
       jobsMatchCriteria: "jobs match your criteria",
-
       fairMatchingTitle: "Fair AI Matching:",
       fairMatchingText:
         "Matches are based solely on skills, experience, and qualifications.",
+      smartMatchAnalysis: "Smart Match Analysis",
+      aiPoweredBreakdown: "AI-powered compatibility breakdown",
+      matchingSkills: "Matching Skills",
+      skillGaps: "Skill Gaps",
+      noMatchingSkills: "No matching skills listed",
+      noSkillGaps: "No major skill gaps detected",
+      experienceComparison: "Experience Comparison",
+      yourExperience: "Your Experience",
+      vs: "VS",
+      meetsRequirement: "Meets requirement",
+      applyNow: "Apply Now",
+      applicationSubmitted: "Application Submitted",
+      noScoreAvailable: "No score available",
+      excellentMatch: "Excellent Match!",
+      improvementSuggestions: "Improvement Suggestions",
+      aboutThisRole: "About This Role",
+      requirements: "Requirements",
+      requiredSkills: "Required Skills",
+      niceToHave: "Nice to Have",
+      companyInfo: "Company Info",
+      company: "Company",
+      location: "Location",
     },
 
     applicationsPage: {
@@ -317,6 +399,10 @@ export const translations: Record<Language, any> = {
       noApplicationsText:
         "You haven't applied to any jobs yet. Start exploring opportunities.",
       details: "View Details",
+      applied: "Applied",
+      interviewScore: "Interview Score",
+      preInterviewScore: "Pre-Interview Score",
+      strengthLevel: "Strength Level",
     },
 
     notificationsPage: {
@@ -336,60 +422,79 @@ export const translations: Record<Language, any> = {
       notificationCenter: "Notification Center",
     },
 
-   resumeManagerPage: {
-  title: "Resume Manager",
-  subtitle: "Manage, upload, and analyze your resume",
-  yourResumeHub: "Your Resume Hub",
-  hubSubtitle: "Upload your CV, keep it updated, and check your AI resume score",
-  uploadResume: "Upload Your Resume",
-  uploadText: "Keep your resume updated and ready for better job matches and a stronger application profile",
-  chooseFile: "Choose File",
-  uploadedFile: "Uploaded file",
-  activeFile: "Active File",
-  resumeUploaded: "Resume Uploaded",
-  analyze: "Analyze",
-  aiResumeScore: "AI Resume Score",
-  supportedFormats: "Supported formats: PDF, DOC, DOCX",
-  noFile: "No file selected",
-  scoreDescription: "Your resume looks promising. Keep refining your skills, keywords, and project experience to improve matching results even more.",
-},
+    resumeManagerPage: {
+      title: "Resume Manager",
+      subtitle: "Manage, upload, and analyze your resume",
+      yourResumeHub: "Your Resume Hub",
+      hubSubtitle:
+        "Upload your CV, keep it updated, and check your AI resume score",
+      uploadResume: "Upload Your Resume",
+      uploadText:
+        "Keep your resume updated and ready for better job matches and a stronger application profile",
+      chooseFile: "Choose File",
+      uploadedFile: "Uploaded file",
+      activeFile: "Active File",
+      resumeUploaded: "Resume Uploaded",
+      analyze: "Analyze",
+      aiResumeScore: "AI Resume Score",
+      supportedFormats: "Supported formats: PDF, DOC, DOCX",
+      noFile: "No file selected",
+      scoreDescription:
+        "Your resume looks promising. Keep refining your skills, keywords, and project experience to improve matching results even more.",
+      analysisLoading: "Analyzing...",
+      analysisTitle: "AI Resume Analysis",
+      analysisRunning: "Analyzing your CV...",
+      analysisPreparing: "Uploading and preparing file...",
+      analysisStep1: "Reading CV structure...",
+      analysisStep2: "Scanning skills and keywords...",
+      analysisStep3: "Checking formatting and clarity...",
+      analysisStep4: "Comparing content to job expectations...",
+      analysisStep5: "Generating AI feedback and suggestions...",
+      analysisComplete: "Analysis complete",
+      atsReadiness: "ATS Readiness",
+      aiStrengths: "AI Strengths",
+      aiImprovements: "AI Improvements",
+      suggestedKeywords: "Suggested Keywords to Add",
+    },
 
-profilePage: {
-  title: "My Profile",
-  subtitle: "Manage and update your personal information, skills, and career profile",
-  personalInfo: "Personal Information",
-  professionalSummary: "Professional Summary",
-  currentTitle: "Current Title",
-  experience: "Years of Experience",
-  skills: "Skills",
-  editProfile: "Edit Profile",
-  saveChanges: "Save Changes",
-  profileUpdated: "Profile updated successfully!",
-  basicPlan: "You're on the Basic Plan",
-  premiumHint: "Upgrade to Premium to unlock AI-powered features",
-  upgradePremium: "Upgrade to Premium",
-  profileHint: "Complete your profile to improve your match score",
-  skillsPlaceholder: "Write skills separated by commas",
-  noSkills: "No skills added yet.",
-  dangerZone: "Danger Zone",
-  dangerText: "Permanently delete your account and all associated data. This action cannot be undone.",
-  deleteAccount: "Delete My Account",
-  modalSubtitle: "Unlock the full power of AI-driven job matching",
-  basicLabel: "Basic",
-  freeLabel: "Free",
-  basicFeature1: "Job browsing",
-  basicFeature2: "5 applications/mo",
-  basicFeature3: "Basic profile",
-  popularLabel: "Popular",
-  premiumLabel: "Premium",
-  premiumFeature1: "AI Pre-Interview Module",
-  premiumFeature2: "Advanced Resume Scoring",
-  premiumFeature3: "Detailed AI Match Insights",
-  premiumFeature4: "Priority Application Status",
-  premiumFeature5: "Unlimited Job Applications",
-  maybeLater: "Maybe Later",
-  upgradeNow: "Upgrade Now",
-},
+    profilePage: {
+      title: "My Profile",
+      subtitle:
+        "Manage and update your personal information, skills, and career profile",
+      personalInfo: "Personal Information",
+      professionalSummary: "Professional Summary",
+      currentTitle: "Current Title",
+      experience: "Years of Experience",
+      skills: "Skills",
+      editProfile: "Edit Profile",
+      saveChanges: "Save Changes",
+      profileUpdated: "Profile updated successfully!",
+      basicPlan: "You're on the Basic Plan",
+      premiumHint: "Upgrade to Premium to unlock AI-powered features",
+      upgradePremium: "Upgrade to Premium",
+      profileHint: "Complete your profile to improve your match score",
+      skillsPlaceholder: "Write skills separated by commas",
+      noSkills: "No skills added yet.",
+      dangerZone: "Danger Zone",
+      dangerText:
+        "Permanently delete your account and all associated data. This action cannot be undone.",
+      deleteAccount: "Delete My Account",
+      modalSubtitle: "Unlock the full power of AI-driven job matching",
+      basicLabel: "Basic",
+      freeLabel: "Free",
+      basicFeature1: "Job browsing",
+      basicFeature2: "5 applications/mo",
+      basicFeature3: "Basic profile",
+      popularLabel: "Popular",
+      premiumLabel: "Premium",
+      premiumFeature1: "AI Pre-Interview Module",
+      premiumFeature2: "Advanced Resume Scoring",
+      premiumFeature3: "Detailed AI Match Insights",
+      premiumFeature4: "Priority Application Status",
+      premiumFeature5: "Unlimited Job Applications",
+      maybeLater: "Maybe Later",
+      upgradeNow: "Upgrade Now",
+    },
 
     companyProfilePage: {
       title: "Company Profile",
@@ -415,7 +520,8 @@ profilePage: {
       viewCandidates: "View Candidates",
       editJob: "Edit Job",
       noJobs: "No job postings yet",
-      noJobsText: "Create your first job post to start receiving candidates.",
+      noJobsText:
+        "Create your first job post to start receiving candidates.",
     },
 
     postJobPage: {
@@ -454,22 +560,57 @@ profilePage: {
       contactCandidate: "Contact Candidate",
       noCandidates: "No candidates found",
       noCandidatesText: "Try adjusting your filters or post a new job.",
+      smartFilters: "Smart Filters",
+refineSearch: "Refine your search",
+minMatch: "Min Match",
+minSalary: "Min Salary",
+recommendation: "Recommendation",
+minPreInterviewScore: "Min Pre-Interview Score",
+all: "All",
     },
 
     companyApplicationsPage: {
-      title: "Applications",
-      subtitle: "Review incoming applications for your jobs",
-      allApplications: "All Applications",
-      underReview: "Under Review",
-      aiScreening: "AI Screening",
-      shortlisted: "Shortlisted",
-      rejected: "Rejected",
-      viewApplication: "View Application",
-      moveToNextStage: "Move to Next Stage",
-      noApplications: "No applications yet",
-      noApplicationsText:
-        "Applications will appear here once candidates apply to your jobs.",
-    },
+  title: "Applications",
+  subtitle: "Manage and track all job applications",
+
+  tabs: {
+    All: "All",
+    New: "New",
+    Screening: "Screening",
+    Shortlisted: "Shortlisted",
+    Decided: "Decided",
+  },
+
+  appliedFor: "Applied for",
+  view: "View",
+  accept: "Accept",
+  reject: "Reject",
+
+  contactCandidate: "Contact Candidate",
+  acceptApplication: "Accept Application",
+  rejectApplication: "Reject Application",
+
+  applicationAnalysis: "Application Analysis",
+  aiPowered: "AI-powered evaluation",
+  hiringSummary: "Hiring Summary",
+
+  recommendation: "Recommendation",
+  progress: "Progress",
+  applicationInfo: "Application Info",
+
+  date: "Date",
+  email: "Email",
+  phone: "Phone",
+  location: "Location",
+
+  matchScore: "Match Score",
+  interviewScore: "Interview Score",
+  stage: "Stage",
+
+  highFitText: "Strong candidate for next stage",
+  mediumFitText: "Worth reviewing carefully",
+  lowFitText: "Lower priority candidate",
+},
 
     companyNotificationsPage: {
       title: "Notifications",
@@ -505,12 +646,10 @@ profilePage: {
         "JobMatchAI helps candidates and companies connect through a modern, intelligent, and user-friendly recruitment experience.",
       heroPrimary: "Get Started",
       heroSecondary: "Learn More",
-
       aboutTag: "About JobMatchAI",
       aboutTitle: "Designed to make recruitment smarter and simpler",
       aboutText:
         "JobMatchAI is a modern platform prototype that demonstrates how AI-inspired matching can improve the hiring journey for both candidates and employers.",
-
       howTag: "How It Works",
       howTitle: "A simple process for both sides",
       step1Title: "Create your account",
@@ -522,7 +661,6 @@ profilePage: {
       step3Title: "Discover smart matches",
       step3Text:
         "The system highlights relevant opportunities and suitable candidates faster.",
-
       featuresTag: "Features",
       featuresTitle: "Built for a modern hiring experience",
       feature1Title: "Professional profiles",
@@ -540,7 +678,6 @@ profilePage: {
       feature5Title: "Guided experience",
       feature5Text:
         "The platform supports both sides with a cleaner step-by-step process.",
-
       contactTag: "Contact Us",
       contactTitle: "Let's build a smarter hiring experience",
       contactText:
@@ -611,6 +748,38 @@ profilePage: {
       custom: "Custom pricing",
       faq: "Frequently Asked Questions",
     },
+
+    paymentPage: {
+      title: "Upgrade to Premium",
+      subtitle:
+        "Get unlimited applications and unlock advanced AI-powered career tools",
+      orderSummary: "Order Summary",
+      premiumMonthly: "Premium Monthly",
+      billedMonthly: "Billed monthly",
+      unlimitedApplications: "Unlimited job applications",
+      aiAnalysis: "AI CV analysis and scoring",
+      aiInsights: "Detailed AI match insights",
+      priorityStatus: "Priority application status",
+      cancelAnytime: "Cancel anytime",
+      secureCheckout: "Secure Checkout",
+      secureText:
+        "Your payment details are protected in this secure checkout flow",
+      plan: "Plan",
+      billing: "Billing",
+      status: "Status",
+      activeAfterPayment: "Active after payment",
+      total: "Total",
+      price: "Price",
+      selectedPlan: "Selected Plan",
+      flexible: "Flexible monthly subscription. Cancel anytime",
+      paymentDetails: "Payment Details",
+      cardholderName: "Cardholder Name",
+      cardNumber: "Card Number",
+      cvv: "CVV",
+      expiry: "MM/YY",
+      pay: "Pay",
+      securePayment: "Secure Payment",
+    },
   },
 
   ar: {
@@ -668,7 +837,6 @@ profilePage: {
       title1: "مرحبًا بعودتك إلى",
       title2: "JobMatchAI",
       subtitle: "سجّل الدخول للمتابعة في رحلتك الذكية في التوظيف.",
-
       secureAccess: "دخول آمن",
       heroTitle: "مرحباً بعودتك إلى منصة التوظيف الذكية الخاصة بك",
       heroText:
@@ -679,7 +847,6 @@ profilePage: {
       secureSignin: "تسجيل دخول آمن",
       createCandidate: "إنشاء حساب مرشح",
       createCompany: "إنشاء حساب شركة",
-
       errors: {
         emailRequired: "الرجاء إدخال البريد الإلكتروني.",
         passwordRequired: "الرجاء إدخال كلمة المرور.",
@@ -797,20 +964,17 @@ profilePage: {
       welcome: "مرحبًا",
       welcomeBack: "مرحبًا بعودتك",
       subtitle: "إليك آخر ما يحدث في رحلة البحث عن عمل اليوم",
-
       stats: {
         jobMatches: "الوظائف المطابقة",
         applications: "الطلبات",
         interviews: "المقابلات",
         profileScore: "درجة الملف الشخصي",
       },
-
       topMatches: {
         title: "أفضل الوظائف المطابقة",
         subtitle: "بناءً على ملفك الشخصي",
         viewAll: "عرض الكل",
       },
-
       applications: {
         title: "الطلبات",
         subtitle: "آخر النشاطات",
@@ -820,14 +984,12 @@ profilePage: {
         daysAgo2: "قبل يومين",
         daysAgo5: "قبل 5 أيام",
       },
-
       profileBox: {
         title: "أكمل ملفك الشخصي",
         subtitle: "أضف تفاصيل أكثر لتحسين نسبة المطابقة",
         uploadResume: "رفع السيرة الذاتية",
         editProfile: "تعديل الملف الشخصي",
       },
-
       notifications: {
         title: "الإشعارات",
         newCount: "3 جديدة",
@@ -835,15 +997,19 @@ profilePage: {
         item2: "طلبك إلى Fiverr قيد المراجعة",
         item3: "تحسنت درجة ملفك الشخصي إلى 78%",
       },
-
       roles: {
         candidate: "مرشح",
         company: "شركة",
       },
+      freePlan: "الخطة المجانية",
+      profileOnTrack: "ملفك الشخصي على المسار الصحيح",
+      upgradePremium: "ترقية إلى بريميوم",
+      monthlyUsage: "الاستخدام الشهري",
     },
 
     companyDashboard: {
       welcome: "مرحبًا",
+      title: "لوحة تحكم الشركة",
       subtitle: "إليك آخر ما يحدث في نشاط التوظيف اليوم",
       stats: {
         jobPosts: "الوظائف المنشورة",
@@ -861,35 +1027,101 @@ profilePage: {
         subtitle: "مقترحون لوظائفك",
         viewAll: "عرض كل المرشحين",
       },
+      recentActivity: {
+        title: "النشاط الأخير",
+        subtitle: "الطلبات",
+        viewAll: "عرض كل الطلبات",
+      },
       quickActions: {
         title: "إجراءات سريعة",
         postJob: "نشر وظيفة جديدة",
         viewApplications: "عرض الطلبات",
         editProfile: "تعديل ملف الشركة",
       },
+      insights: {
+        title: "رؤى التوظيف بالذكاء الاصطناعي",
+        subtitle: "توصيات ذكية لعملية التوظيف",
+        tip: "نصيحة",
+        trend: "اتجاه",
+        action: "إجراء",
+      },
+      cards: {
+        fasterHiring: "توظيف أسرع",
+        betterCandidates: "جودة مرشحين أفضل",
+        smarterJobs: "إدارة وظائف أذكى",
+      },
+      fitLabels: {
+        high: "ملاءمة عالية",
+        medium: "ملاءمة متوسطة",
+      },
+      statuses: {
+        applied: "تم التقديم",
+        shortlisted: "تم الاختيار المبدئي",
+        underReview: "قيد المراجعة",
+        aiScreening: "فحص الذكاء الاصطناعي",
+        finalDecision: "قرار نهائي",
+      },
+      time: {
+        hoursAgo2: "قبل ساعتين",
+        hoursAgo5: "قبل 5 ساعات",
+        dayAgo1: "قبل يوم",
+        daysAgo2: "قبل يومين",
+        daysAgo5: "قبل 5 أيام",
+      },
+      candidateHints: {
+        recommended: "مقترحون بالذكاء الاصطناعي لوظائفك",
+      },
+      match: "تطابق",
+remote: "عن بعد",
+
+applications: {
+  title: "الطلبات",
+  subtitle: "آخر النشاطات",
+  viewAll: "عرض كل الطلبات",
+  underReview: "قيد المراجعة",
+  aiScreening: "فحص الذكاء الاصطناعي",
+  shortlisted: "تم الاختيار",
+  daysAgo2: "قبل يومين",
+  daysAgo5: "قبل 5 أيام",
+  dayAgo1: "قبل يوم",
+},
+
+profileBox: {
+  title: "أكمل ملفك الشخصي",
+  subtitle: "أضف تفاصيل أكثر لتحسين نسبة المطابقة",
+  uploadResume: "رفع السيرة الذاتية",
+  editProfile: "تعديل الملف الشخصي",
+  progressText: "ملفك الشخصي على الطريق الصحيح",
+},
+
+plan: {
+  free: "الخطة المجانية",
+  used: "تم استخدام 7 من 10 طلبات",
+  remaining: "باقي لديك",
+  remainingCount: "3 طلبات",
+  upgradeText:
+    "هذا الشهر. قم بالترقية للحصول على طلبات غير محدودة وميزات متقدمة.",
+  monthlyUsage: "الاستخدام الشهري",
+  upgradeButton: "الترقية إلى بريميوم",
+},
     },
 
     jobMatches: {
       title: "الوظائف المطابقة",
       subtitle: "اعثر على وظائف مناسبة لك",
-
       smartFilters: "فلاتر ذكية",
       activeFilters: "فلاتر مفعلة",
       clearAll: "مسح الكل",
-
       industry: "المجال",
       seniorityLevel: "المستوى المهني",
       minSalary: "أقل راتب",
       minMatch: "أقل تطابق",
-
       allIndustries: "كل المجالات",
       allLevels: "كل المستويات",
-
       entry: "مبتدئ",
       mid: "متوسط",
       senior: "خبير",
       lead: "مدير",
-
       tech: "تكنولوجيا",
       finance: "مالية",
       healthcare: "صحة",
@@ -899,15 +1131,34 @@ profilePage: {
       retail: "تجزئة",
       hospitality: "ضيافة",
       logistics: "لوجستيات",
-
       remote: "عن بعد",
       statusActive: "نشط",
       noScore: "بدون تقييم",
-
       jobsMatchCriteria: "وظيفة مطابقة",
-
       fairMatchingTitle: "مطابقة عادلة:",
       fairMatchingText: "تعتمد فقط على المهارات والخبرة.",
+      smartMatchAnalysis: "تحليل التطابق الذكي",
+      aiPoweredBreakdown: "تحليل توافق مدعوم بالذكاء الاصطناعي",
+      matchingSkills: "المهارات المطابقة",
+      skillGaps: "فجوات المهارات",
+      noMatchingSkills: "لا توجد مهارات مطابقة",
+      noSkillGaps: "لا فجوات كبيرة في المهارات",
+      experienceComparison: "مقارنة الخبرة",
+      yourExperience: "خبرتك",
+      vs: "مقابل",
+      meetsRequirement: "يلبي المتطلبات",
+      applyNow: "تقدم الآن",
+      applicationSubmitted: "تم تقديم الطلب",
+      noScoreAvailable: "لا يوجد تقييم",
+      excellentMatch: "تطابق ممتاز!",
+      improvementSuggestions: "اقتراحات للتحسين",
+      aboutThisRole: "عن هذا الدور",
+      requirements: "المتطلبات",
+      requiredSkills: "المهارات المطلوبة",
+      niceToHave: "يُفضل امتلاكها",
+      companyInfo: "معلومات الشركة",
+      company: "الشركة",
+      location: "الموقع",
     },
 
     applicationsPage: {
@@ -924,8 +1175,13 @@ profilePage: {
       rejected: "مرفوض",
       accepted: "مقبول",
       noApplications: "لا توجد طلبات بعد",
-      noApplicationsText: "لم تتقدم لأي وظيفة بعد. ابدأ باستكشاف الفرص.",
+      noApplicationsText:
+        "لم تتقدم لأي وظيفة بعد. ابدأ باستكشاف الفرص.",
       details: "عرض التفاصيل",
+      applied: "مُقدَّم",
+      interviewScore: "درجة المقابلة",
+      preInterviewScore: "درجة ما قبل المقابلة",
+      strengthLevel: "مستوى القوة",
     },
 
     notificationsPage: {
@@ -944,60 +1200,81 @@ profilePage: {
       notificationCenter: "مركز الإشعارات",
     },
 
-   resumeManagerPage: {
-  title: "إدارة السيرة الذاتية",
-  subtitle: "إدارة ورفع وتحليل سيرتك الذاتية",
-  yourResumeHub: "مركز السيرة الذاتية",
-  hubSubtitle: "ارفع سيرتك الذاتية، حافظ على تحديثها، وتابع تقييمها بالذكاء الاصطناعي",
-  uploadResume: "ارفع سيرتك الذاتية",
-  uploadText: "حافظ على تحديث سيرتك الذاتية لتزيد فرصك في المطابقة وتقديماتك القوية",
-  chooseFile: "اختيار ملف",
-  uploadedFile: "الملف المرفوع",
-  activeFile: "الملف الحالي",
-  resumeUploaded: "تم رفع السيرة الذاتية",
-  analyze: "تحليل",
-  aiResumeScore: "تقييم السيرة بالذكاء الاصطناعي",
-  supportedFormats: "الصيغ المدعومة: PDF, DOC, DOCX",
-  noFile: "لم يتم اختيار ملف",
-  scoreDescription: "سيرتك الذاتية تبدو واعدة. واصل تحسين مهاراتك والكلمات المفتاحية ومشاريعك لرفع نتائج المطابقة أكثر.",
-},
+    resumeManagerPage: {
+      title: "إدارة السيرة الذاتية",
+      subtitle: "إدارة ورفع وتحليل سيرتك الذاتية",
+      yourResumeHub: "مركز السيرة الذاتية",
+      hubSubtitle:
+        "ارفع سيرتك الذاتية، حافظ على تحديثها، وتابع تقييمها بالذكاء الاصطناعي",
+      uploadResume: "ارفع سيرتك الذاتية",
+      uploadText:
+        "حافظ على تحديث سيرتك الذاتية لتزيد فرصك في المطابقة وتقديماتك القوية",
+      chooseFile: "اختيار ملف",
+      uploadedFile: "الملف المرفوع",
+      activeFile: "الملف الحالي",
+      resumeUploaded: "تم رفع السيرة الذاتية",
+      analyze: "تحليل",
+      aiResumeScore: "تقييم السيرة بالذكاء الاصطناعي",
+      supportedFormats: "الصيغ المدعومة: PDF, DOC, DOCX",
+      noFile: "لم يتم اختيار ملف",
+      scoreDescription:
+        "سيرتك الذاتية تبدو واعدة. واصل تحسين مهاراتك والكلمات المفتاحية ومشاريعك لرفع نتائج المطابقة أكثر.",
+      analysisLoading: "جاري التحليل...",
+      analysisTitle: "تحليل السيرة الذاتية بالذكاء الاصطناعي",
+      analysisRunning: "جاري تحليل سيرتك الذاتية...",
+      analysisPreparing: "جاري رفع الملف وتجهيزه...",
+      analysisStep1: "جاري قراءة بنية السيرة الذاتية...",
+      analysisStep2: "جاري فحص المهارات والكلمات المفتاحية...",
+      analysisStep3: "جاري التحقق من التنسيق والوضوح...",
+      analysisStep4: "جاري مقارنة المحتوى مع متطلبات الوظائف...",
+      analysisStep5:
+        "جاري إنشاء ملاحظات واقتراحات الذكاء الاصطناعي...",
+      analysisComplete: "اكتمل التحليل",
+      atsReadiness: "جاهزية ATS",
+      aiStrengths: "نقاط القوة بالذكاء الاصطناعي",
+      aiImprovements: "تحسينات مقترحة بالذكاء الاصطناعي",
+      suggestedKeywords: "كلمات مفتاحية مقترحة للإضافة",
+    },
 
-profilePage: {
-  title: "ملفي الشخصي",
-  subtitle: "قم بإدارة وتحديث معلوماتك الشخصية ومهاراتك وملفك المهني",
-  personalInfo: "المعلومات الشخصية",
-  professionalSummary: "الملخص المهني",
-  currentTitle: "المسمى الحالي",
-  experience: "سنوات الخبرة",
-  skills: "المهارات",
-  editProfile: "تعديل الملف الشخصي",
-  saveChanges: "حفظ التغييرات",
-  profileUpdated: "تم تحديث الملف الشخصي بنجاح!",
-  basicPlan: "أنت على الخطة الأساسية",
-  premiumHint: "قم بالترقية إلى بريميوم لفتح ميزات الذكاء الاصطناعي",
-  upgradePremium: "الترقية إلى بريميوم",
-  profileHint: "أكمل ملفك الشخصي لتحسين درجة المطابقة",
-  skillsPlaceholder: "اكتب المهارات مفصولة بفواصل",
-  noSkills: "لم تتم إضافة مهارات بعد.",
-  dangerZone: "منطقة الخطر",
-  dangerText: "احذف حسابك وجميع البيانات المرتبطة به بشكل نهائي. لا يمكن التراجع عن هذا الإجراء.",
-  deleteAccount: "حذف حسابي",
-  modalSubtitle: "افتح القوة الكاملة للمطابقة الوظيفية بالذكاء الاصطناعي",
-  basicLabel: "أساسي",
-  freeLabel: "مجاني",
-  basicFeature1: "تصفح الوظائف",
-  basicFeature2: "5 طلبات شهريًا",
-  basicFeature3: "ملف شخصي أساسي",
-  popularLabel: "الأكثر شيوعًا",
-  premiumLabel: "بريميوم",
-  premiumFeature1: "وحدة المقابلة التمهيدية بالذكاء الاصطناعي",
-  premiumFeature2: "تقييم متقدم للسيرة الذاتية",
-  premiumFeature3: "تحليلات تفصيلية للمطابقة بالذكاء الاصطناعي",
-  premiumFeature4: "أولوية في حالة الطلبات",
-  premiumFeature5: "طلبات وظائف غير محدودة",
-  maybeLater: "لاحقًا ربما",
-  upgradeNow: "الترقية الآن",
-},
+    profilePage: {
+      title: "ملفي الشخصي",
+      subtitle:
+        "قم بإدارة وتحديث معلوماتك الشخصية ومهاراتك وملفك المهني",
+      personalInfo: "المعلومات الشخصية",
+      professionalSummary: "الملخص المهني",
+      currentTitle: "المسمى الحالي",
+      experience: "سنوات الخبرة",
+      skills: "المهارات",
+      editProfile: "تعديل الملف الشخصي",
+      saveChanges: "حفظ التغييرات",
+      profileUpdated: "تم تحديث الملف الشخصي بنجاح!",
+      basicPlan: "أنت على الخطة الأساسية",
+      premiumHint: "قم بالترقية إلى بريميوم لفتح ميزات الذكاء الاصطناعي",
+      upgradePremium: "الترقية إلى بريميوم",
+      profileHint: "أكمل ملفك الشخصي لتحسين درجة المطابقة",
+      skillsPlaceholder: "اكتب المهارات مفصولة بفواصل",
+      noSkills: "لم تتم إضافة مهارات بعد.",
+      dangerZone: "منطقة الخطر",
+      dangerText:
+        "احذف حسابك وجميع البيانات المرتبطة به بشكل نهائي. لا يمكن التراجع عن هذا الإجراء.",
+      deleteAccount: "حذف حسابي",
+      modalSubtitle:
+        "افتح القوة الكاملة للمطابقة الوظيفية بالذكاء الاصطناعي",
+      basicLabel: "أساسي",
+      freeLabel: "مجاني",
+      basicFeature1: "تصفح الوظائف",
+      basicFeature2: "5 طلبات شهريًا",
+      basicFeature3: "ملف شخصي أساسي",
+      popularLabel: "الأكثر شيوعًا",
+      premiumLabel: "بريميوم",
+      premiumFeature1: "وحدة المقابلة التمهيدية بالذكاء الاصطناعي",
+      premiumFeature2: "تقييم متقدم للسيرة الذاتية",
+      premiumFeature3: "تحليلات تفصيلية للمطابقة بالذكاء الاصطناعي",
+      premiumFeature4: "أولوية في حالة الطلبات",
+      premiumFeature5: "طلبات وظائف غير محدودة",
+      maybeLater: "لاحقًا ربما",
+      upgradeNow: "الترقية الآن",
+    },
 
     companyProfilePage: {
       title: "ملف الشركة",
@@ -1062,22 +1339,57 @@ profilePage: {
       contactCandidate: "التواصل مع المرشح",
       noCandidates: "لم يتم العثور على مرشحين",
       noCandidatesText: "جرّب تعديل الفلاتر أو نشر وظيفة جديدة.",
+      smartFilters: "فلاتر ذكية",
+refineSearch: "خصّصي البحث",
+minMatch: "أقل نسبة تطابق",
+minSalary: "الحد الأدنى للراتب",
+recommendation: "التوصية",
+minPreInterviewScore: "أقل درجة ما قبل المقابلة",
+all: "الكل",
     },
 
-    companyApplicationsPage: {
-      title: "الطلبات",
-      subtitle: "راجع الطلبات الواردة على وظائفك",
-      allApplications: "كل الطلبات",
-      underReview: "قيد المراجعة",
-      aiScreening: "فحص الذكاء الاصطناعي",
-      shortlisted: "تم الاختيار المبدئي",
-      rejected: "مرفوض",
-      viewApplication: "عرض الطلب",
-      moveToNextStage: "نقل إلى المرحلة التالية",
-      noApplications: "لا توجد طلبات بعد",
-      noApplicationsText:
-        "ستظهر الطلبات هنا عندما يبدأ المرشحون بالتقديم على وظائفك.",
-    },
+companyApplicationsPage: {
+  title: "الطلبات",
+  subtitle: "إدارة ومتابعة جميع طلبات التوظيف",
+
+  tabs: {
+    All: "الكل",
+    New: "جديد",
+    Screening: "قيد الفحص",
+    Shortlisted: "قائمة مختصرة",
+    Decided: "تم القرار",
+  },
+
+  appliedFor: "تقدم لوظيفة",
+  view: "عرض",
+  accept: "قبول",
+  reject: "رفض",
+
+  contactCandidate: "التواصل مع المرشح",
+  acceptApplication: "قبول الطلب",
+  rejectApplication: "رفض الطلب",
+
+  applicationAnalysis: "تحليل الطلب",
+  aiPowered: "تحليل بواسطة الذكاء الاصطناعي",
+  hiringSummary: "ملخص التوظيف",
+
+  recommendation: "التوصية",
+  progress: "التقدم",
+  applicationInfo: "معلومات الطلب",
+
+  date: "التاريخ",
+  email: "البريد الإلكتروني",
+  phone: "الهاتف",
+  location: "الموقع",
+
+  matchScore: "نسبة التطابق",
+  interviewScore: "درجة المقابلة",
+  stage: "المرحلة",
+
+  highFitText: "مرشح قوي للمرحلة القادمة",
+  mediumFitText: "يستحق المراجعة",
+  lowFitText: "أولوية منخفضة",
+},
 
     companyNotificationsPage: {
       title: "الإشعارات",
@@ -1086,7 +1398,8 @@ profilePage: {
       markAllAsRead: "تحديد الكل كمقروء",
       clearAll: "حذف الكل",
       noNotifications: "لا توجد إشعارات بعد",
-      noNotificationsText: "أنت على اطلاع كامل. ستظهر تحديثات التوظيف هنا.",
+      noNotificationsText:
+        "أنت على اطلاع كامل. ستظهر تحديثات التوظيف هنا.",
     },
 
     forgotPasswordPage: {
@@ -1111,12 +1424,10 @@ profilePage: {
         "يساعد JobMatchAI المرشحين والشركات على التواصل من خلال تجربة توظيف حديثة وذكية وسهلة الاستخدام.",
       heroPrimary: "ابدأ الآن",
       heroSecondary: "اعرف المزيد",
-
       aboutTag: "عن JobMatchAI",
       aboutTitle: "مصمم لجعل التوظيف أكثر ذكاءً وسهولة",
       aboutText:
         "JobMatchAI هو نموذج أولي حديث يوضح كيف يمكن للمطابقة الذكية أن تحسن رحلة التوظيف لكل من المرشحين وأصحاب العمل.",
-
       howTag: "كيف يعمل",
       howTitle: "عملية بسيطة للطرفين",
       step1Title: "أنشئ حسابك",
@@ -1128,7 +1439,6 @@ profilePage: {
       step3Title: "اكتشف المطابقات الذكية",
       step3Text:
         "يقوم النظام بإبراز الفرص المناسبة والمرشحين المناسبين بشكل أسرع.",
-
       featuresTag: "الميزات",
       featuresTitle: "مبني لتجربة توظيف حديثة",
       feature1Title: "ملفات شخصية احترافية",
@@ -1146,7 +1456,6 @@ profilePage: {
       feature5Title: "تجربة موجهة",
       feature5Text:
         "تدعم المنصة الطرفين من خلال تجربة أوضح وأسهل خطوة بخطوة.",
-
       contactTag: "تواصل معنا",
       contactTitle: "لنَبْنِ تجربة توظيف أذكى",
       contactText:
@@ -1217,6 +1526,36 @@ profilePage: {
       custom: "سعر مخصص",
       faq: "الأسئلة الشائعة",
     },
+
+    paymentPage: {
+      title: "الترقية إلى بريميوم",
+      subtitle: "احصل على تقديمات غير محدودة وافتح أدوات ذكاء اصطناعي متقدمة",
+      orderSummary: "ملخص الطلب",
+      premiumMonthly: "بريميوم شهري",
+      billedMonthly: "يتم الدفع شهريًا",
+      unlimitedApplications: "تقديمات وظائف غير محدودة",
+      aiAnalysis: "تحليل السيرة الذاتية بالذكاء الاصطناعي",
+      aiInsights: "تحليلات مطابقة مفصلة بالذكاء الاصطناعي",
+      priorityStatus: "أولوية في حالة الطلب",
+      cancelAnytime: "إلغاء في أي وقت",
+      secureCheckout: "دفع آمن",
+      secureText: "بيانات الدفع الخاصة بك محمية ضمن عملية دفع آمنة",
+      plan: "الخطة",
+      billing: "الدفع",
+      status: "الحالة",
+      activeAfterPayment: "نشط بعد الدفع",
+      total: "الإجمالي",
+      price: "السعر",
+      selectedPlan: "الخطة المختارة",
+      flexible: "اشتراك شهري مرن. يمكنك الإلغاء في أي وقت",
+      paymentDetails: "تفاصيل الدفع",
+      cardholderName: "اسم صاحب البطاقة",
+      cardNumber: "رقم البطاقة",
+      cvv: "CVV",
+      expiry: "MM/YY",
+      pay: "ادفع",
+      securePayment: "دفع آمن",
+    },
   },
 
   he: {
@@ -1274,7 +1613,6 @@ profilePage: {
       title1: "ברוך שובך אל",
       title2: "JobMatchAI",
       subtitle: "התחבר כדי להמשיך במסע הגיוס החכם שלך.",
-
       secureAccess: "גישה מאובטחת",
       heroTitle: "ברוך שובך למרחב הגיוס החכם שלך",
       heroText:
@@ -1285,7 +1623,6 @@ profilePage: {
       secureSignin: "חוויית התחברות מאובטחת",
       createCandidate: "יצירת חשבון מועמד",
       createCompany: "יצירת חשבון חברה",
-
       errors: {
         emailRequired: "נא להזין אימייל.",
         passwordRequired: "נא להזין סיסמה.",
@@ -1404,20 +1741,17 @@ profilePage: {
       welcome: "ברוך הבא",
       welcomeBack: "ברוך שובך",
       subtitle: "הנה מה שקורה היום בחיפוש העבודה שלך",
-
       stats: {
         jobMatches: "משרות מתאימות",
         applications: "הגשות",
         interviews: "ראיונות",
         profileScore: "ציון פרופיל",
       },
-
       topMatches: {
         title: "המשרות המתאימות ביותר",
         subtitle: "בהתבסס על הפרופיל שלך",
         viewAll: "צפה בהכול",
       },
-
       applications: {
         title: "הגשות",
         subtitle: "פעילות אחרונה",
@@ -1427,14 +1761,12 @@ profilePage: {
         daysAgo2: "לפני יומיים",
         daysAgo5: "לפני 5 ימים",
       },
-
       profileBox: {
         title: "השלם את הפרופיל שלך",
         subtitle: "הוסף עוד פרטים כדי לשפר את ציון ההתאמה",
         uploadResume: "העלה קורות חיים",
         editProfile: "ערוך פרופיל",
       },
-
       notifications: {
         title: "התראות",
         newCount: "3 חדשות",
@@ -1442,15 +1774,19 @@ profilePage: {
         item2: "ההגשה שלך ל-Fiverr נמצאת בבדיקה",
         item3: "ציון הפרופיל שלך השתפר ל-78%",
       },
-
       roles: {
         candidate: "מועמד",
         company: "חברה",
       },
+      freePlan: "תוכנית חינמית",
+      profileOnTrack: "הפרופיל שלך בכיוון הנכון",
+      upgradePremium: "שדרג לפרמיום",
+      monthlyUsage: "שימוש חודשי",
     },
 
     companyDashboard: {
       welcome: "ברוך הבא",
+      title: "לוח בקרה לחברה",
       subtitle: "הנה מה שקורה היום בפעילות הגיוס שלך",
       stats: {
         jobPosts: "משרות שפורסמו",
@@ -1468,35 +1804,101 @@ profilePage: {
         subtitle: "מומלצים עבור התפקידים שלך",
         viewAll: "צפה בכל המועמדים",
       },
+      recentActivity: {
+        title: "פעילות אחרונה",
+        subtitle: "הגשות",
+        viewAll: "צפה בכל ההגשות",
+      },
       quickActions: {
         title: "פעולות מהירות",
         postJob: "פרסם משרה חדשה",
         viewApplications: "צפה בהגשות",
         editProfile: "ערוך פרופיל חברה",
       },
+      insights: {
+        title: "תובנות AI לגיוס",
+        subtitle: "המלצות חכמות לתהליך הגיוס",
+        tip: "טיפ",
+        trend: "מגמה",
+        action: "פעולה",
+      },
+      cards: {
+        fasterHiring: "גיוס מהיר יותר",
+        betterCandidates: "איכות מועמדים טובה יותר",
+        smarterJobs: "ניהול משרות חכם יותר",
+      },
+      fitLabels: {
+        high: "התאמה גבוהה",
+        medium: "התאמה בינונית",
+      },
+      statuses: {
+        applied: "הוגש",
+        shortlisted: "ברשימה מצומצמת",
+        underReview: "בבדיקה",
+        aiScreening: "סינון AI",
+        finalDecision: "החלטה סופית",
+      },
+      time: {
+        hoursAgo2: "לפני שעתיים",
+        hoursAgo5: "לפני 5 שעות",
+        dayAgo1: "לפני יום",
+        daysAgo2: "לפני יומיים",
+        daysAgo5: "לפני 5 ימים",
+      },
+      candidateHints: {
+        recommended: "מומלצים על ידי AI עבור המשרות שלך",
+      },
+      match: "התאמה",
+remote: "מרחוק",
+
+applications: {
+  title: "הגשות",
+  subtitle: "פעילות אחרונה",
+  viewAll: "צפה בכל ההגשות",
+  underReview: "בבדיקה",
+  aiScreening: "סינון AI",
+  shortlisted: "ברשימה מצומצמת",
+  daysAgo2: "לפני יומיים",
+  daysAgo5: "לפני 5 ימים",
+  dayAgo1: "לפני יום",
+},
+
+profileBox: {
+  title: "השלם את הפרופיל שלך",
+  subtitle: "הוסף פרטים נוספים לשיפור ציון ההתאמה",
+  uploadResume: "העלה קורות חיים",
+  editProfile: "ערוך פרופיל",
+  progressText: "הפרופיל שלך בדרך הנכונה",
+},
+
+plan: {
+  free: "תוכנית חינמית",
+  used: "נוצלו 7 מתוך 10 בקשות",
+  remaining: "נשארו לך",
+  remainingCount: "3 בקשות",
+  upgradeText:
+    "החודש. שדרג לפרמיום כדי לקבל בקשות ללא הגבלה וכלי AI מתקדמים.",
+  monthlyUsage: "שימוש חודשי",
+  upgradeButton: "שדרג לפרמיום",
+},
     },
 
     jobMatches: {
       title: "משרות מתאימות",
       subtitle: "מצא משרות שמתאימות לך",
-
       smartFilters: "סינון חכם",
       activeFilters: "פילטרים פעילים",
       clearAll: "נקה הכל",
-
       industry: "תחום",
       seniorityLevel: "רמת ותק",
       minSalary: "שכר מינימלי",
       minMatch: "התאמה מינימלית",
-
       allIndustries: "כל התחומים",
       allLevels: "כל הרמות",
-
       entry: "ג׳וניור",
       mid: "ביניים",
       senior: "סניור",
       lead: "מנהל",
-
       tech: "טכנולוגיה",
       finance: "פיננסים",
       healthcare: "בריאות",
@@ -1506,15 +1908,34 @@ profilePage: {
       retail: "קמעונאות",
       hospitality: "אירוח",
       logistics: "לוגיסטיקה",
-
       remote: "מרחוק",
       statusActive: "פעיל",
       noScore: "ללא ציון",
-
       jobsMatchCriteria: "משרות תואמות",
-
       fairMatchingTitle: "התאמה הוגנת:",
       fairMatchingText: "מבוסס רק על כישורים, ניסיון והסמכות.",
+      smartMatchAnalysis: "ניתוח התאמה חכם",
+      aiPoweredBreakdown: "פירוק תאימות מבוסס AI",
+      matchingSkills: "כישורים תואמים",
+      skillGaps: "פערי כישורים",
+      noMatchingSkills: "לא נמצאו כישורים תואמים",
+      noSkillGaps: "לא זוהו פערי כישורים משמעותיים",
+      experienceComparison: "השוואת ניסיון",
+      yourExperience: "הניסיון שלך",
+      vs: "מול",
+      meetsRequirement: "עומד בדרישות",
+      applyNow: "הגש מועמדות",
+      applicationSubmitted: "הגשה נשלחה",
+      noScoreAvailable: "אין ציון זמין",
+      excellentMatch: "התאמה מצוינת!",
+      improvementSuggestions: "הצעות לשיפור",
+      aboutThisRole: "על התפקיד",
+      requirements: "דרישות",
+      requiredSkills: "כישורים נדרשים",
+      niceToHave: "יתרון",
+      companyInfo: "מידע על החברה",
+      company: "חברה",
+      location: "מיקום",
     },
 
     applicationsPage: {
@@ -1531,8 +1952,13 @@ profilePage: {
       rejected: "נדחה",
       accepted: "התקבל",
       noApplications: "אין הגשות עדיין",
-      noApplicationsText: "עדיין לא הגשת מועמדות. התחל לחפש הזדמנויות.",
+      noApplicationsText:
+        "עדיין לא הגשת מועמדות. התחל לחפש הזדמנויות.",
       details: "צפה בפרטים",
+      applied: "הוגש",
+      interviewScore: "ציון ראיון",
+      preInterviewScore: "ציון טרום ראיון",
+      strengthLevel: "רמת חוזק",
     },
 
     notificationsPage: {
@@ -1552,59 +1978,79 @@ profilePage: {
     },
 
     resumeManagerPage: {
-  title: "מנהל קורות חיים",
-  subtitle: "נהל, העלה ונתח את קורות החיים שלך",
-  yourResumeHub: "מרכז קורות החיים שלך",
-  hubSubtitle: "העלה את קורות החיים, שמור אותם מעודכנים ובדוק את ציון ה-AI שלך",
-  uploadResume: "העלה את קורות החיים שלך",
-  uploadText: "שמור על קורות החיים שלך מעודכנים כדי לקבל התאמות טובות יותר והגשות חזקות יותר",
-  chooseFile: "בחר קובץ",
-  uploadedFile: "קובץ שהועלה",
-  activeFile: "קובץ פעיל",
-  resumeUploaded: "קורות החיים הועלו",
-  analyze: "נתח",
-  aiResumeScore: "ציון קורות חיים מבוסס AI",
-  supportedFormats: "פורמטים נתמכים: PDF, DOC, DOCX",
-  noFile: "לא נבחר קובץ",
-  scoreDescription: "קורות החיים שלך נראים מבטיחים. המשך לשפר מיומנויות, מילות מפתח וניסיון בפרויקטים כדי לשפר עוד יותר את תוצאות ההתאמה.",
-},
+      title: "מנהל קורות חיים",
+      subtitle: "נהל, העלה ונתח את קורות החיים שלך",
+      yourResumeHub: "מרכז קורות החיים שלך",
+      hubSubtitle:
+        "העלה את קורות החיים, שמור אותם מעודכנים ובדוק את ציון ה-AI שלך",
+      uploadResume: "העלה את קורות החיים שלך",
+      uploadText:
+        "שמור על קורות החיים שלך מעודכנים כדי לקבל התאמות טובות יותר והגשות חזקות יותר",
+      chooseFile: "בחר קובץ",
+      uploadedFile: "קובץ שהועלה",
+      activeFile: "קובץ פעיל",
+      resumeUploaded: "קורות החיים הועלו",
+      analyze: "נתח",
+      aiResumeScore: "ציון קורות חיים מבוסס AI",
+      supportedFormats: "פורמטים נתמכים: PDF, DOC, DOCX",
+      noFile: "לא נבחר קובץ",
+      scoreDescription:
+        "קורות החיים שלך נראים מבטיחים. המשך לשפר מיומנויות, מילות מפתח וניסיון בפרויקטים כדי לשפר עוד יותר את תוצאות ההתאמה.",
+      analysisLoading: "מנתח...",
+      analysisTitle: "ניתוח קורות חיים מבוסס AI",
+      analysisRunning: "מנתח את קורות החיים שלך...",
+      analysisPreparing: "מעלה ומכין את הקובץ...",
+      analysisStep1: "קורא את מבנה קורות החיים...",
+      analysisStep2: "סורק כישורים ומילות מפתח...",
+      analysisStep3: "בודק עיצוב ובהירות...",
+      analysisStep4: "משווה את התוכן לדרישות התפקיד...",
+      analysisStep5: "יוצר משוב והצעות מבוססי AI...",
+      analysisComplete: "הניתוח הושלם",
+      atsReadiness: "מוכנות ל-ATS",
+      aiStrengths: "חוזקות AI",
+      aiImprovements: "שיפורים מוצעים על ידי AI",
+      suggestedKeywords: "מילות מפתח מוצעות להוספה",
+    },
 
-profilePage: {
-  title: "הפרופיל שלי",
-  subtitle: "נהל ועדכן את המידע האישי, הכישורים והפרופיל המקצועי שלך",
-  personalInfo: "מידע אישי",
-  professionalSummary: "תקציר מקצועי",
-  currentTitle: "תפקיד נוכחי",
-  experience: "שנות ניסיון",
-  skills: "כישורים",
-  editProfile: "ערוך פרופיל",
-  saveChanges: "שמור שינויים",
-  profileUpdated: "הפרופיל עודכן בהצלחה!",
-  basicPlan: "אתה בתוכנית הבסיסית",
-  premiumHint: "שדרג לפרימיום כדי לפתוח יכולות מבוססות בינה מלאכותית",
-  upgradePremium: "שדרג לפרימיום",
-  profileHint: "השלם את הפרופיל שלך כדי לשפר את ציון ההתאמה",
-  skillsPlaceholder: "כתוב כישורים מופרדים בפסיקים",
-  noSkills: "עדיין לא נוספו כישורים.",
-  dangerZone: "אזור מסוכן",
-  dangerText: "מחק את החשבון שלך ואת כל הנתונים המשויכים אליו לצמיתות. לא ניתן לבטל פעולה זו.",
-  deleteAccount: "מחק את החשבון שלי",
-  modalSubtitle: "פתח את כל הכוח של התאמת משרות מבוססת בינה מלאכותית",
-  basicLabel: "בסיסי",
-  freeLabel: "חינם",
-  basicFeature1: "גלישה במשרות",
-  basicFeature2: "5 הגשות לחודש",
-  basicFeature3: "פרופיל בסיסי",
-  popularLabel: "פופולרי",
-  premiumLabel: "פרימיום",
-  premiumFeature1: "מודול ראיון מקדים מבוסס AI",
-  premiumFeature2: "ציון קורות חיים מתקדם",
-  premiumFeature3: "תובנות התאמה מפורטות מבוססות AI",
-  premiumFeature4: "עדיפות בסטטוס הגשות",
-  premiumFeature5: "הגשות עבודה ללא הגבלה",
-  maybeLater: "אולי אחר כך",
-  upgradeNow: "שדרג עכשיו",
-},
+    profilePage: {
+      title: "הפרופיל שלי",
+      subtitle:
+        "נהל ועדכן את המידע האישי, הכישורים והפרופיל המקצועי שלך",
+      personalInfo: "מידע אישי",
+      professionalSummary: "תקציר מקצועי",
+      currentTitle: "תפקיד נוכחי",
+      experience: "שנות ניסיון",
+      skills: "כישורים",
+      editProfile: "ערוך פרופיל",
+      saveChanges: "שמור שינויים",
+      profileUpdated: "הפרופיל עודכן בהצלחה!",
+      basicPlan: "אתה בתוכנית הבסיסית",
+      premiumHint: "שדרג לפרימיום כדי לפתוח יכולות מבוססות בינה מלאכותית",
+      upgradePremium: "שדרג לפרימיום",
+      profileHint: "השלם את הפרופיל שלך כדי לשפר את ציון ההתאמה",
+      skillsPlaceholder: "כתוב כישורים מופרדים בפסיקים",
+      noSkills: "עדיין לא נוספו כישורים.",
+      dangerZone: "אזור מסוכן",
+      dangerText:
+        "מחק את החשבון שלך ואת כל הנתונים המשויכים אליו לצמיתות. לא ניתן לבטל פעולה זו.",
+      deleteAccount: "מחק את החשבון שלי",
+      modalSubtitle:
+        "פתח את כל הכוח של התאמת משרות מבוססת בינה מלאכותית",
+      basicLabel: "בסיסי",
+      freeLabel: "חינם",
+      basicFeature1: "גלישה במשרות",
+      basicFeature2: "5 הגשות לחודש",
+      basicFeature3: "פרופיל בסיסי",
+      popularLabel: "פופולרי",
+      premiumLabel: "פרימיום",
+      premiumFeature1: "מודול ראיון מקדים מבוסס AI",
+      premiumFeature2: "ציון קורות חיים מתקדם",
+      premiumFeature3: "תובנות התאמה מפורטות מבוססות AI",
+      premiumFeature4: "עדיפות בסטטוס הגשות",
+      premiumFeature5: "הגשות עבודה ללא הגבלה",
+      maybeLater: "אולי אחר כך",
+      upgradeNow: "שדרג עכשיו",
+    },
 
     companyProfilePage: {
       title: "פרופיל החברה",
@@ -1630,20 +2076,20 @@ profilePage: {
       viewCandidates: "צפה במועמדים",
       editJob: "ערוך משרה",
       noJobs: "אין משרות עדיין",
-      noJobsText: "צור את פרסום המשרה הראשון שלך כדי להתחיל לקבל מועמדים.",
+      noJobsText: "צור את המשרה הראשונה שלך כדי להתחיל לקבל מועמדים.",
     },
 
     postJobPage: {
       title: "פרסם משרה חדשה",
-      subtitle: "צור משרה חדשה ומשוך מועמדים מתאימים",
-      jobTitle: "שם המשרה",
+      subtitle: "צור משרה חדשה ומשוך את המועמדים המתאימים",
+      jobTitle: "תפקיד",
       companyName: "שם החברה",
       location: "מיקום",
       salaryRange: "טווח שכר",
-      employmentType: "סוג משרה",
+      employmentType: "סוג העסקה",
       workMode: "אופן עבודה",
-      jobLevel: "רמת תפקיד",
-      description: "תיאור המשרה",
+      jobLevel: "רמת משרה",
+      description: "תיאור משרה",
       requirements: "דרישות",
       niceToHave: "יתרון",
       skills: "כישורים",
@@ -1660,31 +2106,65 @@ profilePage: {
 
     companyCandidatesPage: {
       title: "מועמדים",
-      subtitle: "חקור ובחן מועמדים מתאימים",
+      subtitle: "סקור מועמדים תואמים",
       allCandidates: "כל המועמדים",
-      matchedCandidates: "מועמדים מתאימים",
+      matchedCandidates: "מועמדים תואמים",
       filterByIndustry: "סנן לפי תחום",
       filterByLevel: "סנן לפי רמה",
       viewProfile: "צפה בפרופיל",
       contactCandidate: "צור קשר עם מועמד",
       noCandidates: "לא נמצאו מועמדים",
-      noCandidatesText: "נסה לשנות את הסינונים או לפרסם משרה חדשה.",
+      noCandidatesText: "נסה לשנות את המסננים או לפרסם משרה חדשה.",
+      smartFilters: "סינון חכם",
+refineSearch: "התאימי את החיפוש",
+minMatch: "התאמה מינימלית",
+minSalary: "שכר מינימלי",
+recommendation: "המלצה",
+minPreInterviewScore: "ציון מינימלי לקדם ראיון",
+all: "הכול",
     },
+companyApplicationsPage: {
+  title: "מועמדויות",
+  subtitle: "ניהול ומעקב אחרי כל המועמדויות",
 
-    companyApplicationsPage: {
-      title: "הגשות",
-      subtitle: "סקור את ההגשות שהתקבלו למשרות שלך",
-      allApplications: "כל ההגשות",
-      underReview: "בבדיקה",
-      aiScreening: "סינון AI",
-      shortlisted: "ברשימה מצומצמת",
-      rejected: "נדחה",
-      viewApplication: "צפה בהגשה",
-      moveToNextStage: "העבר לשלב הבא",
-      noApplications: "אין הגשות עדיין",
-      noApplicationsText:
-        "הגשות יופיעו כאן כאשר מועמדים יתחילו להגיש למשרות שלך.",
-    },
+  tabs: {
+    All: "הכול",
+    New: "חדש",
+    Screening: "בסינון",
+    Shortlisted: "רשימה קצרה",
+    Decided: "הוחלט",
+  },
+
+  appliedFor: "הגיש מועמדות ל",
+  view: "צפייה",
+  accept: "אישור",
+  reject: "דחייה",
+
+  contactCandidate: "צור קשר עם המועמד",
+  acceptApplication: "אשר מועמדות",
+  rejectApplication: "דחה מועמדות",
+
+  applicationAnalysis: "ניתוח מועמדות",
+  aiPowered: "ניתוח מבוסס AI",
+  hiringSummary: "סיכום גיוס",
+
+  recommendation: "המלצה",
+  progress: "התקדמות",
+  applicationInfo: "פרטי מועמדות",
+
+  date: "תאריך",
+  email: "אימייל",
+  phone: "טלפון",
+  location: "מיקום",
+
+  matchScore: "ציון התאמה",
+  interviewScore: "ציון ריאיון",
+  stage: "שלב",
+
+  highFitText: "מועמד חזק לשלב הבא",
+  mediumFitText: "כדאי לבדוק",
+  lowFitText: "עדיפות נמוכה",
+},
 
     companyNotificationsPage: {
       title: "התראות",
@@ -1693,104 +2173,100 @@ profilePage: {
       markAllAsRead: "סמן הכול כנקרא",
       clearAll: "נקה הכול",
       noNotifications: "אין התראות עדיין",
-      noNotificationsText: "אתה מעודכן. עדכוני גיוס חדשים יופיעו כאן.",
+      noNotificationsText:
+        "אתה מעודכן. עדכוני גיוס חדשים יופיעו כאן.",
     },
 
     forgotPasswordPage: {
-      title: "שכחת סיסמה",
-      subtitle: "אפס את הסיסמה כדי לקבל שוב גישה לחשבון שלך",
+      title: "שכחתי סיסמה",
+      subtitle: "אפס את הסיסמה כדי לגשת שוב לחשבון שלך",
       enterEmail: "הזן את כתובת האימייל שלך",
       sendResetLink: "שלח קישור לאיפוס",
       success: "קישור לאיפוס הסיסמה נשלח בהצלחה!",
-      helperText: "נשלח אליך קישור מאובטח לאיפוס הסיסמה.",
+      helperText: "נשלח לך קישור מאובטח לאיפוס הסיסמה.",
     },
 
     homePage: {
       navHome: "בית",
       navAbout: "אודות",
       navHow: "איך זה עובד",
-      navFeatures: "תכונות",
+      navFeatures: "פיצ'רים",
       navContact: "צור קשר",
       heroBadge: "פלטפורמת גיוס חכמה מבוססת AI",
       heroTitle1: "גיוס חכם יותר",
       heroTitle2: "מתחיל כאן",
       heroText:
         "JobMatchAI מחברת בין מועמדים לחברות דרך חוויית גיוס מודרנית, חכמה ונוחה לשימוש.",
-      heroPrimary: "התחל עכשיו",
-      heroSecondary: "למד עוד",
-
-      aboutTag: "אודות JobMatchAI",
-      aboutTitle: "נועדה להפוך את הגיוס לחכם ופשוט יותר",
+      heroPrimary: "התחל",
+      heroSecondary: "למידע נוסף",
+      aboutTag: "על JobMatchAI",
+      aboutTitle: "נועד להפוך את הגיוס לחכם ופשוט יותר",
       aboutText:
-        "JobMatchAI היא פלטפורמת אבטיפוס מודרנית שמדגימה כיצד התאמה חכמה יכולה לשפר את מסע הגיוס למועמדים ולמעסיקים.",
-
+        "JobMatchAI הוא אבטיפוס מודרני שמדגים כיצד התאמה חכמה יכולה לשפר את תהליך הגיוס עבור מועמדים ומעסיקים.",
       howTag: "איך זה עובד",
       howTitle: "תהליך פשוט לשני הצדדים",
       step1Title: "צור חשבון",
       step1Text:
-        "מועמדים וחברות יכולים להירשם ולבנות פרופיל תוך דקות.",
-      step2Title: "השלם את הפרופיל",
+        "מועמדים וחברות יכולים להירשם ולבנות את הפרופיל שלהם תוך דקות.",
+      step2Title: "השלם את הפרופיל שלך",
       step2Text:
-        "הוסף כישורים, ניסיון, דרישות ותיאורי משרה כדי לשפר את איכות ההתאמה.",
+        "הוסף כישורים, ניסיון, דרישות ופרטי משרה כדי לשפר את איכות ההתאמה.",
       step3Title: "גלה התאמות חכמות",
       step3Text:
         "המערכת מדגישה הזדמנויות רלוונטיות ומועמדים מתאימים מהר יותר.",
-
-      featuresTag: "תכונות",
-      featuresTitle: "נבנה לחוויית גיוס מודרנית",
+      featuresTag: "פיצ'רים",
+      featuresTitle: "נבנה עבור חוויית גיוס מודרנית",
       feature1Title: "פרופילים מקצועיים",
-      feature1Text:
-        "מועמדים וחברות יכולים ליצור פרופילים ברורים ומלוטשים.",
+      feature1Text: "מועמדים וחברות יכולים ליצור פרופילים ברורים ומלוטשים.",
       feature2Title: "לוגיקת התאמה חכמה",
       feature2Text:
         "ההתאמה מבוססת על נתוני פרופיל, דרישות משרה וכישורים רלוונטיים.",
       feature3Title: "תובנות על מועמדים",
       feature3Text:
-        "חברות מקבלות תמונה ברורה יותר לגבי התאמת המועמד וחוזק הפרופיל שלו.",
+        "חברות מקבלות תמונה ברורה יותר על התאמת המועמד וחוזק הפרופיל שלו.",
       feature4Title: "יעילות טובה יותר",
       feature4Text:
-        "מגייסים חוסכים זמן על ידי התמקדות במועמדים החזקים ביותר מההתחלה.",
+        "מגייסים חוסכים זמן על ידי התמקדות במועמדים חזקים יותר מההתחלה.",
       feature5Title: "חוויה מודרכת",
       feature5Text:
-        "הפלטפורמה תומכת בשני הצדדים עם תהליך ברור ופשוט יותר שלב אחר שלב.",
-
+        "הפלטפורמה תומכת בשני הצדדים בתהליך נקי וברור שלב אחר שלב.",
       contactTag: "צור קשר",
       contactTitle: "בואו נבנה חוויית גיוס חכמה יותר",
       contactText:
-        "JobMatchAI היא אבטיפוס מקצועי שמראה כיצד עיצוב, מבנה ורעיונות התאמה חכמה יכולים לשפר את הגיוס עבור מחפשי עבודה ומעסיקים.",
+        "JobMatchAI הוא אבטיפוס מקצועי שמדגים כיצד עיצוב, מבנה ורעיונות התאמה חכמים יכולים לשפר את הגיוס למחפשי עבודה ולחברות.",
       contactPrimary: "צור קשר",
-      contactSecondary: "למד עוד",
+      contactSecondary: "למידע נוסף",
     },
 
     notFoundPage: {
       code: "404",
       title: "העמוד לא נמצא",
-      subtitle: "העמוד שחיפשת אינו קיים או הועבר.",
-      home: "חזרה לדף הבית",
+      subtitle: "העמוד שחיפשת לא קיים או הועבר.",
+      home: "חזור לדף הבית",
       back: "חזור",
     },
 
     publicJobsPage: {
       title: "חפש משרות",
-      subtitle: "עיין במשרות ציבוריות",
+      subtitle: "עיין בהזדמנויות עבודה ציבוריות",
       searchPlaceholder: "חפש לפי תפקיד, חברה או מיקום...",
-      filters: "סינונים",
+      filters: "מסננים",
       applyNow: "הגש עכשיו",
       saveJob: "שמור משרה",
       noJobs: "לא נמצאו משרות",
-      noJobsText: "נסה לשנות את החיפוש או את הסינונים.",
+      noJobsText: "נסה לשנות את החיפוש או המסננים.",
     },
 
     aiInterview: {
       title: "סימולטור ראיון AI",
-      subtitle: "תרגל את מיומנויות הראיון שלך עם בינה מלאכותית",
+      subtitle: "תרגל את כישורי הראיון שלך עם AI",
       question: "שאלה",
-      yourAnswer: "הקלד את תשובתך כאן...",
-      nextQuestion: "שאלה הבאה",
+      yourAnswer: "כתוב את התשובה שלך כאן...",
+      nextQuestion: "השאלה הבאה",
       submitAnswers: "שלח תשובות",
       results: "התוצאות שלך",
       communication: "תקשורת",
-      confidence: "ביטחון עצמי",
+      confidence: "ביטחון",
       technical: "ידע טכני",
       overallScore: "ציון כולל",
       tryAgain: "נסה שוב",
@@ -1798,12 +2274,12 @@ profilePage: {
     },
 
     skillGap: {
-      title: "ניתוח פערי מיומנויות",
-      subtitle: "זהה את המיומנויות שאתה צריך להגיע לתפקיד המיועד",
-      selectRole: "בחר את התפקיד המיועד שלך",
-      matchedSkills: "המיומנויות התואמות שלך",
-      missingSkills: "מיומנויות חסרות",
-      learningPlan: "תכנית למידה",
+      title: "ניתוח פערי כישורים",
+      subtitle: "זהה אילו כישורים חסרים לך כדי להגיע לתפקיד היעד שלך",
+      selectRole: "בחר את תפקיד היעד שלך",
+      matchedSkills: "הכישורים התואמים שלך",
+      missingSkills: "כישורים חסרים",
+      learningPlan: "תוכנית למידה",
       startLearning: "התחל ללמוד",
       estimatedTime: "זמן משוער:",
       weeks: "שבועות",
@@ -1811,18 +2287,49 @@ profilePage: {
     },
 
     subscription: {
-      title: "בחר את התוכנית שלך",
-      subtitle: "שחרר את כוחה המלא של התאמת עבודה מבוססת AI",
-      free: "חינמי",
-      premium: "פרמיום",
-      enterprise: "ארגוני",
-      currentPlan: "תוכנית נוכחית",
+      title: "בחר תוכנית",
+      subtitle: "פתח את מלוא הכוח של התאמת משרות מבוססת AI",
+      free: "חינם",
+      premium: "פרימיום",
+      enterprise: "אנטרפרייז",
+      currentPlan: "התוכנית הנוכחית",
       upgradeNow: "שדרג עכשיו",
-      downgrade: "הורד רמה",
+      downgrade: "שנמך",
       mostPopular: "הכי פופולרי",
-      perMonth: "חודש",
-      custom: "מחיר מותאם",
+      perMonth: "לחודש",
+      custom: "תמחור מותאם",
       faq: "שאלות נפוצות",
+    },
+
+    paymentPage: {
+      title: "שדרוג לפרימיום",
+      subtitle:
+        "קבל הגשות ללא הגבלה ופתח כלי קריירה מתקדמים מבוססי AI",
+      orderSummary: "סיכום הזמנה",
+      premiumMonthly: "פרימיום חודשי",
+      billedMonthly: "חיוב חודשי",
+      unlimitedApplications: "הגשות עבודה ללא הגבלה",
+      aiAnalysis: "ניתוח וציון קורות חיים בעזרת AI",
+      aiInsights: "תובנות התאמה מפורטות בעזרת AI",
+      priorityStatus: "סטטוס הגשה בעדיפות",
+      cancelAnytime: "בטל בכל עת",
+      secureCheckout: "תשלום מאובטח",
+      secureText: "פרטי התשלום שלך מוגנים בתהליך תשלום מאובטח זה",
+      plan: "תוכנית",
+      billing: "חיוב",
+      status: "סטטוס",
+      activeAfterPayment: "פעיל לאחר התשלום",
+      total: "סה״כ",
+      price: "מחיר",
+      selectedPlan: "התוכנית שנבחרה",
+      flexible: "מנוי חודשי גמיש. ניתן לבטל בכל עת",
+      paymentDetails: "פרטי תשלום",
+      cardholderName: "שם בעל הכרטיס",
+      cardNumber: "מספר כרטיס",
+      cvv: "CVV",
+      expiry: "MM/YY",
+      pay: "שלם",
+      securePayment: "תשלום מאובטח",
     },
   },
 };

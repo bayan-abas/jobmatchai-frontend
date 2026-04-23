@@ -10,6 +10,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import { translations } from "../translations";
 
 type JobStatus = "Active" | "Closed" | "Draft";
 
@@ -75,22 +76,12 @@ const defaultJobs: JobItem[] = [
   },
 ];
 
-function getStatusStyles(status: JobStatus) {
-  switch (status) {
-    case "Active":
-      return "bg-[rgba(38,199,132,0.14)] text-[#4ff0b2] border border-[rgba(79,240,178,0.18)]";
-    case "Closed":
-      return "bg-[rgba(145,153,180,0.12)] text-[#c5cadb] border border-[rgba(197,202,219,0.14)]";
-    case "Draft":
-      return "bg-[rgba(147,117,255,0.12)] text-[#cbb8ff] border border-[rgba(203,184,255,0.14)]";
-    default:
-      return "bg-white/10 text-white border border-white/10";
-  }
-}
-
 function CompanyJobPostings() {
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const t = translations[language] || translations.en;
+  const page = t.companyJobPostingsPage || {};
+  const common = t.common || {};
   const isRTL = language === "ar" || language === "he";
 
   const [postedJobs, setPostedJobs] = useState<JobItem[]>([]);
@@ -103,14 +94,18 @@ function CompanyJobPostings() {
       const salary =
         job.minSalary || job.maxSalary
           ? `$${job.minSalary || "0"} - $${job.maxSalary || "0"}`
-          : "Not specified";
+          : page.notSpecified || "Not specified";
 
       return {
         id: job.id,
-        title: job.title || "Untitled Job",
-        location: job.location || (job.remoteWork ? "Remote" : "Not specified"),
+        title: job.title || (page.untitledJob || "Untitled Job"),
+        location:
+          job.location ||
+          (job.remoteWork
+            ? page.remote || "Remote"
+            : page.notSpecified || "Not specified"),
         salary,
-        postedDate: job.postedDate || "Recently",
+        postedDate: job.postedDate || (page.recently || "Recently"),
         status: "Active",
         applicants: 0,
         newApplicants: 0,
@@ -118,11 +113,30 @@ function CompanyJobPostings() {
     });
 
     setPostedJobs(formattedJobs);
-  }, []);
+  }, [page.notSpecified, page.remote, page.recently, page.untitledJob]);
 
   const allJobs = useMemo(() => {
     return [...postedJobs, ...defaultJobs];
   }, [postedJobs]);
+
+  const getStatusLabel = (status: JobStatus) => {
+    if (status === "Active") return page.activeJobs || "Active";
+    if (status === "Closed") return page.closedJobs || "Closed";
+    return page.draftJobs || "Draft";
+  };
+
+  const getStatusStyles = (status: JobStatus) => {
+    switch (status) {
+      case "Active":
+        return "bg-[rgba(38,199,132,0.14)] text-[#4ff0b2] border border-[rgba(79,240,178,0.18)]";
+      case "Closed":
+        return "bg-[rgba(145,153,180,0.12)] text-[#c5cadb] border border-[rgba(197,202,219,0.14)]";
+      case "Draft":
+        return "bg-[rgba(147,117,255,0.12)] text-[#cbb8ff] border border-[rgba(203,184,255,0.14)]";
+      default:
+        return "bg-white/10 text-white border border-white/10";
+    }
+  };
 
   return (
     <div
@@ -132,16 +146,16 @@ function CompanyJobPostings() {
       dir={isRTL ? "rtl" : "ltr"}
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_65%_25%,rgba(0,194,255,0.09),transparent_10%),radial-gradient(circle_at_62%_80%,rgba(116,80,255,0.10),transparent_18%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.12] bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:90px_90px]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:90px_90px] opacity-[0.12]" />
 
-     <div className="relative z-10 mx-auto w-full max-w-[980px] px-6 pb-10 pt-10 md:px-8 xl:px-0">
+      <div className="relative z-10 mx-auto w-full max-w-[980px] px-6 pb-10 pt-10 md:px-8 xl:px-0">
         <button
           type="button"
           onClick={() => navigate("/company-dashboard")}
-          className={`mb-10 inline-flex items-center gap-3 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-6 py-3 text-[16px] font-semibold text-white/80 backdrop-blur-[8px] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-white`}
+          className="mb-10 inline-flex items-center gap-3 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-6 py-3 text-[16px] font-semibold text-white/80 backdrop-blur-[8px] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-white"
         >
           <ArrowLeft size={18} className={isRTL ? "rotate-180" : ""} />
-          Back
+          {common.back || "Back"}
         </button>
 
         <div
@@ -149,19 +163,17 @@ function CompanyJobPostings() {
             isRTL ? "max-[900px]:items-end" : ""
           }`}
         >
-          <div
-            className={`flex items-center gap-5`}
-          >
+          <div className="flex items-center gap-5">
             <div className="flex h-[62px] w-[62px] items-center justify-center rounded-[20px] bg-[linear-gradient(135deg,#7b61ff,#b13dff)] shadow-[0_12px_30px_rgba(139,92,246,0.28)]">
               <BriefcaseBusiness size={30} className="text-white" />
             </div>
 
             <div>
               <h1 className="text-[46px] font-extrabold leading-none text-white max-[900px]:text-[34px]">
-                Job Postings
+                {page.title || "Job Postings"}
               </h1>
               <p className="mt-3 text-[18px] text-white/50">
-                {allJobs.length} total jobs
+                {allJobs.length} {page.totalJobs || "total jobs"}
               </p>
             </div>
           </div>
@@ -169,10 +181,10 @@ function CompanyJobPostings() {
           <button
             type="button"
             onClick={() => navigate("/post-job")}
-            className={`inline-flex items-center gap-3 rounded-[14px] bg-[linear-gradient(135deg,#7f6bff,#9b3ff5)] px-6 py-3.5 text-[16px] font-bold text-white shadow-[0_14px_30px_rgba(139,92,246,0.25)] transition hover:scale-[1.02] hover:opacity-95`}
+            className="inline-flex items-center gap-3 rounded-[14px] bg-[linear-gradient(135deg,#7f6bff,#9b3ff5)] px-6 py-3.5 text-[16px] font-bold text-white shadow-[0_14px_30px_rgba(139,92,246,0.25)] transition hover:scale-[1.02] hover:opacity-95"
           >
             <Plus size={18} />
-            Post New Job
+            {page.postNewJob || "Post New Job"}
           </button>
         </div>
 
@@ -182,7 +194,8 @@ function CompanyJobPostings() {
               key={job.id}
               className={`relative rounded-[28px] border border-white/10 bg-[rgba(48,46,108,0.72)] px-7 py-7 shadow-[0_10px_35px_rgba(0,0,0,0.16)] backdrop-blur-[10px] transition hover:bg-[rgba(54,52,118,0.84)] ${
                 openMenuId === job.id ? "z-50" : "z-0"
-              }`}            >
+              }`}
+            >
               <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
                 <div className="min-w-0 flex-1">
                   <div
@@ -199,43 +212,37 @@ function CompanyJobPostings() {
                         job.status
                       )}`}
                     >
-                      {job.status}
+                      {getStatusLabel(job.status)}
                     </span>
                   </div>
 
-                  <div
-                    className={`flex flex-wrap items-center gap-x-8 gap-y-3 text-[15px] text-white/50`}
-                  >
-                    <div
-                      className={`flex items-center gap-2`}
-                    >
+                  <div className="flex flex-wrap items-center gap-x-8 gap-y-3 text-[15px] text-white/50">
+                    <div className="flex items-center gap-2">
                       <MapPin size={16} />
                       <span>{job.location}</span>
                     </div>
 
-                    <div
-                      className={`flex items-center gap-2`}
-                    >
+                    <div className="flex items-center gap-2">
                       <CircleDollarSign size={16} />
                       <span>{job.salary}</span>
                     </div>
 
                     <div className="text-white/50">
-                      <span>Posted {job.postedDate}</span>
+                      <span>
+                        {page.posted || "Posted"} {job.postedDate}
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                <div
-                  className={`flex flex-wrap items-center gap-6 xl:flex-nowrap ${
-                    isRTL ? "" : ""
-                  }`}
-                >
+                <div className="flex flex-wrap items-center gap-6 xl:flex-nowrap">
                   <div className="min-w-[95px] text-center">
                     <div className="text-[24px] font-extrabold text-white">
                       {job.applicants}
                     </div>
-                    <div className="text-[14px] text-white/45">Applicants</div>
+                    <div className="text-[14px] text-white/45">
+                      {page.applicants || "Applicants"}
+                    </div>
                   </div>
 
                   <div className="min-w-[70px] text-center">
@@ -243,17 +250,17 @@ function CompanyJobPostings() {
                       {job.newApplicants ? `+${job.newApplicants}` : ""}
                     </div>
                     <div className="text-[14px] text-white/45">
-                      {job.newApplicants ? "New" : ""}
+                      {job.newApplicants ? page.new || "New" : ""}
                     </div>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => navigate("/company-applications")}
-                    className={`inline-flex items-center gap-3 rounded-[14px] border border-[rgba(140,157,255,0.25)] bg-[rgba(255,255,255,0.02)] px-5 py-3 text-[15px] font-semibold text-[#b8c4ff] transition hover:bg-[rgba(255,255,255,0.06)]`}
+                    className="inline-flex items-center gap-3 rounded-[14px] border border-[rgba(140,157,255,0.25)] bg-[rgba(255,255,255,0.02)] px-5 py-3 text-[15px] font-semibold text-[#b8c4ff] transition hover:bg-[rgba(255,255,255,0.06)]"
                   >
                     <Users size={18} />
-                    View Applicants
+                    {page.viewCandidates || "View Candidates"}
                   </button>
 
                   <div className="relative">
@@ -268,13 +275,13 @@ function CompanyJobPostings() {
                     </button>
 
                     {openMenuId === job.id && (
-                      <div className="absolute right-0 top-full mt-2 w-[180px] rounded-[14px] bg-white text-black shadow-lg z-[9999]">
+                      <div className="absolute right-0 top-full z-[9999] mt-2 w-[180px] rounded-[14px] bg-white text-black shadow-lg">
                         <button className="flex w-full items-center gap-2 px-4 py-3 hover:bg-gray-100">
-                          View Details
+                          {page.viewDetails || "View Details"}
                         </button>
 
                         <button className="flex w-full items-center gap-2 px-4 py-3 hover:bg-gray-100">
-                          Edit Job
+                          {page.editJob || "Edit Job"}
                         </button>
                       </div>
                     )}
