@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   UserRound,
@@ -39,15 +39,6 @@ function CandidateRegisterPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  useEffect(() => {
-    const currentUser = JSON.parse(
-      localStorage.getItem("currentUser") || "null"
-    );
-
-    if (currentUser?.role === "candidate") {
-      navigate("/candidate-dashboard");
-    }
-  }, [navigate]);
 
   const jobTitles = [
     "Student",
@@ -242,7 +233,7 @@ function CandidateRegisterPage() {
     setSkills((prev) => prev.filter((skill) => skill !== skillToRemove));
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => { 
     e.preventDefault();
     setError("");
     setSuccess("");
@@ -308,62 +299,77 @@ function CandidateRegisterPage() {
       );
       return;
     }
-
-    const existingCandidates = JSON.parse(
-      localStorage.getItem("candidates") || "[]"
-    );
-
-    const emailExists = existingCandidates.some(
-      (candidate: any) =>
-        candidate.email?.trim().toLowerCase() === cleanEmail
-    );
-
-    if (emailExists) {
-      setError(
-        t?.candidateRegisterPage?.errors?.emailExists ||
-          "This email is already registered."
-      );
-      return;
-    }
-
     const candidateSummary =
-      cleanSummary ||
-      (t?.candidateRegisterPage?.defaultSummary ||
-        "Passionate professional looking for great opportunities and continuous growth.");
+  cleanSummary ||
+  t?.candidateRegisterPage?.defaultSummary ||
+  "Passionate professional looking for great opportunities and continuous growth.";
 
-    const newCandidate = {
-      name: cleanFullName,
-      fullName: cleanFullName,
-      email: cleanEmail,
-      password: cleanPassword,
-      role: "candidate",
-      phone: cleanPhone,
-      location: cleanLocation,
-      currentTitle,
-      experience,
-      skills,
-      summary: candidateSummary,
-      resumeName,
-      createdAt: new Date().toISOString(),
-    };
+try {
+  const response = await fetch(
+    "http://localhost:8080/api/users/register",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: cleanFullName,
+        email: cleanEmail,
+        password: cleanPassword,
+        role: "candidate",
+      }),
+    }
+  );
 
-    existingCandidates.push(newCandidate);
-    localStorage.setItem("candidates", JSON.stringify(existingCandidates));
+  const data = await response.json();
 
-    localStorage.setItem("currentUser", JSON.stringify(newCandidate));
-    localStorage.setItem("registeredUser", JSON.stringify(newCandidate));
-    localStorage.setItem("isLoggedIn", "true");
-    localStorage.setItem("name", cleanFullName);
-    localStorage.setItem("email", cleanEmail);
-    localStorage.setItem("role", "candidate");
-    localStorage.setItem("phone", cleanPhone);
-    localStorage.setItem("location", cleanLocation);
-    localStorage.setItem("currentTitle", currentTitle);
-    localStorage.setItem("experience", experience);
-    localStorage.setItem("skills", JSON.stringify(skills));
-    localStorage.setItem("summary", candidateSummary);
-    localStorage.setItem("resumeName", resumeName);
-    localStorage.setItem("isFirstLogin", "false");
+  if (!data.success) {
+    setError(data.message || "Registration failed.");
+    return;
+  }
+
+  const newCandidate = {
+    ...data.user,
+    fullName: cleanFullName,
+    name: cleanFullName,
+    role: "candidate",
+    phone: cleanPhone,
+    location: cleanLocation,
+    currentTitle,
+    experience,
+    skills,
+    summary: candidateSummary,
+    resumeName,
+  };
+
+  localStorage.setItem("currentUser", JSON.stringify(newCandidate));
+  localStorage.setItem("registeredUser", JSON.stringify(newCandidate));
+  localStorage.setItem("isLoggedIn", "true");
+  localStorage.setItem("name", cleanFullName);
+  localStorage.setItem("email", cleanEmail);
+  localStorage.setItem("role", "candidate");
+  localStorage.setItem("phone", cleanPhone);
+  localStorage.setItem("location", cleanLocation);
+  localStorage.setItem("currentTitle", currentTitle);
+  localStorage.setItem("experience", experience);
+  localStorage.setItem("skills", JSON.stringify(skills));
+  localStorage.setItem("summary", candidateSummary);
+  localStorage.setItem("resumeName", resumeName);
+  localStorage.setItem("isFirstLogin", "false");
+
+  setSuccess(
+    t?.candidateRegisterPage?.success ||
+      "Candidate account created successfully!"
+  );
+
+  setTimeout(() => {
+    navigate("/candidate-dashboard");
+  }, 900);
+
+} catch (error) {
+  console.error(error);
+  setError("Server connection failed.");
+}
 
     setSuccess(
       t?.candidateRegisterPage?.success ||

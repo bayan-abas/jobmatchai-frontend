@@ -20,60 +20,45 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
+const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError("");
 
-    const normalizedEmail = email.trim().toLowerCase();
-    const normalizedPassword = password.trim();
+  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedPassword = password.trim();
 
-    if (!normalizedEmail) {
-      setError(
-        t?.loginPage?.errors?.emailRequired || "Please enter your email."
-      );
-      return;
-    }
+  if (!normalizedEmail) {
+    setError(t?.loginPage?.errors?.emailRequired || "Please enter your email.");
+    return;
+  }
 
-    if (!normalizedPassword) {
-      setError(
-        t?.loginPage?.errors?.passwordRequired || "Please enter your password."
-      );
-      return;
-    }
-
-    const candidates = [
-      ...JSON.parse(localStorage.getItem("candidates") || "[]"),
-      ...JSON.parse(localStorage.getItem("users") || "[]"),
-    ];
-
-    const companies = JSON.parse(localStorage.getItem("companies") || "[]");
-
-    const foundCandidate = candidates.find(
-      (candidate: any) =>
-        candidate?.email?.trim().toLowerCase() === normalizedEmail
+  if (!normalizedPassword) {
+    setError(
+      t?.loginPage?.errors?.passwordRequired || "Please enter your password."
     );
+    return;
+  }
 
-    const foundCompany = companies.find(
-      (company: any) =>
-        company?.email?.trim().toLowerCase() === normalizedEmail
-    );
+  try {
+    const response = await fetch("http://localhost:8080/api/users/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: normalizedEmail,
+        password: normalizedPassword,
+      }),
+    });
 
-    const foundUser = foundCandidate || foundCompany;
+    const data = await response.json();
 
-    if (!foundUser) {
-      setError(
-        t?.loginPage?.errors?.noAccount ||
-          "No account found with this email."
-      );
+    if (!data.success) {
+      setError(data.message || "Login failed.");
       return;
     }
 
-    if ((foundUser.password || "").trim() !== normalizedPassword) {
-      setError(
-        t?.loginPage?.errors?.wrongPassword || "Incorrect password."
-      );
-      return;
-    }
+    const foundUser = data.user;
 
     localStorage.setItem("currentUser", JSON.stringify(foundUser));
     localStorage.setItem("registeredUser", JSON.stringify(foundUser));
@@ -81,19 +66,8 @@ function LoginPage() {
     localStorage.setItem("name", foundUser.name || foundUser.companyName || "");
     localStorage.setItem("email", foundUser.email || "");
     localStorage.setItem("role", foundUser.role || "");
-    localStorage.setItem("phone", foundUser.phone || "");
-    localStorage.setItem("location", foundUser.location || "");
 
     if (foundUser.role === "candidate") {
-      localStorage.setItem("currentTitle", foundUser.currentTitle || "");
-      localStorage.setItem("experience", foundUser.experience || "");
-      localStorage.setItem("skills", JSON.stringify(foundUser.skills || []));
-      localStorage.setItem(
-        "summary",
-        foundUser.summary ||
-          "Passionate professional looking for great opportunities and continuous growth."
-      );
-      localStorage.setItem("resumeName", foundUser.resumeName || "");
       localStorage.setItem("isFirstLogin", "false");
       navigate("/candidate-dashboard");
       return;
@@ -101,17 +75,17 @@ function LoginPage() {
 
     if (foundUser.role === "company") {
       localStorage.setItem("currentCompany", JSON.stringify(foundUser));
-      localStorage.setItem("industry", foundUser.industry || "");
-      localStorage.setItem("companySize", foundUser.companySize || "");
-      localStorage.setItem("website", foundUser.website || "");
-      localStorage.setItem("description", foundUser.description || "");
       localStorage.setItem("isFirstLogin", "false");
       navigate("/company-dashboard");
       return;
     }
 
-    setError("Something went wrong.");
-  };
+    setError("Unknown user role.");
+  } catch (error) {
+    console.error(error);
+    setError("Server connection failed.");
+  }
+};
 
   const inputClass = `w-full rounded-2xl border border-white/10 bg-white/5 ${
     isRTL ? "pr-12 pl-4 text-right" : "pl-12 pr-4 text-left"

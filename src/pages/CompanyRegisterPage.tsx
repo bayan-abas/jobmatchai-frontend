@@ -80,7 +80,7 @@ function CompanyRegisterPage() {
     }));
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
@@ -137,54 +137,63 @@ function CompanyRegisterPage() {
       return;
     }
 
-    const existingCompanies = JSON.parse(localStorage.getItem("companies") || "[]");
-
-    const emailExists = existingCompanies.some(
-      (company: any) => company.email?.trim().toLowerCase() === cleanEmail
-    );
-
-    if (emailExists) {
-      setError(tr.errors.emailExists);
-      return;
-    }
-
-    const newCompany = {
-      companyName: cleanCompanyName,
+try {
+  const response = await fetch("http://localhost:8080/api/users/register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: cleanCompanyName,
       email: cleanEmail,
       password: cleanPassword,
-      phone: cleanPhone,
-      location: cleanLocation,
-      industry,
-      companySize,
-      website: cleanWebsite,
-      description: cleanDescription,
       role: "company",
-      createdAt: new Date().toISOString(),
-    };
+    }),
+  });
 
-    existingCompanies.push(newCompany);
-    localStorage.setItem("companies", JSON.stringify(existingCompanies));
+  const data = await response.json();
 
-    localStorage.setItem("currentUser", JSON.stringify(newCompany));
-    localStorage.setItem("currentCompany", JSON.stringify(newCompany));
-    localStorage.setItem("registeredUser", JSON.stringify(newCompany));
-    localStorage.setItem("isLoggedIn", "true");
-    localStorage.setItem("role", "company");
-    localStorage.setItem("name", newCompany.companyName);
-    localStorage.setItem("email", newCompany.email);
-    localStorage.setItem("phone", newCompany.phone);
-    localStorage.setItem("location", newCompany.location);
-    localStorage.setItem("industry", newCompany.industry);
-    localStorage.setItem("companySize", newCompany.companySize);
-    localStorage.setItem("website", newCompany.website);
-    localStorage.setItem("description", newCompany.description);
-    localStorage.setItem("isFirstLogin", "false");
+  if (!data.success) {
+    setError(data.message || "Registration failed.");
+    return;
+  }
 
-    setSuccess(tr.success);
+  const newCompany = {
+    ...data.user,
+    companyName: cleanCompanyName,
+    phone: cleanPhone,
+    location: cleanLocation,
+    industry,
+    companySize,
+    website: cleanWebsite,
+    description: cleanDescription,
+    role: "company",
+  };
 
-    setTimeout(() => {
-      navigate("/company-dashboard");
-    }, 900);
+  localStorage.setItem("currentUser", JSON.stringify(newCompany));
+  localStorage.setItem("currentCompany", JSON.stringify(newCompany));
+  localStorage.setItem("registeredUser", JSON.stringify(newCompany));
+  localStorage.setItem("isLoggedIn", "true");
+  localStorage.setItem("role", "company");
+  localStorage.setItem("name", newCompany.companyName);
+  localStorage.setItem("email", newCompany.email);
+  localStorage.setItem("phone", newCompany.phone);
+  localStorage.setItem("location", newCompany.location);
+  localStorage.setItem("industry", newCompany.industry);
+  localStorage.setItem("companySize", newCompany.companySize);
+  localStorage.setItem("website", newCompany.website);
+  localStorage.setItem("description", newCompany.description);
+  localStorage.setItem("isFirstLogin", "false");
+
+  setSuccess(tr.success);
+
+  setTimeout(() => {
+    navigate("/company-dashboard");
+  }, 900);
+} catch (error) {
+  console.error(error);
+  setError("Server connection failed.");
+}
   };
 
   const inputClass = `w-full rounded-2xl border border-white/10 bg-white/5 ${
