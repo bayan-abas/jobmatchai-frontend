@@ -225,6 +225,20 @@ export const translations: Record<Language, any> = {
       profileOnTrack: "Your profile is on the right track",
       upgradePremium: "Upgrade to Premium",
       monthlyUsage: "Monthly usage",
+      match: "Match",
+remote: "Remote",
+
+
+plan: {
+  free: "Free Plan",
+  used: "7 of 10 applications used",
+  remaining: "You still have",
+  remainingCount: "3 applications",
+  upgradeText:
+    "left this month. Upgrade your plan to unlock unlimited job applications and premium career tools.",
+  monthlyUsage: "Monthly usage",
+  upgradeButton: "Upgrade to Premium",
+},
     },
 
     companyDashboard: {
