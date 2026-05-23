@@ -3,6 +3,7 @@ import {
   FileText,
   UploadCloud,
   Trash2,
+  Eye,
   Sparkles,
   ArrowLeft,
   CheckCircle2,
@@ -36,31 +37,125 @@ function ResumeManager() {
   const [analysisStep, setAnalysisStep] = useState("");
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
 
+  const getCandidateEmail = () => {
+    const readObject = (key: string) => {
+      try {
+        const value = localStorage.getItem(key);
+        return value ? JSON.parse(value) : null;
+      } catch {
+        return null;
+      }
+    };
+
+    const user =
+      readObject("currentUser") ||
+      readObject("loggedInUser") ||
+      readObject("user") ||
+      readObject("candidateProfile") ||
+      readObject("userProfile") ||
+      {};
+
+    return (
+      user.email ||
+      localStorage.getItem("email") ||
+      localStorage.getItem("userEmail") ||
+      localStorage.getItem("candidateEmail") ||
+      ""
+    );
+  };
+
   useEffect(() => {
     const saved = localStorage.getItem("resumeFileName");
     const savedAnalysis = localStorage.getItem("resumeAnalysis");
 
     if (saved) setFileName(saved);
     if (savedAnalysis) setAnalysis(JSON.parse(savedAnalysis));
+
+    const fetchCurrentCV = async () => {
+      try {
+        const email = getCandidateEmail();
+
+        if (!email) return;
+
+        const response = await fetch(
+          `http://localhost:8080/api/cv/current?email=${encodeURIComponent(email)}`
+        );
+
+        if (!response.ok) return;
+
+        const currentFileName = await response.text();
+
+        if (currentFileName) {
+          setFileName(currentFileName);
+          localStorage.setItem("resumeFileName", currentFileName);
+        }
+      } catch (error) {
+        console.error("Failed to fetch current CV:", error);
+      }
+    };
+
+    fetchCurrentCV();
   }, []);
 
   const handleChoose = () => {
     fileInputRef.current?.click();
   };
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setFileName(file.name);
-    setAnalysis(null);
-    setIsAnalyzing(false);
-    setProgress(0);
-    setAnalysisStep("");
+    try {
+      const email = getCandidateEmail();
 
-    localStorage.setItem("resumeFileName", file.name);
-    localStorage.removeItem("resumeScore");
-    localStorage.removeItem("resumeAnalysis");
+      if (!email) {
+        alert("User email not found. Please sign in again.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("email", email);
+
+      const response = await fetch("http://localhost:8080/api/cv/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Upload failed");
+      }
+
+      const savedFileName = await response.text();
+
+      setFileName(savedFileName);
+      setAnalysis(null);
+      setIsAnalyzing(false);
+      setProgress(0);
+      setAnalysisStep("");
+
+      localStorage.setItem("resumeFileName", savedFileName);
+      localStorage.removeItem("resumeScore");
+      localStorage.removeItem("resumeAnalysis");
+
+      alert("CV uploaded successfully!");
+    } catch (error) {
+      console.error("CV upload error:", error);
+      alert("Failed to upload CV. Make sure the backend is running.");
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleViewCV = () => {
+    if (!fileName) return;
+
+    window.open(
+      `http://localhost:8080/api/cv/download/${encodeURIComponent(fileName)}`,
+      "_blank"
+    );
   };
 
   const handleDelete = () => {
@@ -234,6 +329,17 @@ function ResumeManager() {
 
                 {fileName && (
                   <button
+                    onClick={handleViewCV}
+                    disabled={isAnalyzing}
+                    className="inline-flex items-center gap-2 rounded-full border border-violet-400/20 bg-violet-400/10 px-5 py-2.5 text-sm font-semibold text-violet-200 transition hover:bg-violet-400/15 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Eye size={16} />
+                    View CV
+                  </button>
+                )}
+
+                {fileName && (
+                  <button
                     onClick={handleAnalyze}
                     disabled={isAnalyzing}
                     className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-5 py-2.5 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-60"
@@ -315,6 +421,15 @@ function ResumeManager() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={handleViewCV}
+                    disabled={isAnalyzing}
+                    className="inline-flex items-center gap-2 rounded-full border border-violet-400/20 bg-violet-400/10 px-5 py-2.5 text-sm font-semibold text-violet-200 transition hover:bg-violet-400/15 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Eye size={16} />
+                    View CV
+                  </button>
+
                   <button
                     onClick={handleAnalyze}
                     disabled={isAnalyzing}

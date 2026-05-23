@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
@@ -34,6 +34,58 @@ type MatchItem = {
   score: number;
 };
 
+type BackendApplication = {
+  id?: number;
+  jobId?: number;
+  title?: string;
+  jobTitle?: string;
+  company?: string;
+  companyName?: string;
+  location?: string;
+  status?: string;
+  appliedDate?: string;
+  matchPercent?: number | string;
+  matchScore?: number | string;
+};
+
+type BackendJob = {
+  id?: number;
+  title?: string;
+  company?: string;
+  companyName?: string;
+  location?: string;
+  remote?: boolean;
+  matchPercent?: number | string;
+  matchScore?: number | string;
+};
+
+const API_BASE_URL = "http://localhost:8080";
+const FREE_PLAN_LIMIT = 10;
+
+function toNumber(value: unknown, fallback = 80) {
+  if (value === null || value === undefined || value === "") return fallback;
+  const num = Number(String(value).replace("%", ""));
+  return Number.isNaN(num) ? fallback : num;
+}
+
+function getStatusClass(status: string) {
+  const clean = status.toLowerCase();
+
+  if (clean.includes("short")) {
+    return "border border-violet-400/20 bg-violet-500/12 text-violet-300";
+  }
+
+  if (clean.includes("ai")) {
+    return "border border-emerald-400/20 bg-emerald-500/12 text-emerald-300";
+  }
+
+  if (clean.includes("applied")) {
+    return "border border-cyan-400/20 bg-cyan-500/12 text-cyan-300";
+  }
+
+  return "border border-yellow-400/20 bg-yellow-500/12 text-yellow-300";
+}
+
 function ScoreRing({ value }: { value: number }) {
   const ringColor =
     value >= 85 ? "#49e38d" : value >= 75 ? "#8b93ff" : "#f5c542";
@@ -61,107 +113,116 @@ function CandidateDashboard() {
   const isRTL = language === "ar" || language === "he";
 
   const userName = localStorage.getItem("name") || "User";
-  const isFirstLogin = localStorage.getItem("isFirstLogin") === "true";
+  const userEmail =
+    localStorage.getItem("email") ||
+    localStorage.getItem("userEmail") ||
+    localStorage.getItem("candidateEmail") ||
+    "";
+
+  const [topMatches, setTopMatches] = useState<MatchItem[]>([]);
+  const [applications, setApplications] = useState<RecentApplication[]>([]);
+  const [jobsCount, setJobsCount] = useState("0");
+  const [applicationsCount, setApplicationsCount] = useState("0");
+
+  const usedApplications = Number(applicationsCount);
+  const remainingApplications = Math.max(FREE_PLAN_LIMIT - usedApplications, 0);
+  const usagePercent = Math.min(
+    Math.round((usedApplications / FREE_PLAN_LIMIT) * 100),
+    100
+  );
 
   useEffect(() => {
-    if (isFirstLogin) {
-      localStorage.setItem("isFirstLogin", "false");
-    }
-  }, [isFirstLogin]);
+    const fetchDashboardData = async () => {
+      try {
+        const [jobsRes, appsRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/jobs/all`),
+          userEmail
+            ? fetch(
+                `${API_BASE_URL}/api/applications/candidate/${encodeURIComponent(
+                  userEmail
+                )}`
+              )
+            : fetch(`${API_BASE_URL}/api/applications/all`),
+        ]);
 
-  const stats = [
-    {
-      icon: <BriefcaseBusiness size={22} />,
-      value: "24",
-      label: t.dashboard.stats.jobMatches,
-      iconBg: "bg-[#5e66ff1f]",
-      iconColor: "text-[#7c88ff]",
-      onClick: () => navigate("/job-matches"),
-    },
-    {
-      icon: <FileText size={22} />,
-      value: "5",
-      label: t.dashboard.stats.applications,
-      iconBg: "bg-[#22d3ee1f]",
-      iconColor: "text-[#67e8f9]",
-      onClick: () => navigate("/applications"),
-    },
-    {
-      icon: <CalendarDays size={22} />,
-      value: "3",
-      label: t.dashboard.stats.interviews,
-      iconBg: "bg-[#34d3991f]",
-      iconColor: "text-[#6ee7b7]",
-    },
-    {
-      icon: <Sparkles size={22} />,
-      value: "78%",
-      label: t.dashboard.stats.profileScore,
-      iconBg: "bg-[#a855f71f]",
-      iconColor: "text-[#d8b4fe]",
-      onClick: () => navigate("/profile"),
-    },
-  ];
+        const jobsData: BackendJob[] = jobsRes.ok ? await jobsRes.json() : [];
+        const appsData: BackendApplication[] = appsRes.ok
+          ? await appsRes.json()
+          : [];
 
-  const topMatches: MatchItem[] = [
-    {
-      score: 92,
-      title: "Senior Frontend Developer",
-      company: "Check Point",
-      location: "Tel Aviv",
-      remote: true,
-    },
-    {
-      score: 87,
-      title: "Full Stack Engineer",
-      company: "Wix",
-      location: "Tel Aviv",
-      remote: true,
-    },
-    {
-      score: 85,
-      title: "React Developer",
-      company: "InnovateLab",
-      location: "Ramat Gan",
-      remote: false,
-    },
-  ];
+        setJobsCount(String(jobsData.length));
+        setApplicationsCount(String(appsData.length));
 
-  const applications: RecentApplication[] = [
-    {
-      id: 1,
-      title: "Senior Frontend Developer",
-      company: "TechCorp",
-      location: "Tel Aviv",
-      percent: 92,
-      status: t.dashboard.applications.underReview,
-      days: t.dashboard.applications.daysAgo2,
-      statusClass:
-        "border border-yellow-400/20 bg-yellow-500/12 text-yellow-300",
-    },
-    {
-      id: 2,
-      title: "Full Stack Engineer",
-      company: "StartupXYZ",
-      location: "Herzliya",
-      percent: 87,
-      status: t.dashboard.applications.aiScreening,
-      days: t.dashboard.applications.daysAgo5,
-      statusClass:
-        "border border-emerald-400/20 bg-emerald-500/12 text-emerald-300",
-    },
-    {
-      id: 3,
-      title: "React Developer",
-      company: "InnovateLab",
-      location: "Ramat Gan",
-      percent: 85,
-      status: t.dashboard.applications.shortlisted,
-      days: t.dashboard.applications.dayAgo1,
-      statusClass:
-        "border border-violet-400/20 bg-violet-500/12 text-violet-300",
-    },
-  ];
+        setTopMatches(
+          jobsData.slice(0, 3).map((job) => ({
+            title: job.title || "Job Position",
+            company: job.company || job.companyName || "Company",
+            location: job.location || "Not specified",
+            remote: job.remote ?? true,
+            score: toNumber(job.matchPercent ?? job.matchScore, 80),
+          }))
+        );
+
+        setApplications(
+          appsData.slice(0, 3).map((app) => {
+            const status = app.status || "Under Review";
+
+            return {
+              id: app.id || app.jobId || Math.floor(Math.random() * 100000),
+              title: app.title || app.jobTitle || "Application",
+              company: app.company || app.companyName || "Company",
+              location: app.location || "Not specified",
+              percent: toNumber(app.matchPercent ?? app.matchScore, 80),
+              status,
+              days: app.appliedDate || "Recently",
+              statusClass: getStatusClass(status),
+            };
+          })
+        );
+      } catch (error) {
+        console.error("Dashboard fetch error:", error);
+      }
+    };
+
+    fetchDashboardData();
+  }, [userEmail]);
+
+  const stats = useMemo(
+    () => [
+      {
+        icon: <BriefcaseBusiness size={22} />,
+        value: jobsCount,
+        label: t.dashboard.stats.jobMatches,
+        iconBg: "bg-[#5e66ff1f]",
+        iconColor: "text-[#7c88ff]",
+        onClick: () => navigate("/job-matches"),
+      },
+      {
+        icon: <FileText size={22} />,
+        value: applicationsCount,
+        label: t.dashboard.stats.applications,
+        iconBg: "bg-[#22d3ee1f]",
+        iconColor: "text-[#67e8f9]",
+        onClick: () => navigate("/applications"),
+      },
+      {
+        icon: <CalendarDays size={22} />,
+        value: "3",
+        label: t.dashboard.stats.interviews,
+        iconBg: "bg-[#34d3991f]",
+        iconColor: "text-[#6ee7b7]",
+      },
+      {
+        icon: <Sparkles size={22} />,
+        value: "78%",
+        label: t.dashboard.stats.profileScore,
+        iconBg: "bg-[#a855f71f]",
+        iconColor: "text-[#d8b4fe]",
+        onClick: () => navigate("/profile"),
+      },
+    ],
+    [jobsCount, applicationsCount, navigate, t]
+  );
 
   const profilePercent = 78;
 
@@ -194,10 +255,7 @@ function CandidateDashboard() {
 
             <div className={isRTL ? "text-right" : "text-left"}>
               <h1 className="text-[42px] font-extrabold leading-tight text-white">
-                {isFirstLogin
-                  ? `${t.dashboard.welcome}, ${userName}`
-                  : `${t.dashboard.welcomeBack}, ${userName}`}{" "}
-                👋
+                {`${t.dashboard.welcome}, ${userName}`} 👋
               </h1>
               <p className="mt-2 text-[17px] text-[#aeb4d6]">
                 {t.dashboard.subtitle}
@@ -259,78 +317,81 @@ function CandidateDashboard() {
                 className="inline-flex items-center gap-2 text-[15px] font-semibold text-[#dbe2ff] transition hover:text-white"
               >
                 {t.dashboard.topMatches.viewAll}
-                <ChevronRight
-                  size={18}
-                  className={isRTL ? "rotate-180" : ""}
-                />
+                <ChevronRight size={18} className={isRTL ? "rotate-180" : ""} />
               </button>
             </div>
 
             <div className="space-y-5">
-              {topMatches.map((job) => (
-                <article
-                  key={job.title}
-                  onClick={() =>
-                    navigate("/job-matches", {
-                      state: { selectedJobTitle: job.title },
-                    })
-                  }
-                  className="group cursor-pointer rounded-[28px] border border-white/10 bg-[rgba(50,52,108,0.78)] px-5 py-5 transition hover:border-white/20 hover:bg-[rgba(56,58,118,0.95)]"
-                >
-                  <div className="flex flex-col gap-5 md:flex-row md:items-center">
-                    <div className="flex flex-col items-center justify-center md:justify-start">
-                      <ScoreRing value={job.score} />
-                    </div>
-
-                    <div className="flex-1">
-                      <div className="mb-3 flex flex-wrap items-center gap-3">
-                        <h2 className="text-[22px] font-extrabold text-white">
-                          {job.title}
-                        </h2>
-
-                        <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-semibold text-emerald-300">
-                          {t.dashboard.match}
-                        </span>
+              {topMatches.length === 0 ? (
+                <div className="rounded-[28px] border border-white/10 bg-[rgba(50,52,108,0.78)] px-5 py-8 text-center text-white/60">
+                  No job matches yet.
+                </div>
+              ) : (
+                topMatches.map((job) => (
+                  <article
+                    key={`${job.title}-${job.company}`}
+                    onClick={() =>
+                      navigate("/job-matches", {
+                        state: { selectedJobTitle: job.title },
+                      })
+                    }
+                    className="group cursor-pointer rounded-[28px] border border-white/10 bg-[rgba(50,52,108,0.78)] px-5 py-5 transition hover:border-white/20 hover:bg-[rgba(56,58,118,0.95)]"
+                  >
+                    <div className="flex flex-col gap-5 md:flex-row md:items-center">
+                      <div className="flex flex-col items-center justify-center md:justify-start">
+                        <ScoreRing value={job.score} />
                       </div>
 
-                      <div
-                        className={`mb-3 flex items-center gap-2 text-[#c4cae9] ${
-                          isRTL ? "justify-end md:justify-start" : ""
-                        }`}
-                      >
-                        <Building2 size={16} />
-                        <span className="text-[15px]">{job.company}</span>
-                      </div>
+                      <div className="flex-1">
+                        <div className="mb-3 flex flex-wrap items-center gap-3">
+                          <h2 className="text-[22px] font-extrabold text-white">
+                            {job.title}
+                          </h2>
 
-                      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[#aeb4d6]">
-                        <div className="flex items-center gap-2">
-                          <MapPin size={16} />
-                          <span>{job.location}</span>
+                          <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-semibold text-emerald-300">
+                            {t.dashboard.match}
+                          </span>
                         </div>
 
-                        {job.remote && (
-                          <div className="flex items-center gap-2 text-cyan-300">
-                            <Wifi size={16} />
-                            <span>{t.dashboard.remote}</span>
+                        <div
+                          className={`mb-3 flex items-center gap-2 text-[#c4cae9] ${
+                            isRTL ? "justify-end md:justify-start" : ""
+                          }`}
+                        >
+                          <Building2 size={16} />
+                          <span className="text-[15px]">{job.company}</span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[#aeb4d6]">
+                          <div className="flex items-center gap-2">
+                            <MapPin size={16} />
+                            <span>{job.location}</span>
                           </div>
-                        )}
+
+                          {job.remote && (
+                            <div className="flex items-center gap-2 text-cyan-300">
+                              <Wifi size={16} />
+                              <span>{t.dashboard.remote}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-end">
+                        <button
+                          type="button"
+                          className="flex h-11 w-11 items-center justify-center rounded-full text-white/30 transition group-hover:bg-white/5 group-hover:text-white/70"
+                        >
+                          <ChevronRight
+                            size={22}
+                            className={isRTL ? "rotate-180" : ""}
+                          />
+                        </button>
                       </div>
                     </div>
-
-                    <div className="flex items-center justify-end">
-                      <button
-                        type="button"
-                        className="flex h-11 w-11 items-center justify-center rounded-full text-white/30 transition group-hover:bg-white/5 group-hover:text-white/70"
-                      >
-                        <ChevronRight
-                          size={22}
-                          className={isRTL ? "rotate-180" : ""}
-                        />
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                ))
+              )}
             </div>
           </div>
 
@@ -356,64 +417,67 @@ function CandidateDashboard() {
                 className="inline-flex items-center gap-2 text-[15px] font-semibold text-[#dbe2ff] transition hover:text-white"
               >
                 {t.dashboard.applications.viewAll}
-                <ChevronRight
-                  size={18}
-                  className={isRTL ? "rotate-180" : ""}
-                />
+                <ChevronRight size={18} className={isRTL ? "rotate-180" : ""} />
               </button>
             </div>
 
             <div className="space-y-4">
-              {applications.map((app) => (
-                <article
-                  key={app.id}
-                  onClick={() =>
-                    navigate("/applications", {
-                      state: { selectedApplicationId: app.id },
-                    })
-                  }
-                  className="group cursor-pointer rounded-[26px] border border-white/10 bg-[rgba(50,52,108,0.78)] px-5 py-5 transition hover:border-white/20 hover:bg-[rgba(56,58,118,0.95)]"
-                >
-                  <div className="flex items-start gap-4">
-                    <ScoreRing value={app.percent} />
+              {applications.length === 0 ? (
+                <div className="rounded-[26px] border border-white/10 bg-[rgba(50,52,108,0.78)] px-5 py-8 text-center text-white/60">
+                  No recent applications yet.
+                </div>
+              ) : (
+                applications.map((app) => (
+                  <article
+                    key={app.id}
+                    onClick={() =>
+                      navigate("/applications", {
+                        state: { selectedApplicationId: app.id },
+                      })
+                    }
+                    className="group cursor-pointer rounded-[26px] border border-white/10 bg-[rgba(50,52,108,0.78)] px-5 py-5 transition hover:border-white/20 hover:bg-[rgba(56,58,118,0.95)]"
+                  >
+                    <div className="flex items-start gap-4">
+                      <ScoreRing value={app.percent} />
 
-                    <div className="min-w-0 flex-1">
-                      <div className="mb-2 flex flex-wrap items-center gap-3">
-                        <h4 className="truncate text-[20px] font-extrabold text-white">
-                          {app.title}
-                        </h4>
-                        <span
-                          className={`rounded-full px-3 py-1 text-sm font-semibold ${app.statusClass}`}
-                        >
-                          {app.status}
-                        </span>
-                      </div>
-
-                      <div className="mb-2 flex items-center gap-2 text-[#c4cae9]">
-                        <Building2 size={16} />
-                        <span className="text-[15px]">{app.company}</span>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[#aeb4d6]">
-                        <div className="flex items-center gap-2">
-                          <MapPin size={16} />
-                          <span>{app.location}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-2 flex flex-wrap items-center gap-3">
+                          <h4 className="truncate text-[20px] font-extrabold text-white">
+                            {app.title}
+                          </h4>
+                          <span
+                            className={`rounded-full px-3 py-1 text-sm font-semibold ${app.statusClass}`}
+                          >
+                            {app.status}
+                          </span>
                         </div>
-                        <div className="text-[14px] text-white/45">
-                          {app.days}
+
+                        <div className="mb-2 flex items-center gap-2 text-[#c4cae9]">
+                          <Building2 size={16} />
+                          <span className="text-[15px]">{app.company}</span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[#aeb4d6]">
+                          <div className="flex items-center gap-2">
+                            <MapPin size={16} />
+                            <span>{app.location}</span>
+                          </div>
+                          <div className="text-[14px] text-white/45">
+                            {app.days}
+                          </div>
                         </div>
                       </div>
+
+                      <ChevronRight
+                        size={22}
+                        className={`mt-1 text-white/30 transition group-hover:text-white/70 ${
+                          isRTL ? "rotate-180" : ""
+                        }`}
+                      />
                     </div>
-
-                    <ChevronRight
-                      size={22}
-                      className={`mt-1 text-white/30 transition group-hover:text-white/70 ${
-                        isRTL ? "rotate-180" : ""
-                      }`}
-                    />
-                  </div>
-                </article>
-              ))}
+                  </article>
+                ))
+              )}
             </div>
 
             <button
@@ -488,13 +552,13 @@ function CandidateDashboard() {
               </div>
 
               <h3 className="text-[28px] font-extrabold text-white">
-                {t.dashboard.plan.used}
+                {usedApplications} of {FREE_PLAN_LIMIT} applications used
               </h3>
 
               <p className="mt-2 text-[16px] leading-7 text-[#b9c0ea]">
                 {t.dashboard.plan.remaining}{" "}
                 <span className="font-bold text-white">
-                  {t.dashboard.plan.remainingCount}
+                  {remainingApplications}
                 </span>{" "}
                 {t.dashboard.plan.upgradeText}
               </p>
@@ -505,12 +569,15 @@ function CandidateDashboard() {
                 </span>
 
                 <span className="rounded-full bg-white/8 px-3 py-1 text-[13px] font-semibold text-white/70">
-                  70%
+                  {usagePercent}%
                 </span>
               </div>
 
               <div className="mt-3 h-[10px] w-full max-w-[420px] overflow-hidden rounded-full bg-white/10">
-                <div className="h-full w-[70%] rounded-full bg-gradient-to-r from-[#8b5cf6] via-[#a855f7] to-[#ec4899]" />
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-[#8b5cf6] via-[#a855f7] to-[#ec4899] transition-all duration-700"
+                  style={{ width: `${usagePercent}%` }}
+                />
               </div>
             </div>
 

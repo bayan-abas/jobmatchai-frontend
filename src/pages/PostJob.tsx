@@ -43,43 +43,60 @@ function PostJob() {
     alert("Job saved as draft!");
   };
 
-  const handlePostJob = () => {
+  const handlePostJob = async () => {
     if (!jobTitle.trim() || !description.trim()) {
       alert("Please fill in Job Title and Description.");
       return;
     }
 
-    const newJob = {
-      id: Date.now(),
-      title: jobTitle,
-      description,
-      location,
-      remoteWork,
-      seniorityLevel,
-      employmentType,
-      minExperience,
-      maxExperience,
-      minSalary,
-      maxSalary,
-      skills,
-      status: "Active",
-      postedDate: new Date().toLocaleDateString(),
-    };
+    try {
+      const response = await fetch("http://localhost:8080/api/jobs/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: jobTitle,
+          companyName: "JobMatchAI",
+          location: remoteWork ? `${location || "Remote"} / Remote` : location,
+          type: employmentType,
+          salary:
+            minSalary || maxSalary
+              ? `${minSalary || "0"} - ${maxSalary || "Open"}`
+              : "Not specified",
+          description,
+          requirements: [
+            seniorityLevel ? `Seniority: ${seniorityLevel}` : "",
+            minExperience || maxExperience
+              ? `Experience: ${minExperience || "0"} - ${maxExperience || "Open"
+              } years`
+              : "",
+          ]
+            .filter(Boolean)
+            .join(" | "),
+          skills: skills.join(", "),
+        }),
+      });
 
-    const existingJobs = JSON.parse(localStorage.getItem("postedJobs") || "[]");
-    const updatedJobs = [newJob, ...existingJobs];
+      const data = await response.json();
 
-    localStorage.setItem("postedJobs", JSON.stringify(updatedJobs));
+      if (!data.success) {
+        alert(data.message || "Failed to post job.");
+        return;
+      }
 
-    alert("Job posted successfully!");
-    navigate("/company-job-postings");
+      alert("Job posted successfully!");
+      navigate("/company-job-postings");
+    } catch (error) {
+      console.error(error);
+      alert("Server connection failed.");
+    }
   };
 
   return (
     <section
-      className={`relative min-h-[calc(100vh-78px)] overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(87,57,255,0.24),transparent_24%),linear-gradient(90deg,#15124a_0%,#161354_38%,#121a58_100%)] text-white ${
-        isRTL ? "text-right" : "text-left"
-      }`}
+      className={`relative min-h-[calc(100vh-78px)] overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(87,57,255,0.24),transparent_24%),linear-gradient(90deg,#15124a_0%,#161354_38%,#121a58_100%)] text-white ${isRTL ? "text-right" : "text-left"
+        }`}
       dir={isRTL ? "rtl" : "ltr"}
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_65%_25%,rgba(0,194,255,0.10),transparent_10%),radial-gradient(circle_at_62%_80%,rgba(116,80,255,0.10),transparent_18%)]" />
@@ -89,15 +106,13 @@ function PostJob() {
         <button
           type="button"
           onClick={() => navigate("/company-job-postings")}
-          className={`mb-10 inline-flex items-center gap-3 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-6 py-3 text-[16px] font-semibold text-white/85 backdrop-blur-[8px] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-white`}
+          className="mb-10 inline-flex items-center gap-3 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-6 py-3 text-[16px] font-semibold text-white/85 backdrop-blur-[8px] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-white"
         >
           <ArrowLeft size={18} className={isRTL ? "rotate-180" : ""} />
           Back to Jobs
         </button>
 
-        <div
-          className={`mb-10 flex items-center gap-5`}
-        >
+        <div className="mb-10 flex items-center gap-5">
           <div className="flex h-[62px] w-[62px] items-center justify-center rounded-[20px] bg-[linear-gradient(135deg,#7b61ff,#b13dff)] shadow-[0_12px_30px_rgba(139,92,246,0.28)]">
             <BriefcaseBusiness size={30} className="text-white" />
           </div>
@@ -143,9 +158,8 @@ function PostJob() {
               </div>
 
               <div
-                className={`grid gap-6 md:grid-cols-[1.3fr_0.9fr] ${
-                  isRTL ? "md:[direction:rtl]" : ""
-                }`}
+                className={`grid gap-6 md:grid-cols-[1.3fr_0.9fr] ${isRTL ? "md:[direction:rtl]" : ""
+                  }`}
               >
                 <div>
                   <label className="mb-3 block text-[16px] font-medium text-white/75">
@@ -155,15 +169,13 @@ function PostJob() {
                     type="text"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    placeholder="e.g., San Francisco, CA"
+                    placeholder="e.g., Tel Aviv"
                     className="h-14 w-full rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white placeholder:text-white/28 outline-none transition focus:border-[#7f6bff]"
                   />
                 </div>
 
                 <div className="flex items-end">
-                  <label
-                    className={`flex items-center gap-4 text-[16px] font-medium text-white/75`}
-                  >
+                  <label className="flex items-center gap-4 text-[16px] font-medium text-white/75">
                     <div className="relative">
                       <input
                         type="checkbox"
@@ -198,36 +210,20 @@ function PostJob() {
                       onChange={(e) => setSeniorityLevel(e.target.value)}
                       className="h-14 w-full appearance-none rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white outline-none transition focus:border-[#7f6bff]"
                     >
-                      <option
-                        value=""
-                        style={{ backgroundColor: "#2f2d68", color: "white" }}
-                      >
-                        Select level
-                      </option>
-                      <option
-                        value="Junior"
-                        style={{ backgroundColor: "#2f2d68", color: "white" }}
-                      >
-                        Junior
-                      </option>
-                      <option
-                        value="Mid-Level"
-                        style={{ backgroundColor: "#2f2d68", color: "white" }}
-                      >
-                        Mid-Level
-                      </option>
-                      <option
-                        value="Senior"
-                        style={{ backgroundColor: "#2f2d68", color: "white" }}
-                      >
-                        Senior
-                      </option>
-                      <option
-                        value="Lead"
-                        style={{ backgroundColor: "#2f2d68", color: "white" }}
-                      >
-                        Lead
-                      </option>
+                      {["", "Junior", "Mid-Level", "Senior", "Lead"].map(
+                        (level) => (
+                          <option
+                            key={level || "empty"}
+                            value={level}
+                            style={{
+                              backgroundColor: "#2f2d68",
+                              color: "white",
+                            }}
+                          >
+                            {level || "Select level"}
+                          </option>
+                        )
+                      )}
                     </select>
 
                     <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/45" />
@@ -244,30 +240,20 @@ function PostJob() {
                       onChange={(e) => setEmploymentType(e.target.value)}
                       className="h-14 w-full appearance-none rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white outline-none transition focus:border-[#7f6bff]"
                     >
-                      <option
-                        value="Full-time"
-                        style={{ backgroundColor: "#2f2d68", color: "white" }}
-                      >
-                        Full-time
-                      </option>
-                      <option
-                        value="Part-time"
-                        style={{ backgroundColor: "#2f2d68", color: "white" }}
-                      >
-                        Part-time
-                      </option>
-                      <option
-                        value="Contract"
-                        style={{ backgroundColor: "#2f2d68", color: "white" }}
-                      >
-                        Contract
-                      </option>
-                      <option
-                        value="Internship"
-                        style={{ backgroundColor: "#2f2d68", color: "white" }}
-                      >
-                        Internship
-                      </option>
+                      {["Full-time", "Part-time", "Contract", "Internship"].map(
+                        (type) => (
+                          <option
+                            key={type}
+                            value={type}
+                            style={{
+                              backgroundColor: "#2f2d68",
+                              color: "white",
+                            }}
+                          >
+                            {type}
+                          </option>
+                        )
+                      )}
                     </select>
 
                     <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/45" />
@@ -301,7 +287,7 @@ function PostJob() {
 
                 <div>
                   <label className="mb-3 block text-[16px] font-medium text-white/75">
-                    Salary Range (USD)
+                    Salary Range
                   </label>
                   <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                     <input
@@ -354,9 +340,8 @@ function PostJob() {
 
                 {skills.length > 0 && (
                   <div
-                    className={`mt-4 flex flex-wrap gap-3 ${
-                      isRTL ? "justify-end" : ""
-                    }`}
+                    className={`mt-4 flex flex-wrap gap-3 ${isRTL ? "justify-end" : ""
+                      }`}
                   >
                     {skills.map((skill) => (
                       <button
@@ -375,9 +360,8 @@ function PostJob() {
           </div>
 
           <div
-            className={`flex items-center justify-end gap-5 ${
-              isRTL ? "justify-start" : ""
-            }`}
+            className={`flex items-center justify-end gap-5 ${isRTL ? "justify-start" : ""
+              }`}
           >
             <button
               type="button"
@@ -390,7 +374,7 @@ function PostJob() {
             <button
               type="button"
               onClick={handlePostJob}
-              className={`inline-flex h-14 items-center gap-3 rounded-[14px] bg-[linear-gradient(135deg,#7f6bff,#9b3ff5)] px-8 text-[16px] font-bold text-white shadow-[0_14px_30px_rgba(139,92,246,0.25)] transition hover:scale-[1.02]`}
+              className="inline-flex h-14 items-center gap-3 rounded-[14px] bg-[linear-gradient(135deg,#7f6bff,#9b3ff5)] px-8 text-[16px] font-bold text-white shadow-[0_14px_30px_rgba(139,92,246,0.25)] transition hover:scale-[1.02]"
             >
               <Save size={18} />
               Post Job

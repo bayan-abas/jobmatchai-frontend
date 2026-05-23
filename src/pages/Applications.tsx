@@ -13,14 +13,30 @@ import {
   Star,
   CheckCircle2,
   Clock3,
-
-
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
 
 type FilterType = "all" | "active" | "completed";
 type ProgressStep = "applied" | "ai" | "review" | "shortlisted" | "final";
+
+type BackendApplication = {
+  id?: number;
+  jobId?: number;
+  candidateEmail?: string;
+  jobTitle?: string;
+  title?: string;
+  companyName?: string;
+  company?: string;
+  location?: string;
+  appliedDate?: string;
+  date?: string;
+  status?: string;
+  matchPercent?: number | string;
+  matchScore?: number | string;
+  interviewScore?: number | string;
+  score?: number | string;
+};
 
 type ApplicationItem = {
   id: number;
@@ -43,16 +59,110 @@ type ApplicationItem = {
   currentStep: ProgressStep;
 };
 
+const API_BASE_URL = "http://localhost:8080";
+
+function toPercent(value: unknown, fallback = "80%") {
+  if (value === null || value === undefined || value === "") return fallback;
+
+  const text = String(value);
+  if (text.includes("%")) return text;
+
+  const num = Number(value);
+  if (Number.isNaN(num)) return fallback;
+
+  return `${num}%`;
+}
+
+function normalizeStatus(status?: string) {
+  if (!status) return "Under Review";
+
+  const clean = status.trim();
+
+  if (clean.toLowerCase() === "applied") return "Applied";
+  if (clean.toLowerCase() === "ai screening") return "AI Screening";
+  if (clean.toLowerCase() === "under review") return "Under Review";
+  if (clean.toLowerCase() === "shortlisted") return "Shortlisted";
+  if (clean.toLowerCase() === "final decision") return "Final Decision";
+  if (clean.toLowerCase() === "accepted") return "Final Decision";
+  if (clean.toLowerCase() === "completed") return "Final Decision";
+
+  return clean;
+}
+
+function getProgressFromStatus(status: string) {
+  switch (status) {
+    case "Applied":
+      return 1;
+    case "AI Screening":
+      return 2;
+    case "Under Review":
+      return 3;
+    case "Shortlisted":
+      return 4;
+    case "Final Decision":
+      return 5;
+    default:
+      return 3;
+  }
+}
+
+function getCurrentStepFromStatus(status: string): ProgressStep {
+  switch (status) {
+    case "Applied":
+      return "applied";
+    case "AI Screening":
+      return "ai";
+    case "Under Review":
+      return "review";
+    case "Shortlisted":
+      return "shortlisted";
+    case "Final Decision":
+      return "final";
+    default:
+      return "review";
+  }
+}
+
+function mapBackendApplication(app: BackendApplication): ApplicationItem {
+  const reviewStatus = normalizeStatus(app.status);
+  const scoreValue = app.interviewScore ?? app.score;
+
+  return {
+    id: app.id ?? app.jobId ?? Math.floor(Math.random() * 100000),
+    percent: toPercent(app.matchPercent ?? app.matchScore, "80%"),
+    title: app.jobTitle ?? app.title ?? "Job Application",
+    company: app.companyName ?? app.company ?? "Company",
+    location: app.location ?? "Not specified",
+    date: app.appliedDate ?? app.date ?? "Not specified",
+    score: scoreValue !== undefined && scoreValue !== null ? toPercent(scoreValue) : undefined,
+    pending: scoreValue === undefined || scoreValue === null ? "Pre-interview pending" : undefined,
+    progress: getProgressFromStatus(reviewStatus),
+    status: reviewStatus === "Final Decision" ? "completed" : "active",
+    reviewStatus,
+    about: "Application details are loaded from the backend. More job information can be connected later from the jobs table.",
+    requirements: [],
+    skills: [],
+    preInterviewScore: scoreValue !== undefined && scoreValue !== null ? toPercent(scoreValue) : undefined,
+    preInterviewStrength: scoreValue !== undefined && scoreValue !== null ? "Good" : undefined,
+    preInterviewText:
+      scoreValue !== undefined && scoreValue !== null
+        ? "Pre-interview score is available for this application."
+        : "Pre-interview has not been completed yet. Assessment will appear here once available.",
+    currentStep: getCurrentStepFromStatus(reviewStatus),
+  };
+}
+
 function ScoreRing({ percent }: { percent: string }) {
   const value = parseInt(percent.replace("%", ""));
-  const ringColor = value >= 90 ? "#49e38d" : value >= 80 ? "#8b93ff" : "#f5c542";
+  const safeValue = Number.isNaN(value) ? 0 : value;
+  const ringColor = safeValue >= 90 ? "#49e38d" : safeValue >= 80 ? "#8b93ff" : "#f5c542";
 
   return (
     <div className="relative h-[98px] w-[98px] shrink-0">
       <div
         className="h-full w-full rounded-full transition-all duration-[1800ms] ease-out"
         style={{
-          background: `conic-gradient(${ringColor} ${value * 3.6}deg, #2a2c5a 0deg)`,
+          background: `conic-gradient(${ringColor} ${safeValue * 3.6}deg, #2a2c5a 0deg)`,
           boxShadow: `0 0 24px ${ringColor}22`,
         }}
       />
@@ -70,140 +180,47 @@ function Applications() {
   const t = translations[language];
   const isRTL = language === "ar" || language === "he";
 
+  const [applications, setApplications] = useState<ApplicationItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
   const [filter, setFilter] = useState<FilterType>("all");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [savedScrollY, setSavedScrollY] = useState(0);
 
-  const applications: ApplicationItem[] = [
-    {
-      id: 1,
-      percent: "92%",
-      title: "Senior Frontend Developer",
-      company: "TechCorp",
-      location: "Tel Aviv",
-      date: "15/01/2024",
-      score: "85%",
-      progress: 3,
-      status: "active",
-      reviewStatus: "Under Review",
-      about:
-        "We are looking for a Senior Frontend Developer to join our growing team. You will lead the development of our web platform and mentor junior developers.",
-      requirements: [
-        "5+ years React experience",
-        "TypeScript proficiency",
-        "Experience with GraphQL",
-        "Strong CSS/Tailwind skills",
-      ],
-      skills: ["React", "TypeScript", "GraphQL", "AWS", "Node.js"],
-      preInterviewScore: "85%",
-      preInterviewStrength: "Strong",
-      preInterviewText:
-        "Strong technical performance. Demonstrated deep React knowledge and solid problem-solving skills.",
-      currentStep: "review",
-    },
-    {
-      id: 2,
-      percent: "87%",
-      title: "Full Stack Engineer",
-      company: "StartupXYZ",
-      location: "Herzliya",
-      date: "18/01/2024",
-      score: "78%",
-      progress: 2,
-      status: "active",
-      reviewStatus: "AI Screening",
-      about:
-        "Join our product engineering team to build scalable features across frontend and backend services in a fast-moving startup environment.",
-      requirements: [
-        "Experience with React and Node.js",
-        "Good database knowledge",
-        "REST API experience",
-        "Team collaboration skills",
-      ],
-      skills: ["React", "Node.js", "PostgreSQL", "REST APIs", "AWS"],
-      preInterviewScore: "78%",
-      preInterviewStrength: "Good",
-      preInterviewText:
-        "Good overall fit. Strong engineering fundamentals with room to improve architectural depth.",
-      currentStep: "ai",
-    },
-    {
-      id: 3,
-      percent: "85%",
-      title: "React Developer",
-      company: "InnovateLab",
-      location: "Ramat Gan",
-      date: "10/01/2024",
-      score: "90%",
-      progress: 4,
-      status: "active",
-      reviewStatus: "Shortlisted",
-      about:
-        "We need a React Developer to help us build elegant user experiences and collaborate closely with design and product teams.",
-      requirements: [
-        "Advanced React skills",
-        "Clean component architecture",
-        "Attention to UI detail",
-        "Good communication",
-      ],
-      skills: ["React", "JavaScript", "Figma", "CSS", "Testing"],
-      preInterviewScore: "90%",
-      preInterviewStrength: "Excellent",
-      preInterviewText:
-        "Excellent UI thinking and strong implementation quality. Candidate shows clear product sense.",
-      currentStep: "shortlisted",
-    },
-    {
-      id: 4,
-      percent: "80%",
-      title: "UX Engineer",
-      company: "DesignCo",
-      location: "Remote",
-      date: "20/01/2024",
-      pending: "Pre-interview pending",
-      progress: 1,
-      status: "active",
-      reviewStatus: "Applied",
-      about:
-        "DesignCo is seeking a UX Engineer who can bridge design systems and frontend implementation across modern digital products.",
-      requirements: [
-        "Figma and design systems experience",
-        "Frontend implementation ability",
-        "Strong UX understanding",
-        "Cross-functional collaboration",
-      ],
-      skills: ["Figma", "Design Systems", "HTML", "CSS", "Accessibility"],
-      preInterviewText:
-        "Pre-interview has not been completed yet. Assessment will appear here once available.",
-      currentStep: "applied",
-    },
-    {
-      id: 5,
-      percent: "88%",
-      title: "Software Architect",
-      company: "Enterprise Inc",
-      location: "Haifa",
-      date: "05/01/2024",
-      score: "92%",
-      progress: 5,
-      status: "completed",
-      reviewStatus: "Final Decision",
-      about:
-        "Enterprise Inc is hiring a Software Architect to lead architecture decisions, guide technical standards, and shape long-term platform strategy.",
-      requirements: [
-        "Architecture leadership experience",
-        "Distributed systems knowledge",
-        "Strong mentoring skills",
-        "Cloud infrastructure understanding",
-      ],
-      skills: ["Architecture", "Microservices", "AWS", "Leadership", "Security"],
-      preInterviewScore: "92%",
-      preInterviewStrength: "Outstanding",
-      preInterviewText:
-        "Outstanding senior-level performance. Strong system design thinking and leadership readiness.",
-      currentStep: "final",
-    },
-  ];
+  useEffect(() => {
+    const fetchApplications = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const candidateEmail =
+          localStorage.getItem("email") ||
+          localStorage.getItem("userEmail") ||
+          localStorage.getItem("candidateEmail");
+
+        const url = candidateEmail
+          ? `${API_BASE_URL}/api/applications/candidate/${encodeURIComponent(candidateEmail)}`
+          : `${API_BASE_URL}/api/applications/all`;
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error("Failed to load applications");
+        }
+
+        const data: BackendApplication[] = await response.json();
+        setApplications(data.map(mapBackendApplication));
+      } catch (err) {
+        console.error(err);
+        setError("Could not load applications from backend.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchApplications();
+  }, []);
 
   useEffect(() => {
     const idFromNav = location.state?.selectedApplicationId;
@@ -215,7 +232,7 @@ function Applications() {
       }
       window.history.replaceState({}, document.title);
     }
-  }, [location.state]);
+  }, [location.state, applications]);
 
   useEffect(() => {
     if (selectedId !== null) {
@@ -228,7 +245,7 @@ function Applications() {
       if (filter === "all") return true;
       return app.status === filter;
     });
-  }, [filter]);
+  }, [filter, applications]);
 
   const selectedApplication =
     applications.find((app) => app.id === selectedId) ?? null;
@@ -324,22 +341,18 @@ function Applications() {
         {!selectedApplication ? (
           <>
             <section className="mb-8">
-              <div className={`mb-5 flex ${isRTL ? "justify-start" : "justify-start"}`}>
+              <div className="mb-5 flex justify-start">
                 <button
                   type="button"
                   onClick={() => navigate("/candidate-dashboard")}
-                  className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white`}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white"
                 >
                   <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
                   <span>{t.common.back}</span>
                 </button>
               </div>
 
-              <div
-                className={`mb-6 flex items-start gap-4 ${
-                  isRTL ? "text-right" : ""
-                }`}
-              >
+              <div className={`mb-6 flex items-start gap-4 ${isRTL ? "text-right" : ""}`}>
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#22d3ee] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
                   <FileText size={26} />
                 </div>
@@ -355,11 +368,7 @@ function Applications() {
               </div>
 
               <div className="rounded-[28px] border border-white/10 bg-white/[0.05] px-5 py-5 shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
-                <div
-                  className={`flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between ${
-                    isRTL ? "" : ""
-                  }`}
-                >
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div className={isRTL ? "text-right" : "text-left"}>
                     <h3 className="text-[20px] font-extrabold text-white">
                       {t.applicationsPage.allApplications}
@@ -388,122 +397,118 @@ function Applications() {
               </div>
             </section>
 
-            <section className="space-y-5">
-              {filteredApplications.map((app, index) => (
-                <article
-                  key={`${app.id}-${index}`}
-                  onClick={() => {
-                    setSavedScrollY(window.scrollY);
-                    setSelectedId(app.id);
-                  }}
-                  className="group cursor-pointer rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)] transition hover:border-white/20 hover:bg-[rgba(50,52,108,0.96)]"
-                >
-                  <div
-                    className={`flex flex-col gap-6 lg:flex-row lg:items-center ${
-                      isRTL ? "" : ""
-                    }`}
+            {loading && (
+              <div className="rounded-[30px] border border-white/10 bg-white/[0.05] px-8 py-12 text-center">
+                <h3 className="text-[24px] font-bold text-white">Loading applications...</h3>
+              </div>
+            )}
+
+            {!loading && error && (
+              <div className="rounded-[30px] border border-red-400/20 bg-red-500/10 px-8 py-12 text-center">
+                <h3 className="text-[24px] font-bold text-red-200">{error}</h3>
+              </div>
+            )}
+
+            {!loading && !error && (
+              <section className="space-y-5">
+                {filteredApplications.map((app, index) => (
+                  <article
+                    key={`${app.id}-${index}`}
+                    onClick={() => {
+                      setSavedScrollY(window.scrollY);
+                      setSelectedId(app.id);
+                    }}
+                    className="group cursor-pointer rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)] transition hover:border-white/20 hover:bg-[rgba(50,52,108,0.96)]"
                   >
-                    <div className="flex justify-center lg:justify-start">
-                      <ScoreRing percent={app.percent} />
-                    </div>
-
-                    <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
-                      <div
-                        className={`mb-3 flex flex-wrap items-center gap-3`}
-                      >
-                        <h2 className="text-[22px] font-extrabold text-white">
-                          {app.title}
-                        </h2>
-
-                        <span
-                          className={`rounded-full px-3 py-1 text-sm font-semibold ${statusBadgeClass(
-                            app.reviewStatus
-                          )}`}
-                        >
-                          {getReviewStatusLabel(app.reviewStatus)}
-                        </span>
+                    <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
+                      <div className="flex justify-center lg:justify-start">
+                        <ScoreRing percent={app.percent} />
                       </div>
 
-                      <div
-                        className={`mb-3 flex items-center gap-2 text-[#c4cae9]`}
-                      >
-                        <Building2 size={16} />
-                        <span className="text-[15px]">{app.company}</span>
-                      </div>
+                      <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
+                        <div className="mb-3 flex flex-wrap items-center gap-3">
+                          <h2 className="text-[22px] font-extrabold text-white">
+                            {app.title}
+                          </h2>
 
-                      <div
-                        className={`mb-4 flex flex-wrap gap-x-5 gap-y-2 text-[#aeb4d6]`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <MapPin size={16} />
-                          <span>{app.location}</span>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <CalendarDays size={16} />
-                          <span>
-                            {t.applicationsPage.appliedOn} {app.date}
+                          <span
+                            className={`rounded-full px-3 py-1 text-sm font-semibold ${statusBadgeClass(
+                              app.reviewStatus
+                            )}`}
+                          >
+                            {getReviewStatusLabel(app.reviewStatus)}
                           </span>
                         </div>
-                      </div>
 
-                      <div
-                        className={`flex flex-wrap items-center gap-2 ${
-                          isRTL ? "justify-start lg:justify-start" : ""
-                        }`}
-                      >
-                        {[1, 2, 3, 4, 5].map((step) => renderStep(step, app.progress))}
-                      </div>
-                    </div>
+                        <div className="mb-3 flex items-center gap-2 text-[#c4cae9]">
+                          <Building2 size={16} />
+                          <span className="text-[15px]">{app.company}</span>
+                        </div>
 
-                    <div
-                      className={`flex flex-row items-center justify-between gap-4 lg:min-w-[170px] ${
-                        isRTL ? "" : ""
-                      }`}
-                    >
-                      <div className={`${isRTL ? "text-left" : "text-right"} min-w-[88px]`}>
-                        {app.pending ? (
-                          <div className="rounded-full border border-yellow-400/20 bg-yellow-500/12 px-4 py-2.5 text-[14px] font-semibold text-yellow-300">
-                            {app.pending}
+                        <div className="mb-4 flex flex-wrap gap-x-5 gap-y-2 text-[#aeb4d6]">
+                          <div className="flex items-center gap-2">
+                            <MapPin size={16} />
+                            <span>{app.location}</span>
                           </div>
-                        ) : (
-                          <>
-                            <h2 className="text-[42px] font-extrabold leading-none text-white">
-                              {app.score}
-                            </h2>
-                            <p className="mt-2 text-[14px] text-white/50">
-                              Interview Score
-                            </p>
-                          </>
-                        )}
+
+                          <div className="flex items-center gap-2">
+                            <CalendarDays size={16} />
+                            <span>
+                              {t.applicationsPage.appliedOn} {app.date}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          {[1, 2, 3, 4, 5].map((step) => renderStep(step, app.progress))}
+                        </div>
                       </div>
 
-                      <button
-                        type="button"
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/30 transition group-hover:bg-white/5 group-hover:text-white/70"
-                      >
-                        <ChevronRight size={22} className={isRTL ? "rotate-180" : ""} />
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))}
+                      <div className="flex flex-row items-center justify-between gap-4 lg:min-w-[170px]">
+                        <div className={`${isRTL ? "text-left" : "text-right"} min-w-[88px]`}>
+                          {app.pending ? (
+                            <div className="rounded-full border border-yellow-400/20 bg-yellow-500/12 px-4 py-2.5 text-[14px] font-semibold text-yellow-300">
+                              {app.pending}
+                            </div>
+                          ) : (
+                            <>
+                              <h2 className="text-[42px] font-extrabold leading-none text-white">
+                                {app.score}
+                              </h2>
+                              <p className="mt-2 text-[14px] text-white/50">
+                                Interview Score
+                              </p>
+                            </>
+                          )}
+                        </div>
 
-              {filteredApplications.length === 0 && (
-                <div className="rounded-[30px] border border-white/10 bg-white/[0.05] px-8 py-12 text-center">
-                  <h3 className="text-[24px] font-bold text-white">
-                    {t.applicationsPage.noApplications}
-                  </h3>
-                  <p className="mt-2 text-white/55">
-                    {t.applicationsPage.noApplicationsText}
-                  </p>
-                </div>
-              )}
-            </section>
+                        <button
+                          type="button"
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/30 transition group-hover:bg-white/5 group-hover:text-white/70"
+                        >
+                          <ChevronRight size={22} className={isRTL ? "rotate-180" : ""} />
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+
+                {filteredApplications.length === 0 && (
+                  <div className="rounded-[30px] border border-white/10 bg-white/[0.05] px-8 py-12 text-center">
+                    <h3 className="text-[24px] font-bold text-white">
+                      {t.applicationsPage.noApplications}
+                    </h3>
+                    <p className="mt-2 text-white/55">
+                      {t.applicationsPage.noApplicationsText}
+                    </p>
+                  </div>
+                )}
+              </section>
+            )}
           </>
         ) : (
           <section className="space-y-6">
-            <div className={`mb-2 flex ${isRTL ? "justify-start" : "justify-start"}`}>
+            <div className="mb-2 flex justify-start">
               <button
                 type="button"
                 onClick={() => {
@@ -516,7 +521,7 @@ function Applications() {
                     });
                   }, 0);
                 }}
-                className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white`}
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white"
               >
                 <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
                 <span>{t.common.back}</span>
@@ -524,23 +529,13 @@ function Applications() {
             </div>
 
             <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-7 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
-              <div
-                className={`flex flex-col gap-6 lg:flex-row lg:items-center ${
-                  isRTL ? "" : ""
-                }`}
-              >
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
                 <ScoreRing percent={selectedApplication.percent} />
 
                 <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
-                  <div
-                    className={`flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between ${
-                      isRTL ? "" : ""
-                    }`}
-                  >
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0">
-                      <div
-                        className={`mb-3 flex flex-wrap items-center gap-3`}
-                      >
+                      <div className="mb-3 flex flex-wrap items-center gap-3">
                         <h1 className="truncate text-[38px] font-extrabold text-white">
                           {selectedApplication.title}
                         </h1>
@@ -554,16 +549,12 @@ function Applications() {
                         </span>
                       </div>
 
-                      <div
-                        className={`mb-3 flex items-center gap-2 text-[#c4cae9]`}
-                      >
+                      <div className="mb-3 flex items-center gap-2 text-[#c4cae9]">
                         <Building2 size={17} />
                         <span className="text-[16px]">{selectedApplication.company}</span>
                       </div>
 
-                      <div
-                        className={`flex flex-wrap gap-x-5 gap-y-2 text-[#aeb4d6]`}
-                      >
+                      <div className="flex flex-wrap gap-x-5 gap-y-2 text-[#aeb4d6]">
                         <div className="flex items-center gap-2">
                           <MapPin size={16} />
                           <span>{selectedApplication.location}</span>
