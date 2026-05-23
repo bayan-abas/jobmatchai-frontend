@@ -26,6 +26,8 @@ function PostJob() {
   const [maxExperience, setMaxExperience] = useState("");
   const [minSalary, setMinSalary] = useState("");
   const [maxSalary, setMaxSalary] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const addSkill = () => {
     const trimmed = skillInput.trim();
@@ -44,10 +46,25 @@ function PostJob() {
   };
 
   const handlePostJob = async () => {
+    if (isSubmitting) return;
+
     if (!jobTitle.trim() || !description.trim()) {
       alert("Please fill in Job Title and Description.");
       return;
     }
+
+    const companyEmail = localStorage.getItem("email");
+    const companyName =
+      localStorage.getItem("companyName") ||
+      localStorage.getItem("name") ||
+      "Company";
+
+    if (!companyEmail) {
+      alert("Company email not found. Please login again.");
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
       const response = await fetch("http://localhost:8080/api/jobs/add", {
@@ -57,7 +74,8 @@ function PostJob() {
         },
         body: JSON.stringify({
           title: jobTitle,
-          companyName: "JobMatchAI",
+          companyName,
+          companyEmail,
           location: remoteWork ? `${location || "Remote"} / Remote` : location,
           type: employmentType,
           salary:
@@ -68,8 +86,9 @@ function PostJob() {
           requirements: [
             seniorityLevel ? `Seniority: ${seniorityLevel}` : "",
             minExperience || maxExperience
-              ? `Experience: ${minExperience || "0"} - ${maxExperience || "Open"
-              } years`
+              ? `Experience: ${minExperience || "0"} - ${
+                  maxExperience || "Open"
+                } years`
               : "",
           ]
             .filter(Boolean)
@@ -85,20 +104,43 @@ function PostJob() {
         return;
       }
 
-      alert("Job posted successfully!");
-      navigate("/company-job-postings");
+      setSuccessMessage("Job posted successfully!");
+
+      setTimeout(() => {
+        navigate("/company-job-postings");
+      }, 1800);
     } catch (error) {
       console.error(error);
       alert("Server connection failed.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <section
-      className={`relative min-h-[calc(100vh-78px)] overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(87,57,255,0.24),transparent_24%),linear-gradient(90deg,#15124a_0%,#161354_38%,#121a58_100%)] text-white ${isRTL ? "text-right" : "text-left"
-        }`}
+      className={`relative min-h-[calc(100vh-78px)] overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(87,57,255,0.24),transparent_24%),linear-gradient(90deg,#15124a_0%,#161354_38%,#121a58_100%)] text-white ${
+        isRTL ? "text-right" : "text-left"
+      }`}
       dir={isRTL ? "rtl" : "ltr"}
     >
+      {successMessage && (
+        <div className="fixed right-6 top-6 z-[99999] rounded-2xl border border-emerald-400/20 bg-[rgba(16,185,129,0.16)] px-6 py-4 backdrop-blur-xl shadow-[0_10px_40px_rgba(16,185,129,0.28)]">
+          <div className="flex items-center gap-4">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-400 text-[18px] font-bold text-black">
+              ✓
+            </div>
+
+            <div>
+              <p className="text-sm text-emerald-200/75">Success</p>
+              <h3 className="text-[16px] font-bold text-white">
+                {successMessage}
+              </h3>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_65%_25%,rgba(0,194,255,0.10),transparent_10%),radial-gradient(circle_at_62%_80%,rgba(116,80,255,0.10),transparent_18%)]" />
       <div className="pointer-events-none absolute inset-0 opacity-[0.14] bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:90px_90px]" />
 
@@ -158,8 +200,9 @@ function PostJob() {
               </div>
 
               <div
-                className={`grid gap-6 md:grid-cols-[1.3fr_0.9fr] ${isRTL ? "md:[direction:rtl]" : ""
-                  }`}
+                className={`grid gap-6 md:grid-cols-[1.3fr_0.9fr] ${
+                  isRTL ? "md:[direction:rtl]" : ""
+                }`}
               >
                 <div>
                   <label className="mb-3 block text-[16px] font-medium text-white/75">
@@ -225,7 +268,6 @@ function PostJob() {
                         )
                       )}
                     </select>
-
                     <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/45" />
                   </div>
                 </div>
@@ -255,7 +297,6 @@ function PostJob() {
                         )
                       )}
                     </select>
-
                     <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/45" />
                   </div>
                 </div>
@@ -340,8 +381,9 @@ function PostJob() {
 
                 {skills.length > 0 && (
                   <div
-                    className={`mt-4 flex flex-wrap gap-3 ${isRTL ? "justify-end" : ""
-                      }`}
+                    className={`mt-4 flex flex-wrap gap-3 ${
+                      isRTL ? "justify-end" : ""
+                    }`}
                   >
                     {skills.map((skill) => (
                       <button
@@ -360,8 +402,9 @@ function PostJob() {
           </div>
 
           <div
-            className={`flex items-center justify-end gap-5 ${isRTL ? "justify-start" : ""
-              }`}
+            className={`flex items-center justify-end gap-5 ${
+              isRTL ? "justify-start" : ""
+            }`}
           >
             <button
               type="button"
@@ -374,10 +417,11 @@ function PostJob() {
             <button
               type="button"
               onClick={handlePostJob}
-              className="inline-flex h-14 items-center gap-3 rounded-[14px] bg-[linear-gradient(135deg,#7f6bff,#9b3ff5)] px-8 text-[16px] font-bold text-white shadow-[0_14px_30px_rgba(139,92,246,0.25)] transition hover:scale-[1.02]"
+              disabled={isSubmitting}
+              className="inline-flex h-14 items-center gap-3 rounded-[14px] bg-[linear-gradient(135deg,#7f6bff,#9b3ff5)] px-8 text-[16px] font-bold text-white shadow-[0_14px_30px_rgba(139,92,246,0.25)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
             >
               <Save size={18} />
-              Post Job
+              {isSubmitting ? "Posting..." : "Post Job"}
             </button>
           </div>
         </div>

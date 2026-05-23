@@ -8,6 +8,9 @@ import {
   MapPin,
   CircleDollarSign,
   ArrowLeft,
+  X,
+  Save,
+  Trash2,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
@@ -17,8 +20,14 @@ type JobStatus = "Active" | "Closed" | "Draft";
 type JobItem = {
   id: number;
   title: string;
+  companyName?: string;
+  companyEmail?: string;
   location: string;
+  type?: string;
   salary: string;
+  description?: string;
+  requirements?: string;
+  skills?: string;
   postedDate: string;
   status: JobStatus;
   applicants: number;
@@ -37,34 +46,170 @@ function CompanyJobPostings() {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [isDeleting, setIsDeleting] = useState<number | null>(null);
+  const [deleteJobModal, setDeleteJobModal] = useState<JobItem | null>(null);
+
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [editingJob, setEditingJob] = useState<JobItem | null>(null);
+
+  const [editTitle, setEditTitle] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+  const [editType, setEditType] = useState("");
+  const [editSalary, setEditSalary] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editRequirements, setEditRequirements] = useState("");
+  const [editSkills, setEditSkills] = useState("");
+
   useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        const response = await fetch("http://localhost:8080/api/jobs/all");
-        const data = await response.json();
-
-        const formattedJobs: JobItem[] = data.map((job: any) => ({
-          id: job.id,
-          title: job.title || page.untitledJob || "Untitled Job",
-          location: job.location || page.notSpecified || "Not specified",
-          salary: job.salary || page.notSpecified || "Not specified",
-          postedDate: page.recently || "Recently",
-          status: "Active",
-          applicants: 0,
-          newApplicants: 0,
-        }));
-
-        setJobs(formattedJobs);
-      } catch (error) {
-        console.error(error);
-        alert("Failed to load jobs from server.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchJobs();
   }, [page.notSpecified, page.recently, page.untitledJob]);
+
+  const fetchJobs = async () => {
+    try {
+      const companyEmail = localStorage.getItem("email");
+
+      if (!companyEmail) {
+        setJobs([]);
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(
+        `http://localhost:8080/api/jobs/company/${companyEmail}`
+      );
+
+      const data = await response.json();
+
+      const formattedJobs: JobItem[] = data.map((job: any) => ({
+        id: job.id,
+        title: job.title || page.untitledJob || "Untitled Job",
+        companyName: job.companyName || "Company",
+        companyEmail: job.companyEmail || companyEmail,
+        location: job.location || page.notSpecified || "Not specified",
+        type: job.type || "Full-time",
+        salary: job.salary || page.notSpecified || "Not specified",
+        description: job.description || "",
+        requirements: job.requirements || "",
+        skills: job.skills || "",
+        postedDate: page.recently || "Recently",
+        status: "Active",
+        applicants: 0,
+        newApplicants: 0,
+      }));
+
+      setJobs(formattedJobs);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to load jobs from server.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openEditModal = (job: JobItem) => {
+    setEditingJob(job);
+    setEditTitle(job.title);
+    setEditLocation(job.location);
+    setEditType(job.type || "Full-time");
+    setEditSalary(job.salary);
+    setEditDescription(job.description || "");
+    setEditRequirements(job.requirements || "");
+    setEditSkills(job.skills || "");
+    setOpenMenuId(null);
+  };
+
+  const handleUpdateJob = async () => {
+    if (!editingJob) return;
+
+    if (!editTitle.trim() || !editDescription.trim()) {
+      alert("Please fill in Job Title and Description.");
+      return;
+    }
+
+    try {
+      setIsUpdating(true);
+
+      const response = await fetch(
+        `http://localhost:8080/api/jobs/${editingJob.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            title: editTitle,
+            companyName:
+              editingJob.companyName || localStorage.getItem("name") || "Company",
+            companyEmail:
+              editingJob.companyEmail || localStorage.getItem("email"),
+            location: editLocation,
+            type: editType,
+            salary: editSalary,
+            description: editDescription,
+            requirements: editRequirements,
+            skills: editSkills,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!data.success) {
+        alert(data.message || "Failed to update job.");
+        return;
+      }
+
+      setJobs((prevJobs) =>
+        prevJobs.map((job) =>
+          job.id === editingJob.id
+            ? {
+                ...job,
+                title: editTitle,
+                location: editLocation,
+                type: editType,
+                salary: editSalary,
+                description: editDescription,
+                requirements: editRequirements,
+                skills: editSkills,
+              }
+            : job
+        )
+      );
+
+      setEditingJob(null);
+    } catch (error) {
+      console.error(error);
+      alert("Server connection failed.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteJob = async (jobId: number) => {
+    try {
+      setIsDeleting(jobId);
+
+      const response = await fetch(`http://localhost:8080/api/jobs/${jobId}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        alert(data.message || "Failed to delete job.");
+        return;
+      }
+
+      setJobs((prevJobs) => prevJobs.filter((job) => job.id !== jobId));
+      setDeleteJobModal(null);
+      setOpenMenuId(null);
+    } catch (error) {
+      console.error(error);
+      alert("Server connection failed.");
+    } finally {
+      setIsDeleting(null);
+    }
+  };
 
   const getStatusLabel = (status: JobStatus) => {
     if (status === "Active") return page.activeJobs || "Active";
@@ -87,8 +232,9 @@ function CompanyJobPostings() {
 
   return (
     <div
-      className={`relative overflow-hidden text-white ${isRTL ? "text-right" : "text-left"
-        }`}
+      className={`relative overflow-hidden text-white ${
+        isRTL ? "text-right" : "text-left"
+      }`}
       dir={isRTL ? "rtl" : "ltr"}
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_65%_25%,rgba(0,194,255,0.09),transparent_10%),radial-gradient(circle_at_62%_80%,rgba(116,80,255,0.10),transparent_18%)]" />
@@ -105,8 +251,9 @@ function CompanyJobPostings() {
         </button>
 
         <div
-          className={`mb-10 flex items-center justify-between gap-4 max-[900px]:flex-col max-[900px]:items-start ${isRTL ? "max-[900px]:items-end" : ""
-            }`}
+          className={`mb-10 flex items-center justify-between gap-4 max-[900px]:flex-col max-[900px]:items-start ${
+            isRTL ? "max-[900px]:items-end" : ""
+          }`}
         >
           <div className="flex items-center gap-5">
             <div className="flex h-[62px] w-[62px] items-center justify-center rounded-[20px] bg-[linear-gradient(135deg,#7b61ff,#b13dff)] shadow-[0_12px_30px_rgba(139,92,246,0.28)]">
@@ -146,14 +293,16 @@ function CompanyJobPostings() {
             {jobs.map((job) => (
               <div
                 key={job.id}
-                className={`relative rounded-[28px] border border-white/10 bg-[rgba(48,46,108,0.72)] px-7 py-7 shadow-[0_10px_35px_rgba(0,0,0,0.16)] backdrop-blur-[10px] transition hover:bg-[rgba(54,52,118,0.84)] ${openMenuId === job.id ? "z-50" : "z-0"
-                  }`}
+                className={`relative rounded-[28px] border border-white/10 bg-[rgba(48,46,108,0.72)] px-7 py-7 shadow-[0_10px_35px_rgba(0,0,0,0.16)] backdrop-blur-[10px] transition hover:bg-[rgba(54,52,118,0.84)] ${
+                  openMenuId === job.id ? "z-50" : "z-0"
+                }`}
               >
                 <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
                   <div className="min-w-0 flex-1">
                     <div
-                      className={`mb-4 flex flex-wrap items-center gap-4 ${isRTL ? "justify-end xl:justify-start" : ""
-                        }`}
+                      className={`mb-4 flex flex-wrap items-center gap-4 ${
+                        isRTL ? "justify-end xl:justify-start" : ""
+                      }`}
                     >
                       <h2 className="text-[24px] font-extrabold text-white">
                         {job.title}
@@ -227,13 +376,34 @@ function CompanyJobPostings() {
                       </button>
 
                       {openMenuId === job.id && (
-                        <div className="absolute right-0 top-full z-[9999] mt-2 w-[180px] rounded-[14px] bg-white text-black shadow-lg">
-                          <button className="flex w-full items-center gap-2 px-4 py-3 hover:bg-gray-100">
+                        <div
+                          className={`absolute top-full z-[9999] mt-2 w-[190px] overflow-hidden rounded-[16px] border border-black/5 bg-white text-black shadow-[0_18px_45px_rgba(0,0,0,0.25)] ${
+                            isRTL ? "left-0" : "right-0"
+                          }`}
+                        >
+                          <button className="flex w-full items-center gap-2 px-4 py-3 text-sm font-semibold hover:bg-gray-100">
                             {page.viewDetails || "View Details"}
                           </button>
 
-                          <button className="flex w-full items-center gap-2 px-4 py-3 hover:bg-gray-100">
+                          <button
+                            onClick={() => openEditModal(job)}
+                            className="flex w-full items-center gap-2 px-4 py-3 text-sm font-semibold hover:bg-gray-100"
+                          >
                             {page.editJob || "Edit Job"}
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setDeleteJobModal(job);
+                              setOpenMenuId(null);
+                            }}
+                            disabled={isDeleting === job.id}
+                            className="flex w-full items-center gap-2 px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 disabled:opacity-50"
+                          >
+                            <Trash2 size={16} />
+                            {isDeleting === job.id
+                              ? "Deleting..."
+                              : page.deleteJob || "Delete Job"}
                           </button>
                         </div>
                       )}
@@ -245,6 +415,222 @@ function CompanyJobPostings() {
           </div>
         )}
       </div>
+
+      {editingJob && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-[760px] rounded-[30px] border border-white/10 bg-[#201f58] p-7 shadow-[0_25px_90px_rgba(0,0,0,0.55)]">
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-[28px] font-extrabold text-white">
+                  Edit Job
+                </h2>
+                <p className="mt-1 text-white/50">
+                  Update this job posting details.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setEditingJob(null)}
+                className="rounded-full p-2 text-white/50 transition hover:bg-white/10 hover:text-white"
+              >
+                <X size={22} />
+              </button>
+            </div>
+
+            <div className="grid max-h-[65vh] gap-5 overflow-y-auto pr-2">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-white/70">
+                  Job Title *
+                </label>
+                <input
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="h-12 w-full rounded-[14px] border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-[#7f6bff]"
+                />
+              </div>
+
+              <div className="grid gap-5 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-white/70">
+                    Location
+                  </label>
+                  <input
+                    value={editLocation}
+                    onChange={(e) => setEditLocation(e.target.value)}
+                    className="h-12 w-full rounded-[14px] border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-[#7f6bff]"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-white/70">
+                    Employment Type
+                  </label>
+                  <select
+                    value={editType}
+                    onChange={(e) => setEditType(e.target.value)}
+                    className="h-12 w-full rounded-[14px] border border-white/10 bg-[#2f2d68] px-4 text-white outline-none focus:border-[#7f6bff]"
+                  >
+                    <option>Full-time</option>
+                    <option>Part-time</option>
+                    <option>Contract</option>
+                    <option>Internship</option>
+                    <option>Remote</option>
+                    <option>Hybrid</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-white/70">
+                  Salary
+                </label>
+                <input
+                  value={editSalary}
+                  onChange={(e) => setEditSalary(e.target.value)}
+                  placeholder="e.g., 10000 - 20000"
+                  className="h-12 w-full rounded-[14px] border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-[#7f6bff]"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-white/70">
+                  Description *
+                </label>
+                <textarea
+                  rows={4}
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  className="w-full rounded-[14px] border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-[#7f6bff]"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-white/70">
+                  Requirements
+                </label>
+                <textarea
+                  rows={3}
+                  value={editRequirements}
+                  onChange={(e) => setEditRequirements(e.target.value)}
+                  className="w-full rounded-[14px] border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-[#7f6bff]"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-white/70">
+                  Skills
+                </label>
+                <input
+                  value={editSkills}
+                  onChange={(e) => setEditSkills(e.target.value)}
+                  placeholder="React, JavaScript, CSS"
+                  className="h-12 w-full rounded-[14px] border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-[#7f6bff]"
+                />
+              </div>
+            </div>
+
+            <div className="mt-7 flex justify-end gap-4">
+              <button
+                type="button"
+                onClick={() => setEditingJob(null)}
+                className="rounded-[14px] border border-white/10 bg-white/5 px-6 py-3 font-bold text-white/75 transition hover:bg-white/10 hover:text-white"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleUpdateJob}
+                disabled={isUpdating}
+                className="inline-flex items-center gap-2 rounded-[14px] bg-[linear-gradient(135deg,#7f6bff,#9b3ff5)] px-6 py-3 font-bold text-white shadow-[0_14px_30px_rgba(139,92,246,0.25)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+              >
+                <Save size={18} />
+                {isUpdating ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteJobModal && (
+  <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 px-4 backdrop-blur-md">
+    <div className="relative w-full max-w-[560px] overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,#26245f,#1d1b4d)] p-0 shadow-[0_25px_80px_rgba(0,0,0,0.45)]">
+
+      <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-red-500/20 blur-[60px]" />
+      <div className="absolute -left-16 -bottom-16 h-40 w-40 rounded-full bg-purple-500/20 blur-[60px]" />
+
+      <div className="relative flex items-center justify-between border-b border-white/10 px-7 py-5">
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/15 text-red-300">
+            <Trash2 size={26} />
+          </div>
+
+          <div>
+            <h2 className="text-[24px] font-extrabold text-white">
+              Delete Job
+            </h2>
+
+            <p className="mt-1 text-sm text-white/50">
+              This action cannot be undone
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setDeleteJobModal(null)}
+          className="rounded-full p-2 text-white/45 transition hover:bg-white/10 hover:text-white"
+        >
+          <X size={20} />
+        </button>
+      </div>
+
+      <div className="relative px-7 py-6">
+        <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-5">
+          <div className="text-[20px] font-bold text-white">
+            {deleteJobModal.title}
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-white/50">
+            <span>{deleteJobModal.location}</span>
+
+            <span className="h-1 w-1 rounded-full bg-white/30" />
+
+            <span>{deleteJobModal.salary}</span>
+          </div>
+        </div>
+
+        <p className="mt-5 text-[15px] leading-7 text-white/60">
+          Are you sure you want to permanently remove this job posting from the platform?
+        </p>
+
+        <div className="mt-7 flex items-center justify-end gap-4">
+          <button
+            type="button"
+            onClick={() => setDeleteJobModal(null)}
+            className="rounded-[16px] border border-white/10 bg-white/5 px-6 py-3 font-semibold text-white/75 transition hover:bg-white/10 hover:text-white"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleDeleteJob(deleteJobModal.id)}
+            disabled={isDeleting === deleteJobModal.id}
+            className="inline-flex items-center gap-2 rounded-[16px] bg-red-500 px-6 py-3 font-bold text-white shadow-[0_14px_30px_rgba(239,68,68,0.25)] transition hover:scale-[1.02] hover:bg-red-600 disabled:opacity-60"
+          >
+            <Trash2 size={18} />
+
+            {isDeleting === deleteJobModal.id
+              ? "Deleting..."
+              : "Delete Job"}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }

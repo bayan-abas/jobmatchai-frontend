@@ -84,7 +84,7 @@ function JobMatches() {
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [industry, setIndustry] = useState("");
   const [seniority, setSeniority] = useState("");
-  const [minSalary, setMinSalary] = useState(40);
+  const [minSalary, setMinSalary] = useState(0);
   const [minMatch, setMinMatch] = useState(15);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [savedScrollY, setSavedScrollY] = useState(0);
@@ -891,9 +891,26 @@ const industryOptions = [
     localStorage.setItem("savedJobs", JSON.stringify(savedJobs));
   }, [savedJobs]);
 
-  const getMinSalaryFromRange = (salary: string) => {
-    const match = salary.match(/\$?(\d+)k/i);
-    return match ? Number(match[1]) : 0;
+  const extractSalaryNumber = (salary: string) => {
+    if (!salary) return 0;
+
+    const normalized = String(salary)
+      .toLowerCase()
+      .replace(/,/g, "")
+      .replace(/\$/g, "")
+      .replace(/₪/g, "")
+      .replace(/nis/g, "")
+      .replace(/ils/g, "")
+      .replace(/shekel/g, "")
+      .replace(/שח/g, "")
+      .replace(/שקל/g, "")
+      .replace(/k/g, "000");
+
+    const numbers = normalized.match(/\d+/g);
+
+    if (!numbers || numbers.length === 0) return 0;
+
+    return Math.max(...numbers.map((num) => Number(num)));
   };
 
   const getNumericMatch = (percent: string, noScore?: boolean) => {
@@ -906,7 +923,8 @@ const industryOptions = [
       const matchesIndustry = !industry || job.industry === industry;
       const matchesLevel =
         !seniority || job.level.toLowerCase() === seniority.toLowerCase();
-      const matchesSalary = getMinSalaryFromRange(job.salary) >= minSalary;
+      const jobSalary = extractSalaryNumber(job.salary);
+      const matchesSalary = jobSalary === 0 ? true : jobSalary >= minSalary;
 
       const numericMatch = getNumericMatch(job.percent, job.noScore);
       const matchesScore = numericMatch === null ? true : numericMatch >= minMatch;
@@ -1328,7 +1346,7 @@ const industryOptions = [
                       onClick={() => {
                         setIndustry("");
                         setSeniority("");
-                        setMinSalary(40);
+                        setMinSalary(0);
                         setMinMatch(15);
                       }}
                     >
@@ -1496,7 +1514,7 @@ const industryOptions = [
 
                         <input
                           type="range"
-                          min={40}
+                          min={0}
                           max={200}
                           step={5}
                           value={minSalary}
