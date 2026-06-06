@@ -169,102 +169,77 @@ function ResumeManager() {
     localStorage.removeItem("resumeAnalysis");
   };
 
-  const buildFakeAnalysis = (finalScore: number): AnalysisResult => {
-    if (finalScore >= 90) {
-      return {
-        score: finalScore,
-        summary:
-          "Your resume looks highly competitive. It presents a strong profile with relevant skills, a clear structure, and good role alignment.",
-        strengths: [
-          "Clear and professional resume structure",
-          "Strong alignment between skills and target job roles",
-          "Projects and experience add credibility",
-        ],
-        improvements: [
-          "Add more measurable achievements using numbers",
-          "Strengthen action verbs in experience descriptions",
-          "Customize the summary for each role you apply to",
-        ],
-        missingKeywords: ["Leadership", "Problem Solving", "Team Collaboration"],
-        atsReadiness: "Excellent",
-      };
-    }
+ 
+const handleAnalyze = async () => {
+  if (!fileName || isAnalyzing) return;
 
-    if (finalScore >= 80) {
-      return {
-        score: finalScore,
-        summary:
-          "Your resume is strong overall and shows good potential. A few improvements can make it more polished and more ATS-friendly.",
-        strengths: [
-          "Relevant technical background is visible",
-          "Resume structure is readable and organized",
-          "Skills section supports your target role",
-        ],
-        improvements: [
-          "Add stronger project impact descriptions",
-          "Use more job-specific keywords",
-          "Improve consistency in formatting and spacing",
-        ],
-        missingKeywords: ["SQL", "Communication", "Analytical Thinking"],
-        atsReadiness: "Good",
-      };
-    }
+  const email = getCandidateEmail();
 
-    return {
-      score: finalScore,
-      summary:
-        "Your resume has a good foundation, but it needs improvement to become more competitive and realistic for stronger job matching.",
-      strengths: [
-        "Basic information is present",
-        "Resume has a usable starting structure",
-        "Some relevant skills are already included",
-      ],
-      improvements: [
-        "Add more projects and hands-on experience",
-        "Rewrite sections to sound more professional",
-        "Include clearer technical keywords and stronger role targeting",
-      ],
-      missingKeywords: ["JavaScript", "Teamwork", "Project Experience"],
-      atsReadiness: "Moderate",
-    };
-  };
+  if (!email) {
+    alert("User email not found. Please sign in again.");
+    return;
+  }
 
-  const handleAnalyze = () => {
-    if (!fileName || isAnalyzing) return;
-
+  try {
     setAnalysis(null);
     setIsAnalyzing(true);
-    setProgress(0);
-    setAnalysisStep("Uploading and preparing file...");
+    setProgress(20);
+    setAnalysisStep("Analyzing CV with AI...");
 
-    const steps = [
-      { progress: 16, text: "Reading CV structure..." },
-      { progress: 33, text: "Scanning skills and keywords..." },
-      { progress: 51, text: "Checking formatting and clarity..." },
-      { progress: 72, text: "Comparing content to job expectations..." },
-      { progress: 89, text: "Generating AI feedback and suggestions..." },
-    ];
+    const analyzeResponse = await fetch(
+      `http://localhost:8080/api/cv/analyze?email=${encodeURIComponent(email)}`,
+      {
+        method: "POST",
+      }
+    );
 
-    steps.forEach((step, index) => {
-      setTimeout(() => {
-        setProgress(step.progress);
-        setAnalysisStep(step.text);
-      }, (index + 1) * 700);
-    });
+    if (!analyzeResponse.ok) {
+      throw new Error("Analyze request failed");
+    }
 
-    setTimeout(() => {
-      const finalScore = Math.floor(78 + Math.random() * 18);
-      const fakeAnalysis = buildFakeAnalysis(finalScore);
+    setProgress(75);
+    setAnalysisStep("Loading analysis results...");
 
-      setProgress(100);
-      setAnalysisStep("Analysis complete");
-      setAnalysis(fakeAnalysis);
-      setIsAnalyzing(false);
+    const resultResponse = await fetch(
+      `http://localhost:8080/api/cv/analysis?email=${encodeURIComponent(email)}`
+    );
 
-      localStorage.setItem("resumeScore", finalScore.toString());
-      localStorage.setItem("resumeAnalysis", JSON.stringify(fakeAnalysis));
-    }, 4300);
-  };
+    if (!resultResponse.ok) {
+      throw new Error("Failed to load analysis");
+    }
+
+    const data = await resultResponse.json();
+
+    const realAnalysis: AnalysisResult = {
+      score: 85,
+      summary: data.summary || "",
+      strengths: data.strengths
+        ? data.strengths.split(",").map((s: string) => s.trim())
+        : [],
+      improvements: data.missingSkills
+        ? data.missingSkills.split(",").map((s: string) => s.trim())
+        : [],
+      missingKeywords: data.skills
+        ? data.skills.split(",").map((s: string) => s.trim())
+        : [],
+      atsReadiness: "Good",
+    };
+
+    setProgress(100);
+    setAnalysisStep("Analysis complete");
+    setAnalysis(realAnalysis);
+
+    localStorage.setItem(
+      "resumeAnalysis",
+      JSON.stringify(realAnalysis)
+    );
+  } catch (error) {
+    console.error(error);
+    alert("Failed to analyze CV");
+  } finally {
+    setIsAnalyzing(false);
+  }
+};
 
   return (
     <div
