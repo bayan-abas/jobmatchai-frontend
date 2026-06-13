@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import {
   Plus,
   BriefcaseBusiness,
-  Users,
   MoreVertical,
   MapPin,
   CircleDollarSign,
@@ -297,19 +296,19 @@ function CompanyJobPostings() {
                   openMenuId === job.id ? "z-50" : "z-0"
                 }`}
               >
-                <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
                   <div className="min-w-0 flex-1">
                     <div
-                      className={`mb-4 flex flex-wrap items-center gap-4 ${
-                        isRTL ? "justify-end xl:justify-start" : ""
+                      className={`mb-3 flex flex-wrap items-center gap-3 ${
+                        isRTL ? "justify-end lg:justify-start" : ""
                       }`}
                     >
-                      <h2 className="text-[24px] font-extrabold text-white">
+                      <h2 className="text-[22px] font-extrabold text-white">
                         {job.title}
                       </h2>
 
                       <span
-                        className={`rounded-full px-4 py-1.5 text-[13px] font-bold ${getStatusStyles(
+                        className={`rounded-full px-3 py-1 text-[12px] font-bold ${getStatusStyles(
                           job.status
                         )}`}
                       >
@@ -317,18 +316,18 @@ function CompanyJobPostings() {
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-x-8 gap-y-3 text-[15px] text-white/50">
-                      <div className="flex items-center gap-2">
-                        <MapPin size={16} />
+                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[14px] text-white/50">
+                      <div className="flex items-center gap-1.5">
+                        <MapPin size={15} />
                         <span>{job.location}</span>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <CircleDollarSign size={16} />
+                      <div className="flex items-center gap-1.5">
+                        <CircleDollarSign size={15} />
                         <span>{job.salary}</span>
                       </div>
 
-                      <div className="text-white/50">
+                      <div>
                         <span>
                           {page.posted || "Posted"} {job.postedDate}
                         </span>
@@ -336,31 +335,32 @@ function CompanyJobPostings() {
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-6 xl:flex-nowrap">
-                    <div className="min-w-[95px] text-center">
-                      <div className="text-[24px] font-extrabold text-white">
+                  <div className="flex items-center gap-8 border-y border-white/5 py-4 lg:border-y-0 lg:border-x lg:px-8 lg:py-0">
+                    <div className="text-center">
+                      <div className="text-[22px] font-extrabold text-white">
                         {job.applicants}
                       </div>
-                      <div className="text-[14px] text-white/45">
+                      <div className="text-[13px] text-white/45">
                         {page.applicants || "Applicants"}
                       </div>
                     </div>
 
-                    <div className="min-w-[70px] text-center">
-                      <div className="text-[24px] font-extrabold text-[#39e3b2]">
-                        {job.newApplicants ? `+${job.newApplicants}` : ""}
+                    <div className="text-center">
+                      <div className="text-[22px] font-extrabold text-[#39e3b2]">
+                        {job.newApplicants ? `+${job.newApplicants}` : "-"}
                       </div>
-                      <div className="text-[14px] text-white/45">
-                        {job.newApplicants ? page.new || "New" : ""}
+                      <div className="text-[13px] text-white/45">
+                        {job.newApplicants ? page.new || "New" : "-"}
                       </div>
                     </div>
+                  </div>
 
+                  <div className="flex items-center justify-end gap-3 lg:w-[200px]">
                     <button
                       type="button"
                       onClick={() => navigate("/company-applications")}
-                      className="inline-flex items-center gap-3 rounded-[14px] border border-[rgba(140,157,255,0.25)] bg-[rgba(255,255,255,0.02)] px-5 py-3 text-[15px] font-semibold text-[#b8c4ff] transition hover:bg-[rgba(255,255,255,0.06)]"
+                      className="flex-1 rounded-[12px] border border-[rgba(140,157,255,0.25)] bg-[rgba(255,255,255,0.02)] px-4 py-2.5 text-[14px] font-semibold text-[#b8c4ff] transition hover:bg-[rgba(255,255,255,0.06)]"
                     >
-                      <Users size={18} />
                       {page.viewCandidates || "View Candidates"}
                     </button>
 

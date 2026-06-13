@@ -24,7 +24,6 @@ import {
   Brain,
   FileText,
   MessageSquare,
-  ThumbsUp,
   CheckCircle2,
 } from "lucide-react";
 
@@ -645,101 +644,18 @@ function CompanyCandidates() {
               </div>
             </div>
 
-            <div className="grid gap-6 xl:grid-cols-[1.9fr_0.95fr]">
+            <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
+              {/* LEFT COLUMN: Candidate Data */}
               <div className="space-y-6">
-                <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
-                  <div className="mb-5 flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-500/15 text-violet-300">
-                      <Brain size={20} />
-                    </div>
-                    <div className={isRTL ? "text-right" : "text-left"}>
-                      <h2 className="text-[20px] font-extrabold">
-                        {page.aiDecisionPanel || "AI Decision Panel"}
-                      </h2>
-                      <p className="text-sm text-white/50">
-                        {page.smartHiringRecommendation || "Smart hiring recommendation"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mb-6 grid gap-4 md:grid-cols-3">
-                    <StatCard
-                      icon={<Target size={20} />}
-                      value={`${selectedCandidate.match}%`}
-                      label={page.matchScore || "Match Score"}
-                    />
-                    <StatCard
-                      icon={<FileText size={20} />}
-                      value={`${selectedCandidate.resumeScore}%`}
-                      label={page.resume || "Resume"}
-                    />
-                    <StatCard
-                      icon={<MessageSquare size={20} />}
-                      value={`${selectedCandidate.preInterview}%`}
-                      label={page.preInterview || "Pre-Interview"}
-                    />
-                  </div>
-
-                  <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                    <h3 className="mb-4 text-[20px] font-bold">
-                      {page.confidenceMeter || "Confidence Meter"}
-                    </h3>
-                    <div className="space-y-4">
-                      <ScoreBar
-                        label={page.technical || "Technical"}
-                        value={selectedCandidate.technical}
-                        gradient="from-violet-400 to-fuchsia-500"
-                      />
-                      <ScoreBar
-                        label={page.communication || "Communication"}
-                        value={selectedCandidate.communication}
-                        gradient="from-cyan-400 to-blue-500"
-                      />
-                      <ScoreBar
-                        label={page.overallFit || "Overall Fit"}
-                        value={selectedCandidate.overall}
-                        gradient="from-emerald-400 to-cyan-400"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-6 rounded-[22px] border border-emerald-400/20 bg-emerald-400/10 p-5">
-                    <div className="mb-3 flex items-start gap-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-400/15 text-emerald-300">
-                        <ThumbsUp size={22} />
-                      </div>
-
-                      <div className={isRTL ? "text-right" : "text-left"}>
-                        <p className="text-sm font-semibold uppercase tracking-wide text-violet-300">
-                          {page.aiRecommendation || "AI Recommendation"}
-                        </p>
-                        <h3 className="text-[18px] font-extrabold text-emerald-300">
-                          {selectedCandidate.recommendationTitle}
-                        </h3>
-                        <p className="mt-2 max-w-2xl text-[15px] leading-7 text-white/70">
-                          {selectedCandidate.recommendationText}
-                        </p>
-                      </div>
-                    </div>
-
-                    <button className="mt-3 flex items-center gap-2 rounded-full bg-emerald-500/20 px-5 py-3 text-sm font-bold text-emerald-300">
-                      <CheckCircle2 size={16} />
-                      {page.proceedToInterview || "Proceed to Interview"}
-                    </button>
-                  </div>
-                </div>
-
                 <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
                   <h2 className="mb-4 text-[20px] font-extrabold">
-                    {page.preInterviewSummary || "Pre-Interview Summary"}
+                    {page.summary || "Summary"}
                   </h2>
-                  <p className="text-[18px] leading-8 text-white/75">
-                    {selectedCandidate.preInterviewSummary}
+                  <p className="text-[16px] leading-8 text-white/75">
+                    {selectedCandidate.summary}
                   </p>
                 </div>
-              </div>
 
-              <div className="space-y-6">
                 <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
                   <h2 className="mb-5 text-[20px] font-extrabold">
                     {page.skills || "Skills"}
@@ -758,11 +674,66 @@ function CompanyCandidates() {
 
                 <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
                   <h2 className="mb-4 text-[20px] font-extrabold">
-                    {page.summary || "Summary"}
+                    {page.preInterviewSummary || "Pre-Interview Summary"}
                   </h2>
                   <p className="text-[16px] leading-8 text-white/75">
-                    {selectedCandidate.summary}
+                    {selectedCandidate.preInterviewSummary}
                   </p>
+                </div>
+              </div>
+
+              {/* RIGHT COLUMN: AI Decision Panel & Actions */}
+              <div className="space-y-6">
+                <div className="sticky top-6 rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
+                  <div className="mb-5 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-500/15 text-violet-300">
+                      <Brain size={20} />
+                    </div>
+                    <div className={isRTL ? "text-right" : "text-left"}>
+                      <h2 className="text-[20px] font-extrabold">
+                        {page.aiDecisionPanel || "AI Decision Panel"}
+                      </h2>
+                    </div>
+                  </div>
+
+                  <div className="mb-6 grid grid-cols-3 gap-2">
+                    <StatCard icon={<Target size={18} />} value={`${selectedCandidate.match}%`} label="Match" />
+                    <StatCard icon={<FileText size={18} />} value={`${selectedCandidate.resumeScore}%`} label="Resume" />
+                    <StatCard icon={<MessageSquare size={18} />} value={`${selectedCandidate.preInterview}%`} label="Pre-Int" />
+                  </div>
+
+                  <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-5">
+                    <h3 className="mb-4 text-[18px] font-bold">
+                      {page.confidenceMeter || "Confidence Meter"}
+                    </h3>
+                    <div className="space-y-4">
+                      <ScoreBar label={page.technical || "Technical"} value={selectedCandidate.technical} gradient="from-violet-400 to-fuchsia-500" />
+                      <ScoreBar label={page.communication || "Communication"} value={selectedCandidate.communication} gradient="from-cyan-400 to-blue-500" />
+                      <ScoreBar label={page.overallFit || "Overall Fit"} value={selectedCandidate.overall} gradient="from-emerald-400 to-cyan-400" />
+                    </div>
+                  </div>
+
+                  <div className="mt-6 rounded-[22px] border border-emerald-400/20 bg-emerald-400/10 p-5">
+                    <h3 className="text-[18px] font-extrabold text-emerald-300">
+                      {selectedCandidate.recommendationTitle}
+                    </h3>
+                    <p className="mt-2 text-[14px] leading-6 text-white/70">
+                      {selectedCandidate.recommendationText}
+                    </p>
+                    <button
+                      onClick={() => {
+                        setInterviewDate("");
+                        setInterviewTime("");
+                        setInterviewType(page.online || "Online");
+                        setInterviewNotes("");
+                        setShowInterviewModal(true);
+                      }}
+                      className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500/20 px-4 py-3.5 text-sm font-bold text-emerald-300 transition hover:bg-emerald-500/30"
+                    >
+                      <CheckCircle2 size={16} />
+                      {page.proceedToInterview || "Proceed to Interview"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

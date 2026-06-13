@@ -73,7 +73,11 @@ function CompanySidebar({ isCollapsed, setIsCollapsed }: CompanySidebarProps) {
           <button
             type="button"
             onClick={() => setIsCollapsed((prev) => !prev)}
-            className={`rounded-full p-2 text-[#8a8fbe] transition hover:bg-white/10 hover:text-white ${isCollapsed ? "rotate-180" : "rotate-0"}`}
+            className={`rounded-full p-2 text-[#8a8fbe] transition hover:bg-white/10 hover:text-white ${
+              isCollapsed
+                ? isRTL ? "rotate-0" : "rotate-180"
+                : isRTL ? "rotate-180" : "rotate-0"
+            }`}
           >
             <ChevronLeft size={18} />
           </button>

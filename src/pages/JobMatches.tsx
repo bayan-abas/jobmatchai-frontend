@@ -1637,14 +1637,14 @@ const industryOptions = [
               </button>
             </div>
 
-            <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-7 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
-              <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-                <div className="flex-1">
-                  <div className={`mb-4 flex flex-wrap items-center gap-3 ${isRTL ? "xl:flex-row-reverse" : ""}`}>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
+              {/* Left Column: Main Job Content */}
+              <div className="space-y-6">
+                <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-7 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+                  <div className={`mb-4 flex flex-wrap items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
                     <h1 className="text-[28px] font-extrabold text-white lg:text-[34px]">
                       {selectedJob.title}
                     </h1>
-
                     <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-1.5 text-base font-semibold text-emerald-300">
                       {selectedJob.status}
                     </span>
@@ -1655,217 +1655,194 @@ const industryOptions = [
                     <span className="text-[16px]">{selectedJob.company}</span>
                   </div>
 
-                  <div className={`flex flex-wrap items-center gap-x-6 gap-y-3 text-[16px] text-[#aeb4d6] ${isRTL ? "xl:flex-row-reverse" : ""}`}>
+                  <div className={`flex flex-wrap items-center gap-x-6 gap-y-3 text-[16px] text-[#aeb4d6] ${isRTL ? "flex-row-reverse" : ""}`}>
                     <div className="flex items-center gap-2">
                       <MapPin size={18} />
                       <span>{selectedJob.location}</span>
                     </div>
-
                     {selectedJob.remote && (
                       <div className="flex items-center gap-2 text-cyan-300">
                         <Wifi size={18} />
                         <span>{t.jobMatches.remote || "Remote"}</span>
                       </div>
                     )}
-
                     <div className="flex items-center gap-2">
                       <Wallet size={18} />
                       <span className="font-semibold text-emerald-300">
                         {selectedJob.salary}
                       </span>
                     </div>
-
                     <div className="flex items-center gap-2">
                       <Clock3 size={18} />
                       <span>{selectedJob.level}</span>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex flex-col items-start gap-3 xl:items-end">
-                  <div className="relative h-[112px] w-[112px]">
-                    <div
-                      className="h-full w-full rounded-full"
-                      style={{
-                        background: selectedJob.noScore
-                          ? "conic-gradient(#5f648a 360deg, #2a2c5a 0deg)"
-                          : `conic-gradient(${getRingColor(selectedJob)} ${
-                              (selectedNumericMatch || 0) * 3.6
-                            }deg, #2a2c5a 0deg)`,
-                      }}
-                    />
-                    <div className="absolute inset-[9px] flex items-center justify-center rounded-full bg-[#252654] text-[25px] font-extrabold text-white">
-                      {selectedJob.noScore ? "N/A" : selectedJob.percent}
+                  <div className="mt-7 grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+                      <p className="text-sm text-[#aeb4d6]">Experience</p>
+                      <p className="mt-2 text-[24px] font-extrabold text-white">
+                        {derivedExperienceYears(selectedJob.experience)}+ yrs
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+                      <p className="text-sm text-[#aeb4d6]">Level</p>
+                      <p className="mt-2 text-[24px] font-extrabold text-white">
+                        {selectedJob.level}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+                      <p className="text-sm text-[#aeb4d6]">Industry</p>
+                      <p className="mt-2 text-[24px] font-extrabold text-white">
+                        {selectedJob.industry
+                          ? t.jobMatches[selectedJob.industry] || selectedJob.industry
+                          : "General"}
+                      </p>
                     </div>
                   </div>
-
-                  <p className="text-sm font-semibold text-[#aeb4d6]">
-                    {selectedJob.noScore ? t.jobMatches.noScore : "Profile Match Score"}
-                  </p>
                 </div>
-              </div>
 
-              <div className="mt-7 grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-                  <p className="text-sm text-[#aeb4d6]">Experience</p>
-                  <p className="mt-2 text-[24px] font-extrabold text-white">
-                    {derivedExperienceYears(selectedJob.experience)}+ yrs
+                <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-6">
+                  <h2 className="mb-4 flex items-center gap-2 text-[22px] font-extrabold text-white">
+                    <Zap size={20} className="text-[#facc15]" />
+                    About the role
+                  </h2>
+                  <p className="leading-7 text-[#c4cae9]">
+                    {selectedDetails?.about || selectedJob.about || `This role at ${selectedJob.company} is a strong opportunity for candidates with experience in ${selectedJob.level.toLowerCase()} level work and relevant industry knowledge.`}
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-                  <p className="text-sm text-[#aeb4d6]">Level</p>
-                  <p className="mt-2 text-[24px] font-extrabold text-white">
-                    {selectedJob.level}
-                  </p>
+                <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-6">
+                  <h2 className="mb-4 flex items-center gap-2 text-[22px] font-extrabold text-white">
+                    <CheckCircle2 size={20} className="text-emerald-300" />
+                    Requirements
+                  </h2>
+                  <ul className="space-y-3 text-[#c4cae9]">
+                    {(selectedDetails?.requirements || buildRequirementsList(selectedJob)).map((item) => (
+                      <li key={item} className="flex gap-2">
+                        <CheckCircle2 size={17} className="mt-1 shrink-0 text-emerald-300" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-                  <p className="text-sm text-[#aeb4d6]">Industry</p>
-                  <p className="mt-2 text-[24px] font-extrabold text-white">
-                    {selectedJob.industry
-                      ? t.jobMatches[selectedJob.industry] || selectedJob.industry
-                      : "General"}
-                  </p>
-                </div>
               </div>
 
-              <div className="mt-7 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleApply(selectedJob)}
-                  disabled={hasAppliedToJob(selectedJob) || applyingJobId === selectedJob.id}
-                  className={`inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-bold text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)] transition ${
-                    hasAppliedToJob(selectedJob)
-                      ? "cursor-not-allowed bg-emerald-500/70"
-                      : "bg-gradient-to-r from-[#7f4cff] to-[#a855f7] hover:scale-[1.02]"
-                  }`}
-                >
-                  <Send size={16} />
-                  <span>
-                    {applyingJobId === selectedJob.id
-                      ? "Applying..."
-                      : hasAppliedToJob(selectedJob)
-                      ? "Applied"
-                      : "Apply Now"}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleSaveJob(selectedJob)}
-                  disabled={isJobSaved(selectedJob)}
-                  className={`inline-flex items-center gap-2 rounded-full border px-6 py-3 text-sm font-bold transition ${
-                    isJobSaved(selectedJob)
-                      ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
-                      : "border-white/10 bg-white/5 text-[#dbe2ff] hover:bg-white/10 hover:text-white"
-                  }`}
-                >
-                  <Bookmark size={16} />
-                  <span>{isJobSaved(selectedJob) ? "Saved" : "Save Job"}</span>
-                </button>
-              </div>
-
-              {applyMessage && (
-                <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.05] px-5 py-4 text-sm font-semibold text-[#dbe2ff]">
-                  {applyMessage}
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-6">
-                <h2 className="mb-4 flex items-center gap-2 text-[22px] font-extrabold text-white">
-                  <Zap size={20} className="text-[#facc15]" />
-                  About the role
-                </h2>
-                <p className="leading-7 text-[#c4cae9]">
-                  {selectedDetails?.about ||
-                    selectedJob.about ||
-                    `This role at ${selectedJob.company} is a strong opportunity for candidates with experience in ${selectedJob.level.toLowerCase()} level work and relevant industry knowledge.`}
-                </p>
-              </div>
-
-              <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-6">
-                <h2 className="mb-4 flex items-center gap-2 text-[22px] font-extrabold text-white">
-                  <CheckCircle2 size={20} className="text-emerald-300" />
-                  Requirements
-                </h2>
-
-                <ul className="space-y-3 text-[#c4cae9]">
-                  {(selectedDetails?.requirements || buildRequirementsList(selectedJob)).map((item) => (
-                    <li key={item} className="flex gap-2">
-                      <CheckCircle2 size={17} className="mt-1 shrink-0 text-emerald-300" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-6">
-                <h2 className="mb-4 flex items-center gap-2 text-[22px] font-extrabold text-white">
-                  <AlertTriangle size={20} className="text-rose-300" />
-                  Skills to improve
-                </h2>
-
-                <div className="flex flex-wrap gap-2">
-                  {selectedJob.dangerSkills.length > 0 ? (
-                    selectedJob.dangerSkills.map((skill) => (
-                      <span
-                        key={skill}
-                        className="rounded-full border border-rose-400/20 bg-rose-400/10 px-3 py-1 text-sm font-semibold text-rose-300"
-                      >
-                        {skill}
-                      </span>
-                    ))
-                  ) : (
-                    <p className="text-[#c4cae9]">
-                      No specific missing skills were detected for this job.
+              {/* Right Column: AI Score, Actions & Insights */}
+              <div className="space-y-6">
+                <div className="sticky top-6 rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+                  <div className="flex flex-col items-center text-center">
+                    <div className="relative h-[130px] w-[130px]">
+                      <div
+                        className="h-full w-full rounded-full"
+                        style={{
+                          background: selectedJob.noScore
+                            ? "conic-gradient(#5f648a 360deg, #2a2c5a 0deg)"
+                            : `conic-gradient(${getRingColor(selectedJob)} ${(selectedNumericMatch || 0) * 3.6}deg, #2a2c5a 0deg)`,
+                        }}
+                      />
+                      <div className="absolute inset-[10px] flex items-center justify-center rounded-full bg-[#252654] text-[32px] font-extrabold text-white">
+                        {selectedJob.noScore ? "N/A" : selectedJob.percent}
+                      </div>
+                    </div>
+                    <p className="mt-4 text-sm font-semibold text-[#aeb4d6]">
+                      {selectedJob.noScore ? t.jobMatches.noScore : "Profile Match Score"}
                     </p>
+                  </div>
+
+                  <div className="mt-8 flex flex-col gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleApply(selectedJob)}
+                      disabled={hasAppliedToJob(selectedJob) || applyingJobId === selectedJob.id}
+                      className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-4 text-[15px] font-bold text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)] transition ${
+                        hasAppliedToJob(selectedJob)
+                          ? "cursor-not-allowed bg-emerald-500/70"
+                          : "bg-gradient-to-r from-[#7f4cff] to-[#a855f7] hover:scale-[1.02]"
+                      }`}
+                    >
+                      <Send size={18} />
+                      <span>
+                        {applyingJobId === selectedJob.id
+                          ? "Applying..."
+                          : hasAppliedToJob(selectedJob)
+                          ? "Applied"
+                          : "Apply Now"}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSaveJob(selectedJob)}
+                      disabled={isJobSaved(selectedJob)}
+                      className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl border px-6 py-4 text-[15px] font-bold transition ${
+                        isJobSaved(selectedJob)
+                          ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
+                          : "border-white/10 bg-white/5 text-[#dbe2ff] hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      <Bookmark size={18} />
+                      <span>{isJobSaved(selectedJob) ? "Saved" : "Save Job"}</span>
+                    </button>
+                  </div>
+
+                  {applyMessage && (
+                    <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.05] p-3 text-center text-sm font-semibold text-[#dbe2ff]">
+                      {applyMessage}
+                    </div>
                   )}
                 </div>
-              </div>
 
-              <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-6">
-                <h2 className="mb-4 flex items-center gap-2 text-[22px] font-extrabold text-white">
-                  <Target size={20} className="text-cyan-300" />
-                  AI suggestions
-                </h2>
+                <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-6">
+                  <h2 className="mb-4 text-[18px] font-extrabold text-white">Matched skills</h2>
+                  {selectedJob.skills.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedJob.skills.map((skill) => (
+                        <span key={skill} className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-300">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-[#c4cae9]">No matched skills detected.</p>
+                  )}
 
-                <ul className="space-y-3 text-[#c4cae9]">
-                  {(selectedDetails?.improvementSuggestions || [
-                    "Keep your profile skills updated to improve matching accuracy",
-                    "Add more specific target role information in your profile",
-                    "Mention tools and skills that appear in the job description",
-                  ]).map((item) => (
-                    <li key={item} className="flex gap-2">
-                      <CheckCircle2 size={17} className="mt-1 shrink-0 text-cyan-300" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-6">
-              <h2 className="mb-4 text-[22px] font-extrabold text-white">Matched skills</h2>
-
-              {selectedJob.skills.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {selectedJob.skills.map((skill) => (
-                    <span
-                      key={skill}
-                      className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-semibold text-emerald-300"
-                    >
-                      {skill}
-                    </span>
-                  ))}
+                  <h2 className="mb-4 mt-6 text-[18px] font-extrabold text-white flex items-center gap-2">
+                    <AlertTriangle size={18} className="text-rose-300" />
+                    Skills to improve
+                  </h2>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedJob.dangerSkills.length > 0 ? (
+                      selectedJob.dangerSkills.map((skill) => (
+                        <span key={skill} className="rounded-full border border-rose-400/20 bg-rose-400/10 px-3 py-1.5 text-xs font-semibold text-rose-300">
+                          {skill}
+                        </span>
+                      ))
+                    ) : (
+                      <p className="text-sm text-[#c4cae9]">No specific missing skills detected.</p>
+                    )}
+                  </div>
                 </div>
-              ) : (
-                <p className="text-[#c4cae9]">
-                  No matched skills were detected yet.
-                </p>
-              )}
+
+                <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-6">
+                  <h2 className="mb-4 flex items-center gap-2 text-[18px] font-extrabold text-white">
+                    <Target size={18} className="text-cyan-300" />
+                    AI suggestions
+                  </h2>
+                  <ul className="space-y-3 text-sm text-[#c4cae9]">
+                    {(selectedDetails?.improvementSuggestions || [
+                      "Keep your profile skills updated to improve matching accuracy",
+                      "Add more specific target role information in your profile",
+                      "Mention tools and skills that appear in the job description",
+                    ]).map((item) => (
+                      <li key={item} className="flex gap-2">
+                        <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-cyan-300" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             </div>
           </section>
         )}
