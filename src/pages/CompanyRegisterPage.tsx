@@ -453,7 +453,7 @@ try {
                 {tr.createAccount}
               </button>
 
-              <p className={`text-sm text-white/55 ${isRTL ? "text-right" : "text-center"}`}>
+              <p className="text-sm text-white/55 text-center">
                 {t.common.alreadyHaveAccount}{" "}
                 <button
                   type="button"

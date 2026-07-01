@@ -10,6 +10,8 @@ import {
   X,
 } from "lucide-react";
 import AIChatButton from "../components/AIChatButton";
+import { useLanguage } from "../context/LanguageContext";
+import { translations } from "../translations";
 
 type Job = {
   id: number;
@@ -24,6 +26,10 @@ type Job = {
 
 function PublicJobsPage() {
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const t = translations[language];
+  const p = t.publicJobsPage;
+  const isRTL = language === "ar" || language === "he";
 
   const [searchTerm, setSearchTerm] = useState("");
   const [locationFilter, setLocationFilter] = useState("All Locations");
@@ -121,7 +127,10 @@ function PublicJobsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(76,70,255,0.18),transparent_28%),linear-gradient(135deg,#090b3a_0%,#15145a_45%,#0f1f59_100%)] text-white">
+    <div
+      dir={isRTL ? "rtl" : "ltr"}
+      className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(76,70,255,0.18),transparent_28%),linear-gradient(135deg,#090b3a_0%,#15145a_45%,#0f1f59_100%)] text-white"
+    >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(115,73,255,0.18),transparent_22%),radial-gradient(circle_at_80%_85%,rgba(0,153,255,0.16),transparent_24%)]" />
 
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[rgba(7,11,36,0.82)] backdrop-blur-xl">
@@ -135,12 +144,12 @@ function PublicJobsPage() {
               <Sparkles size={20} />
             </div>
 
-            <div className="text-left">
+            <div className={isRTL ? "text-right" : "text-left"}>
               <h1 className="text-2xl font-extrabold leading-none">
-                JobMatchAI
+                {p.logoTitle}
               </h1>
               <p className="mt-1 text-sm text-white/60">
-                AI-Powered Recruitment
+                {p.logoSubtitle}
               </p>
             </div>
           </button>
@@ -151,24 +160,24 @@ function PublicJobsPage() {
               onClick={() => navigate("/")}
               className="rounded-[14px] px-5 py-2 text-sm font-semibold text-[#c9d6ed] transition hover:bg-white/10 hover:text-white"
             >
-              Home
+              {p.navHome}
             </button>
 
             <button
               type="button"
               className="rounded-[14px] px-5 py-2 text-sm font-semibold text-white"
             >
-              Jobs
+              {p.navJobs}
             </button>
           </div>
 
-          <div className="ml-auto hidden items-center gap-4 md:flex">
+          <div className={`hidden items-center gap-4 md:flex ${isRTL ? "mr-auto" : "ml-auto"}`}>
             <button
               type="button"
               onClick={() => navigate("/login")}
               className="rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-white/85 transition hover:bg-white/10"
             >
-              Login
+              {t.common.login}
             </button>
 
             <button
@@ -176,7 +185,7 @@ function PublicJobsPage() {
               onClick={() => navigate("/register")}
               className="rounded-xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-4 py-2 text-sm font-bold text-white shadow-[0_10px_25px_rgba(99,102,241,0.35)] transition hover:scale-[1.02]"
             >
-              Register
+              {t.common.register}
             </button>
           </div>
         </div>
@@ -186,30 +195,36 @@ function PublicJobsPage() {
         <section className="mb-8 rounded-[32px] border border-white/10 bg-white/[0.04] p-8 shadow-[0_20px_60px_rgba(0,0,0,0.22)]">
           <div className="max-w-[760px]">
             <span className="inline-flex rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-1 text-sm font-semibold text-cyan-300">
-              Public Job Explorer
+              {p.heroBadge}
             </span>
 
             <h2 className="mt-5 text-4xl font-extrabold leading-tight md:text-5xl">
-              Explore Smart Job Opportunities
+              {p.heroTitle}
             </h2>
 
             <p className="mt-4 text-base leading-7 text-white/65 md:text-lg">
-              Browse available jobs, discover companies, and preview
-              opportunities powered by JobMatchAI before creating an account.
+              {p.heroSubtitle}
             </p>
           </div>
         </section>
 
         <section className="mb-8 rounded-[28px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_12px_35px_rgba(0,0,0,0.18)]">
           <div className="grid gap-4 lg:grid-cols-[1.8fr_1fr_1fr]">
-            <div className="flex items-center gap-3 rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3">
+            <div
+              className={`flex items-center gap-3 rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 ${
+                isRTL ? "flex-row-reverse" : ""
+              }`}
+            >
               <Search size={20} className="text-white/45" />
               <input
                 type="text"
-                placeholder="Search jobs, companies, or skills..."
+                dir={isRTL ? "rtl" : "ltr"}
+                placeholder={p.searchPlaceholder}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-transparent text-[15px] text-white outline-none placeholder:text-white/35"
+                className={`w-full bg-transparent text-[15px] text-white outline-none placeholder:text-white/35 ${
+                  isRTL ? "text-right" : "text-left"
+                }`}
               />
             </div>
 
@@ -218,11 +233,11 @@ function PublicJobsPage() {
               onChange={(e) => setLocationFilter(e.target.value)}
               className="rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none"
             >
-              <option className="text-black">All Locations</option>
-              <option className="text-black">Tel Aviv</option>
-              <option className="text-black">Haifa</option>
-              <option className="text-black">Jerusalem</option>
-              <option className="text-black">Remote</option>
+              <option className="text-black" value="All Locations">{p.allLocations}</option>
+              <option className="text-black" value="Tel Aviv">Tel Aviv</option>
+              <option className="text-black" value="Haifa">Haifa</option>
+              <option className="text-black" value="Jerusalem">Jerusalem</option>
+              <option className="text-black" value="Remote">Remote</option>
             </select>
 
             <select
@@ -230,10 +245,10 @@ function PublicJobsPage() {
               onChange={(e) => setTypeFilter(e.target.value)}
               className="rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none"
             >
-              <option className="text-black">All Types</option>
-              <option className="text-black">Full-time</option>
-              <option className="text-black">Part-time</option>
-              <option className="text-black">Remote</option>
+              <option className="text-black" value="All Types">{p.allTypes}</option>
+              <option className="text-black" value="Full-time">Full-time</option>
+              <option className="text-black" value="Part-time">Part-time</option>
+              <option className="text-black" value="Remote">Remote</option>
             </select>
           </div>
         </section>
@@ -251,7 +266,7 @@ function PublicJobsPage() {
                       {job.level}
                     </span>
                     <span className="rounded-full bg-cyan-500/15 px-3 py-1 text-xs font-semibold text-cyan-300">
-                      AI Opportunity
+                      {p.aiOpportunity}
                     </span>
                   </div>
 
@@ -259,19 +274,19 @@ function PublicJobsPage() {
                   <p className="mt-2 text-lg text-white/70">{job.company}</p>
 
                   <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-white/55">
-                    <span className="inline-flex items-center gap-2">
+                    <span className={`inline-flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
                       <MapPin size={16} />
                       {job.location}
                     </span>
 
-                    <span className="inline-flex items-center gap-2">
+                    <span className={`inline-flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
                       <BriefcaseBusiness size={16} />
                       {job.type}
                     </span>
 
-                    <span className="inline-flex items-center gap-2">
+                    <span className={`inline-flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
                       <Clock3 size={16} />
-                      Open Position
+                      {p.openPosition}
                     </span>
                   </div>
 
@@ -297,16 +312,18 @@ function PublicJobsPage() {
                     onClick={handleProtectedAction}
                     className="rounded-[16px] bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-4 py-3 text-sm font-bold text-white shadow-[0_12px_28px_rgba(99,102,241,0.28)] transition hover:scale-[1.02]"
                   >
-                    Apply Now
+                    {p.applyNow}
                   </button>
 
                   <button
                     type="button"
                     onClick={handleProtectedAction}
-                    className="inline-flex items-center justify-center gap-2 rounded-[16px] border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-400/15"
+                    className={`inline-flex items-center justify-center gap-2 rounded-[16px] border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-400/15 ${
+                      isRTL ? "flex-row-reverse" : ""
+                    }`}
                   >
-                    View Details
-                    <ArrowRight size={16} />
+                    {p.viewDetails}
+                    <ArrowRight size={16} className={isRTL ? "rotate-180" : ""} />
                   </button>
                 </div>
               </div>
@@ -315,7 +332,7 @@ function PublicJobsPage() {
 
           {filteredJobs.length === 0 && (
             <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-6 py-12 text-center text-white/65">
-              No jobs matched your search.
+              {p.noJobsFound}
             </div>
           )}
         </section>
@@ -325,16 +342,16 @@ function PublicJobsPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/65 px-4">
           <div className="w-full max-w-[520px] rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,#171b55_0%,#10153f_100%)] p-6 text-white shadow-[0_20px_80px_rgba(0,0,0,0.4)]">
             <div className="mb-5 flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              <div className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500/20 text-violet-300">
                   <Sparkles size={22} />
                 </div>
-                <div>
+                <div className={isRTL ? "text-right" : "text-left"}>
                   <h3 className="text-xl font-bold">
-                    Unlock the full JobMatchAI experience
+                    {p.modalTitle}
                   </h3>
                   <p className="mt-1 text-sm text-white/60">
-                    Login or create an account to continue.
+                    {p.modalSubtitle}
                   </p>
                 </div>
               </div>
@@ -348,9 +365,8 @@ function PublicJobsPage() {
               </button>
             </div>
 
-            <p className="mb-6 text-[15px] leading-7 text-white/70">
-              To apply for jobs, save opportunities, and access AI-powered match
-              insights, please log in or create your account first.
+            <p className={`mb-6 text-[15px] leading-7 text-white/70 ${isRTL ? "text-right" : "text-left"}`}>
+              {p.modalText}
             </p>
 
             <div className="flex flex-col gap-3 sm:flex-row">
@@ -359,7 +375,7 @@ function PublicJobsPage() {
                 onClick={() => navigate("/login")}
                 className="flex-1 rounded-[16px] border border-white/10 bg-white/[0.05] px-4 py-3 font-semibold text-white transition hover:bg-white/[0.09]"
               >
-                Login
+                {t.common.login}
               </button>
 
               <button
@@ -367,7 +383,7 @@ function PublicJobsPage() {
                 onClick={() => navigate("/register")}
                 className="flex-1 rounded-[16px] bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-4 py-3 font-bold text-white shadow-[0_12px_28px_rgba(99,102,241,0.28)] transition hover:scale-[1.02]"
               >
-                Create Account
+                {p.createAccount}
               </button>
             </div>
           </div>

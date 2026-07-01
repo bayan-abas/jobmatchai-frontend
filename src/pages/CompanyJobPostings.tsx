@@ -121,7 +121,10 @@ function CompanyJobPostings() {
     if (!editingJob) return;
 
     if (!editTitle.trim() || !editDescription.trim()) {
-      alert("Please fill in Job Title and Description.");
+      alert(
+        page.fillTitleAndDescription ||
+          "Please fill in Job Title and Description."
+      );
       return;
     }
 
@@ -154,7 +157,7 @@ function CompanyJobPostings() {
       const data = await response.json();
 
       if (!data.success) {
-        alert(data.message || "Failed to update job.");
+        alert(data.message || page.failedToUpdateJob || "Failed to update job.");
         return;
       }
 
@@ -178,7 +181,7 @@ function CompanyJobPostings() {
       setEditingJob(null);
     } catch (error) {
       console.error(error);
-      alert("Server connection failed.");
+      alert(page.serverConnectionFailed || "Server connection failed.");
     } finally {
       setIsUpdating(false);
     }
@@ -195,7 +198,7 @@ function CompanyJobPostings() {
       const data = await response.json();
 
       if (!data.success) {
-        alert(data.message || "Failed to delete job.");
+        alert(data.message || page.failedToDeleteJob || "Failed to delete job.");
         return;
       }
 
@@ -204,7 +207,7 @@ function CompanyJobPostings() {
       setOpenMenuId(null);
     } catch (error) {
       console.error(error);
-      alert("Server connection failed.");
+      alert(page.serverConnectionFailed || "Server connection failed.");
     } finally {
       setIsDeleting(null);
     }
@@ -300,7 +303,7 @@ function CompanyJobPostings() {
                   <div className="min-w-0 flex-1">
                     <div
                       className={`mb-3 flex flex-wrap items-center gap-3 ${
-                        isRTL ? "justify-end lg:justify-start" : ""
+                        isRTL ? "justify-end" : "justify-start"
                       }`}
                     >
                       <h2 className="text-[22px] font-extrabold text-white">
@@ -355,7 +358,11 @@ function CompanyJobPostings() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-end gap-3 lg:w-[200px]">
+                  <div
+                    className={`flex items-center gap-3 lg:w-[200px] ${
+                      isRTL ? "flex-row-reverse justify-start" : "justify-end"
+                    }`}
+                  >
                     <button
                       type="button"
                       onClick={() => navigate("/company-applications")}
@@ -402,7 +409,7 @@ function CompanyJobPostings() {
                           >
                             <Trash2 size={16} />
                             {isDeleting === job.id
-                              ? "Deleting..."
+                              ? page.deleting || "Deleting..."
                               : page.deleteJob || "Delete Job"}
                           </button>
                         </div>
@@ -422,10 +429,10 @@ function CompanyJobPostings() {
             <div className="mb-6 flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-[28px] font-extrabold text-white">
-                  Edit Job
+                  {page.editJob || "Edit Job"}
                 </h2>
                 <p className="mt-1 text-white/50">
-                  Update this job posting details.
+                  {page.editJobSubtitle || "Update this job posting details."}
                 </p>
               </div>
 
@@ -441,7 +448,7 @@ function CompanyJobPostings() {
             <div className="grid max-h-[65vh] gap-5 overflow-y-auto pr-2">
               <div>
                 <label className="mb-2 block text-sm font-semibold text-white/70">
-                  Job Title *
+                  {page.jobTitleRequired || "Job Title *"}
                 </label>
                 <input
                   value={editTitle}
@@ -453,7 +460,7 @@ function CompanyJobPostings() {
               <div className="grid gap-5 md:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-white/70">
-                    Location
+                    {page.location || "Location"}
                   </label>
                   <input
                     value={editLocation}
@@ -464,38 +471,38 @@ function CompanyJobPostings() {
 
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-white/70">
-                    Employment Type
+                    {page.employmentType || "Employment Type"}
                   </label>
                   <select
                     value={editType}
                     onChange={(e) => setEditType(e.target.value)}
                     className="h-12 w-full rounded-[14px] border border-white/10 bg-[#2f2d68] px-4 text-white outline-none focus:border-[#7f6bff]"
                   >
-                    <option>Full-time</option>
-                    <option>Part-time</option>
-                    <option>Contract</option>
-                    <option>Internship</option>
-                    <option>Remote</option>
-                    <option>Hybrid</option>
+                    <option>{page.fullTime || "Full-time"}</option>
+                    <option>{page.partTime || "Part-time"}</option>
+                    <option>{page.contract || "Contract"}</option>
+                    <option>{page.internship || "Internship"}</option>
+                    <option>{page.remote || "Remote"}</option>
+                    <option>{page.hybrid || "Hybrid"}</option>
                   </select>
                 </div>
               </div>
 
               <div>
                 <label className="mb-2 block text-sm font-semibold text-white/70">
-                  Salary
+                  {page.salary || "Salary"}
                 </label>
                 <input
                   value={editSalary}
                   onChange={(e) => setEditSalary(e.target.value)}
-                  placeholder="e.g., 10000 - 20000"
+                  placeholder={page.salaryPlaceholder || "e.g., 10000 - 20000"}
                   className="h-12 w-full rounded-[14px] border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-[#7f6bff]"
                 />
               </div>
 
               <div>
                 <label className="mb-2 block text-sm font-semibold text-white/70">
-                  Description *
+                  {page.descriptionRequired || "Description *"}
                 </label>
                 <textarea
                   rows={4}
@@ -507,7 +514,7 @@ function CompanyJobPostings() {
 
               <div>
                 <label className="mb-2 block text-sm font-semibold text-white/70">
-                  Requirements
+                  {page.requirements || "Requirements"}
                 </label>
                 <textarea
                   rows={3}
@@ -519,12 +526,12 @@ function CompanyJobPostings() {
 
               <div>
                 <label className="mb-2 block text-sm font-semibold text-white/70">
-                  Skills
+                  {page.skills || "Skills"}
                 </label>
                 <input
                   value={editSkills}
                   onChange={(e) => setEditSkills(e.target.value)}
-                  placeholder="React, JavaScript, CSS"
+                  placeholder={page.skillsPlaceholder || "React, JavaScript, CSS"}
                   className="h-12 w-full rounded-[14px] border border-white/10 bg-white/5 px-4 text-white outline-none focus:border-[#7f6bff]"
                 />
               </div>
@@ -536,17 +543,21 @@ function CompanyJobPostings() {
                 onClick={() => setEditingJob(null)}
                 className="rounded-[14px] border border-white/10 bg-white/5 px-6 py-3 font-bold text-white/75 transition hover:bg-white/10 hover:text-white"
               >
-                Cancel
+                {common.cancel || "Cancel"}
               </button>
 
               <button
                 type="button"
                 onClick={handleUpdateJob}
                 disabled={isUpdating}
-                className="inline-flex items-center gap-2 rounded-[14px] bg-[linear-gradient(135deg,#7f6bff,#9b3ff5)] px-6 py-3 font-bold text-white shadow-[0_14px_30px_rgba(139,92,246,0.25)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+                className={`inline-flex items-center gap-2 rounded-[14px] bg-[linear-gradient(135deg,#7f6bff,#9b3ff5)] px-6 py-3 font-bold text-white shadow-[0_14px_30px_rgba(139,92,246,0.25)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 ${
+                  isRTL ? "flex-row-reverse" : ""
+                }`}
               >
                 <Save size={18} />
-                {isUpdating ? "Saving..." : "Save Changes"}
+                {isUpdating
+                  ? page.saving || "Saving..."
+                  : page.saveChanges || "Save Changes"}
               </button>
             </div>
           </div>
@@ -560,19 +571,27 @@ function CompanyJobPostings() {
       <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-red-500/20 blur-[60px]" />
       <div className="absolute -left-16 -bottom-16 h-40 w-40 rounded-full bg-purple-500/20 blur-[60px]" />
 
-      <div className="relative flex items-center justify-between border-b border-white/10 px-7 py-5">
-        <div className="flex items-center gap-4">
+      <div
+        className={`relative flex items-center justify-between border-b border-white/10 px-7 py-5 ${
+          isRTL ? "flex-row-reverse" : ""
+        }`}
+      >
+        <div
+          className={`flex items-center gap-4 ${
+            isRTL ? "flex-row-reverse" : ""
+          }`}
+        >
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/15 text-red-300">
             <Trash2 size={26} />
           </div>
 
           <div>
             <h2 className="text-[24px] font-extrabold text-white">
-              Delete Job
+              {page.deleteJob || "Delete Job"}
             </h2>
 
             <p className="mt-1 text-sm text-white/50">
-              This action cannot be undone
+              {page.deleteJobWarning || "This action cannot be undone"}
             </p>
           </div>
         </div>
@@ -602,7 +621,8 @@ function CompanyJobPostings() {
         </div>
 
         <p className="mt-5 text-[15px] leading-7 text-white/60">
-          Are you sure you want to permanently remove this job posting from the platform?
+          {page.deleteJobConfirm ||
+            "Are you sure you want to permanently remove this job posting from the platform?"}
         </p>
 
         <div className="mt-7 flex items-center justify-end gap-4">
@@ -611,20 +631,22 @@ function CompanyJobPostings() {
             onClick={() => setDeleteJobModal(null)}
             className="rounded-[16px] border border-white/10 bg-white/5 px-6 py-3 font-semibold text-white/75 transition hover:bg-white/10 hover:text-white"
           >
-            Cancel
+            {common.cancel || "Cancel"}
           </button>
 
           <button
             type="button"
             onClick={() => handleDeleteJob(deleteJobModal.id)}
             disabled={isDeleting === deleteJobModal.id}
-            className="inline-flex items-center gap-2 rounded-[16px] bg-red-500 px-6 py-3 font-bold text-white shadow-[0_14px_30px_rgba(239,68,68,0.25)] transition hover:scale-[1.02] hover:bg-red-600 disabled:opacity-60"
+            className={`inline-flex items-center gap-2 rounded-[16px] bg-red-500 px-6 py-3 font-bold text-white shadow-[0_14px_30px_rgba(239,68,68,0.25)] transition hover:scale-[1.02] hover:bg-red-600 disabled:opacity-60 ${
+              isRTL ? "flex-row-reverse" : ""
+            }`}
           >
             <Trash2 size={18} />
 
             {isDeleting === deleteJobModal.id
-              ? "Deleting..."
-              : "Delete Job"}
+              ? page.deleting || "Deleting..."
+              : page.deleteJob || "Delete Job"}
           </button>
         </div>
       </div>

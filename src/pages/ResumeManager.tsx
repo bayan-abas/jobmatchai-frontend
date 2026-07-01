@@ -186,6 +186,7 @@ function ResumeManager() {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("email", email);
+      formData.append("language", language);
 
       const response = await fetch("http://localhost:8080/api/cv/upload", {
         method: "POST",

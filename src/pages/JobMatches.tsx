@@ -39,18 +39,8 @@ type BackendJob = {
   skills?: string;
 };
 
-type CandidateProfile = {
-  desiredJobType: string;
-  desiredTitle: string;
-  preferredIndustry: string;
-  preferredLocation: string;
-  experienceLevel: string;
-  skills: string[];
-};
-
 type Job = {
   id?: number;
-  percent: string;
   title: string;
   company: string;
   location: string;
@@ -59,13 +49,17 @@ type Job = {
   salary: string;
   level: string;
   status: string;
-  skills: string[];
-  dangerSkills: string[];
-  noScore?: boolean;
   industry?: string;
   type?: string;
   about?: string;
   requirementsText?: string;
+};
+
+type MatchScoreEntry = {
+  matchPercent: number;
+  matchReason: string;
+  matchedSkills: string[];
+  missingSkills: string[];
 };
 
 type JobDetailExtra = {
@@ -96,6 +90,9 @@ function JobMatches() {
   const [applyingJobId, setApplyingJobId] = useState<number | null>(null);
   const [appliedJobIds, setAppliedJobIds] = useState<number[]>([]);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [matchScores, setMatchScores] = useState<Map<number, MatchScoreEntry>>(new Map());
+  const [hasAnalysis, setHasAnalysis] = useState<boolean | null>(null);
+  const [matchScoresLoading, setMatchScoresLoading] = useState(false);
 
   const [savedJobs, setSavedJobs] = useState<Job[]>(() => {
     try {
@@ -151,86 +148,12 @@ function JobMatches() {
     };
   };
 
-  const readCandidateProfile = (): CandidateProfile => {
-    const readObject = (key: string) => {
-      try {
-        const value = localStorage.getItem(key);
-        return value ? JSON.parse(value) : null;
-      } catch {
-        return null;
-      }
-    };
-
-    const profile =
-      readObject("candidateProfile") ||
-      readObject("userProfile") ||
-      readObject("profile") ||
-      {};
-
-    const rawSkills =
-      profile.skills ||
-      profile.userSkills ||
-      profile.candidateSkills ||
-      localStorage.getItem("candidateSkills") ||
-      localStorage.getItem("userSkills") ||
-      "";
-
-    const skills = Array.isArray(rawSkills)
-      ? rawSkills
-      : String(rawSkills)
-          .split(",")
-          .map((skill) => skill.trim())
-          .filter(Boolean);
-
-    return {
-      desiredJobType:
-        profile.desiredJobType ||
-        profile.jobType ||
-        profile.workType ||
-        localStorage.getItem("desiredJobType") ||
-        "",
-      desiredTitle:
-        profile.desiredTitle ||
-        profile.jobTitle ||
-        profile.targetJob ||
-        profile.desiredRole ||
-        localStorage.getItem("desiredTitle") ||
-        localStorage.getItem("jobTitle") ||
-        "",
-      preferredIndustry:
-        profile.preferredIndustry ||
-        profile.industry ||
-        localStorage.getItem("preferredIndustry") ||
-        "",
-      preferredLocation:
-        profile.preferredLocation ||
-        profile.location ||
-        localStorage.getItem("preferredLocation") ||
-        localStorage.getItem("location") ||
-        "",
-      experienceLevel:
-        profile.experienceLevel ||
-        profile.level ||
-        localStorage.getItem("experienceLevel") ||
-        "",
-      skills,
-    };
-  };
-
   const normalize = (value?: string) =>
     String(value || "")
       .toLowerCase()
       .replace(/[^\w\s+#.-]/g, " ")
       .replace(/\s+/g, " ")
       .trim();
-
-  const splitSkills = (value?: string) => {
-    if (!value) return [];
-    return value
-      .split(/[,;\n|]/)
-      .map((skill) => skill.trim())
-      .filter(Boolean);
-  };
 
   const inferIndustry = (job: BackendJob) => {
     const text = normalize(
@@ -554,92 +477,11 @@ function JobMatches() {
     return "2+ years";
   };
 
-  const calculateMatchScore = (
-    job: BackendJob,
-    jobSkills: string[],
-    candidate: CandidateProfile
-  ) => {
-    let score = 25;
-
-    const titleText = normalize(job.title);
-    const typeText = normalize(job.type);
-    const locationText = normalize(job.location);
-    const industryText = inferIndustry(job);
-    const candidateTitle = normalize(candidate.desiredTitle);
-    const candidateType = normalize(candidate.desiredJobType);
-    const candidateLocation = normalize(candidate.preferredLocation);
-    const candidateIndustry = normalize(candidate.preferredIndustry);
-    const candidateLevel = normalize(candidate.experienceLevel);
-
-    const normalizedJobSkills = jobSkills.map(normalize).filter(Boolean);
-    const normalizedCandidateSkills = candidate.skills.map(normalize).filter(Boolean);
-
-    const matchedSkills = normalizedJobSkills.filter((jobSkill) =>
-      normalizedCandidateSkills.some(
-        (userSkill) => userSkill.includes(jobSkill) || jobSkill.includes(userSkill)
-      )
-    );
-
-    if (normalizedJobSkills.length > 0) {
-      score += Math.min(35, Math.round((matchedSkills.length / normalizedJobSkills.length) * 35));
-    }
-
-    if (candidateTitle) {
-      const titleWords = candidateTitle.split(" ").filter((word) => word.length > 2);
-      const titleMatches = titleWords.some((word) => titleText.includes(word));
-      if (titleMatches) score += 20;
-    }
-
-    if (candidateType && typeText.includes(candidateType)) {
-      score += 10;
-    }
-
-    if (candidateType.includes("remote") && typeText.includes("remote")) {
-      score += 10;
-    }
-
-    if (candidateLocation && locationText.includes(candidateLocation)) {
-      score += 8;
-    }
-
-    if (candidateIndustry && industryText.includes(candidateIndustry)) {
-      score += 10;
-    }
-
-    if (candidateLevel && normalize(inferLevel(job)).includes(candidateLevel)) {
-      score += 7;
-    }
-
-    if (!candidate.skills.length && !candidateTitle && !candidateType) {
-      score = 70;
-    }
-
-    return Math.max(35, Math.min(98, score));
-  };
-
-  const buildJobFromBackend = (backendJob: BackendJob, candidate: CandidateProfile): Job => {
-    const jobSkills = splitSkills(backendJob.skills);
-    const candidateNormalizedSkills = candidate.skills.map(normalize);
-
-const matchedSkills = jobSkills.filter((skill) => {
-  const normalizedSkill = normalize(skill);
-
-  return candidateNormalizedSkills.some(
-    (candidateSkill) =>
-      candidateSkill.includes(normalizedSkill) ||
-      normalizedSkill.includes(candidateSkill)
-  );
-});
-
-const missingSkills = jobSkills.filter(
-  (skill) => !matchedSkills.includes(skill)
-);
-
-    const score = calculateMatchScore(backendJob, jobSkills, candidate);
-
+  const buildJobFromBackend = (backendJob: BackendJob): Job => {
+    // Skill match/miss tags are AI-computed (semantic, not substring matching) and
+    // populated later from the /api/jobs/match-scores response — see getMatchInfo().
     return {
       id: backendJob.id,
-      percent: `${score}%`,
       title: backendJob.title || "Untitled Job",
       company: backendJob.companyName || "Unknown Company",
       location: backendJob.location || "Not specified",
@@ -648,9 +490,6 @@ const missingSkills = jobSkills.filter(
       salary: backendJob.salary || "$50k - $80k",
       level: inferLevel(backendJob),
       status: "Active",
-      skills: matchedSkills,
-      dangerSkills: missingSkills.slice(0, 4),
-      noScore: false,
       industry: inferIndustry(backendJob),
       type: backendJob.type || "Full-time",
       about: backendJob.description || "",
@@ -659,8 +498,6 @@ const missingSkills = jobSkills.filter(
   };
 
   useEffect(() => {
-    const candidate = readCandidateProfile();
-
     fetch("http://localhost:8080/api/jobs/all")
       .then((res) => {
         if (!res.ok) {
@@ -669,9 +506,7 @@ const missingSkills = jobSkills.filter(
         return res.json();
       })
       .then((data: BackendJob[]) => {
-        const formattedJobs = data
-          .map((job) => buildJobFromBackend(job, candidate))
-          .sort((a, b) => Number(b.percent.replace("%", "")) - Number(a.percent.replace("%", "")));
+        const formattedJobs = data.map((job) => buildJobFromBackend(job));
 
         setJobs(formattedJobs);
         setFetchError("");
@@ -703,6 +538,86 @@ const missingSkills = jobSkills.filter(
         setLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    if (jobs.length === 0) return;
+
+    const identity = readCandidateIdentity();
+    if (!identity.email) {
+      setHasAnalysis(false);
+      setMatchScores(new Map());
+      return;
+    }
+
+    const jobIds = jobs
+      .map((job) => job.id)
+      .filter((id): id is number => typeof id === "number");
+
+    if (jobIds.length === 0) return;
+
+    let cancelled = false;
+    setMatchScoresLoading(true);
+
+    fetch("http://localhost:8080/api/jobs/match-scores", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: identity.email,
+        jobIds,
+        language,
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to load match scores");
+        }
+        return res.json();
+      })
+      .then((data: {
+        hasAnalysis: boolean;
+        matches: {
+          jobId: number;
+          matchPercent: number;
+          matchReason: string;
+          matchedSkills?: string[];
+          missingSkills?: string[];
+        }[];
+      }) => {
+        if (cancelled) return;
+
+        setHasAnalysis(Boolean(data.hasAnalysis));
+
+        const nextScores = new Map<number, MatchScoreEntry>();
+        (data.matches || []).forEach((match) => {
+          nextScores.set(match.jobId, {
+            matchPercent: match.matchPercent,
+            matchReason: match.matchReason,
+            matchedSkills: match.matchedSkills || [],
+            missingSkills: match.missingSkills || [],
+          });
+        });
+
+        setMatchScores(nextScores);
+      })
+      .catch((error) => {
+        console.error(error);
+        if (!cancelled) {
+          setHasAnalysis(false);
+          setMatchScores(new Map());
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setMatchScoresLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [jobs, language]);
 
   const jobDetailsMap: Record<string, JobDetailExtra> = {};
 
@@ -913,9 +828,38 @@ const industryOptions = [
     return Math.max(...numbers.map((num) => Number(num)));
   };
 
-  const getNumericMatch = (percent: string, noScore?: boolean) => {
-    if (noScore || !percent) return null;
-    return Number(percent.replace("%", ""));
+  type MatchInfo =
+    | { status: "loading" }
+    | { status: "noAnalysis" }
+    | {
+        status: "scored";
+        percent: number;
+        reason: string;
+        matchedSkills: string[];
+        missingSkills: string[];
+      };
+
+  const getMatchInfo = (job: Job): MatchInfo => {
+    if (matchScoresLoading || hasAnalysis === null) {
+      return { status: "loading" };
+    }
+
+    if (!hasAnalysis) {
+      return { status: "noAnalysis" };
+    }
+
+    const entry = typeof job.id === "number" ? matchScores.get(job.id) : undefined;
+    if (!entry) {
+      return { status: "noAnalysis" };
+    }
+
+    return {
+      status: "scored",
+      percent: entry.matchPercent,
+      reason: entry.matchReason,
+      matchedSkills: entry.matchedSkills,
+      missingSkills: entry.missingSkills,
+    };
   };
 
   const filteredJobs = useMemo(() => {
@@ -926,12 +870,13 @@ const industryOptions = [
       const jobSalary = extractSalaryNumber(job.salary);
       const matchesSalary = jobSalary === 0 ? true : jobSalary >= minSalary;
 
-      const numericMatch = getNumericMatch(job.percent, job.noScore);
-      const matchesScore = numericMatch === null ? true : numericMatch >= minMatch;
+      const info = getMatchInfo(job);
+      const matchesScore = info.status === "scored" ? info.percent >= minMatch : true;
 
       return matchesIndustry && matchesLevel && matchesSalary && matchesScore;
     });
-  }, [jobs, industry, seniority, minSalary, minMatch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobs, industry, seniority, minSalary, minMatch, matchScores, hasAnalysis, matchScoresLoading]);
 
   const activeFiltersCount =
     (industry ? 1 : 0) +
@@ -939,17 +884,14 @@ const industryOptions = [
     (minSalary !== 40 ? 1 : 0) +
     (minMatch !== 15 ? 1 : 0);
 
-  const getRingColor = (job: Job) => {
-    if (job.noScore) return "#5f648a";
-    const numeric = Number(job.percent.replace("%", ""));
-    return numeric >= 80 ? "#49e38d" : "#f5c542";
+  const getRingColor = (info: MatchInfo) => {
+    if (info.status !== "scored") return "#5f648a";
+    return info.percent >= 80 ? "#49e38d" : "#f5c542";
   };
 
   const selectedDetails = selectedJob ? jobDetailsMap[selectedJob.title] : undefined;
 
-  const selectedNumericMatch = selectedJob
-    ? getNumericMatch(selectedJob.percent, selectedJob.noScore)
-    : null;
+  const selectedMatchInfo = selectedJob ? getMatchInfo(selectedJob) : null;
 
   const derivedExperienceYears = (experience: string) => {
     const match = experience.match(/(\d+)/);
@@ -1090,8 +1032,9 @@ const industryOptions = [
   };
 
   const renderJobCard = (job: Job, index: number, fromSaved = false) => {
-    const numeric = job.noScore ? 0 : Number(job.percent.replace("%", ""));
-    const ringColor = getRingColor(job);
+    const matchInfo = getMatchInfo(job);
+    const ringColor = getRingColor(matchInfo);
+    const numeric = matchInfo.status === "scored" ? matchInfo.percent : 0;
 
     return (
       <article
@@ -1103,24 +1046,40 @@ const industryOptions = [
           <div className="flex flex-col items-center justify-center md:justify-start">
             <div className="relative h-[98px] w-[98px]">
               <div
-                className="h-full w-full rounded-full transition-all duration-[1800ms] ease-out"
+                className={`h-full w-full rounded-full transition-all duration-[1800ms] ease-out ${
+                  matchInfo.status === "loading" ? "animate-pulse" : ""
+                }`}
                 style={{
-                  background: job.noScore
-                    ? "conic-gradient(#5f648a 360deg, #2a2c5a 0deg)"
-                    : `conic-gradient(${ringColor} ${numeric * 3.6}deg, #2a2c5a 0deg)`,
-                  boxShadow: job.noScore ? "0 0 0 rgba(0,0,0,0)" : `0 0 24px ${ringColor}22`,
+                  background:
+                    matchInfo.status === "scored"
+                      ? `conic-gradient(${ringColor} ${numeric * 3.6}deg, #2a2c5a 0deg)`
+                      : "conic-gradient(#5f648a 360deg, #2a2c5a 0deg)",
+                  boxShadow: matchInfo.status === "scored" ? `0 0 24px ${ringColor}22` : "0 0 0 rgba(0,0,0,0)",
                 }}
               />
 
               <div className="absolute inset-[8px] flex items-center justify-center rounded-full bg-[#252654] text-[22px] font-extrabold text-white shadow-inner">
-                {job.noScore ? "N/A" : job.percent}
+                {matchInfo.status === "scored" ? `${matchInfo.percent}%` : matchInfo.status === "loading" ? "" : "?"}
               </div>
             </div>
 
-            {job.noScore && (
+            {matchInfo.status === "loading" && (
               <span className="mt-2 text-[12px] font-medium text-white/40">
-                {t.jobMatches.noScore}
+                {t.jobMatches.matchScoreLoading}
               </span>
+            )}
+
+            {matchInfo.status === "noAnalysis" && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate("/resume-manager");
+                }}
+                className="mt-2 rounded-full border border-[#7c88ff]/30 bg-[#7c88ff]/15 px-3 py-1 text-center text-[11px] font-semibold text-[#c4b5fd] transition hover:bg-[#7c88ff]/25"
+              >
+                {t.jobMatches.analyzeCvForScore}
+              </button>
             )}
           </div>
 
@@ -1194,27 +1153,37 @@ const industryOptions = [
               )}
             </div>
 
-            {(job.skills.length > 0 || job.dangerSkills.length > 0) && (
-              <div className={`flex flex-wrap gap-2 ${isRTL ? "md:flex-row-reverse" : ""}`}>
-                {job.skills.map((skill) => (
-                  <span
-                    key={skill}
-                    className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-semibold text-emerald-300"
-                  >
-                    {skill}
-                  </span>
-                ))}
+            {(() => {
+              const matchInfo = getMatchInfo(job);
+              if (matchInfo.status !== "scored") return null;
 
-                {job.dangerSkills.map((skill) => (
-                  <span
-                    key={skill}
-                    className="rounded-full border border-rose-400/20 bg-rose-400/10 px-3 py-1 text-sm font-semibold text-rose-300"
-                  >
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            )}
+              const matchedSkills = matchInfo.matchedSkills;
+              const missingSkills = matchInfo.missingSkills.slice(0, 4);
+
+              if (matchedSkills.length === 0 && missingSkills.length === 0) return null;
+
+              return (
+                <div className={`flex flex-wrap gap-2 ${isRTL ? "md:flex-row-reverse" : ""}`}>
+                  {matchedSkills.map((skill) => (
+                    <span
+                      key={skill}
+                      className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-semibold text-emerald-300"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+
+                  {missingSkills.map((skill) => (
+                    <span
+                      key={skill}
+                      className="rounded-full border border-rose-400/20 bg-rose-400/10 px-3 py-1 text-sm font-semibold text-rose-300"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
 
           <div className="flex items-center justify-end gap-2">
@@ -1734,20 +1703,47 @@ const industryOptions = [
                   <div className="flex flex-col items-center text-center">
                     <div className="relative h-[130px] w-[130px]">
                       <div
-                        className="h-full w-full rounded-full"
+                        className={`h-full w-full rounded-full ${
+                          selectedMatchInfo?.status === "loading" ? "animate-pulse" : ""
+                        }`}
                         style={{
-                          background: selectedJob.noScore
-                            ? "conic-gradient(#5f648a 360deg, #2a2c5a 0deg)"
-                            : `conic-gradient(${getRingColor(selectedJob)} ${(selectedNumericMatch || 0) * 3.6}deg, #2a2c5a 0deg)`,
+                          background:
+                            selectedMatchInfo?.status === "scored"
+                              ? `conic-gradient(${getRingColor(selectedMatchInfo)} ${selectedMatchInfo.percent * 3.6}deg, #2a2c5a 0deg)`
+                              : "conic-gradient(#5f648a 360deg, #2a2c5a 0deg)",
                         }}
                       />
                       <div className="absolute inset-[10px] flex items-center justify-center rounded-full bg-[#252654] text-[32px] font-extrabold text-white">
-                        {selectedJob.noScore ? "N/A" : selectedJob.percent}
+                        {selectedMatchInfo?.status === "scored"
+                          ? `${selectedMatchInfo.percent}%`
+                          : selectedMatchInfo?.status === "loading"
+                          ? ""
+                          : "?"}
                       </div>
                     </div>
                     <p className="mt-4 text-sm font-semibold text-[#aeb4d6]">
-                      {selectedJob.noScore ? t.jobMatches.noScore : "Profile Match Score"}
+                      {selectedMatchInfo?.status === "scored"
+                        ? t.jobMatches.profileMatchScore
+                        : selectedMatchInfo?.status === "loading"
+                        ? t.jobMatches.matchScoreLoading
+                        : t.jobMatches.noScoreAvailable}
                     </p>
+
+                    {selectedMatchInfo?.status === "scored" && selectedMatchInfo.reason && (
+                      <p className="mt-3 text-[13px] leading-6 text-[#c4cae9]" title={selectedMatchInfo.reason}>
+                        {selectedMatchInfo.reason}
+                      </p>
+                    )}
+
+                    {selectedMatchInfo?.status === "noAnalysis" && (
+                      <button
+                        type="button"
+                        onClick={() => navigate("/resume-manager")}
+                        className="mt-4 inline-flex items-center justify-center rounded-full border border-[#7c88ff]/30 bg-[#7c88ff]/15 px-4 py-2 text-sm font-semibold text-[#c4b5fd] transition hover:bg-[#7c88ff]/25"
+                      >
+                        {t.jobMatches.analyzeCvForScore}
+                      </button>
+                    )}
                   </div>
 
                   <div className="mt-8 flex flex-col gap-3">
@@ -1793,36 +1789,57 @@ const industryOptions = [
                   )}
                 </div>
 
-                <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-6">
-                  <h2 className="mb-4 text-[18px] font-extrabold text-white">Matched skills</h2>
-                  {selectedJob.skills.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {selectedJob.skills.map((skill) => (
-                        <span key={skill} className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-300">
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-[#c4cae9]">No matched skills detected.</p>
-                  )}
+                {(() => {
+                  const matchInfo = getMatchInfo(selectedJob);
 
-                  <h2 className="mb-4 mt-6 text-[18px] font-extrabold text-white flex items-center gap-2">
-                    <AlertTriangle size={18} className="text-rose-300" />
-                    Skills to improve
-                  </h2>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedJob.dangerSkills.length > 0 ? (
-                      selectedJob.dangerSkills.map((skill) => (
-                        <span key={skill} className="rounded-full border border-rose-400/20 bg-rose-400/10 px-3 py-1.5 text-xs font-semibold text-rose-300">
-                          {skill}
-                        </span>
-                      ))
-                    ) : (
-                      <p className="text-sm text-[#c4cae9]">No specific missing skills detected.</p>
-                    )}
-                  </div>
-                </div>
+                  if (matchInfo.status === "loading") {
+                    return (
+                      <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-6">
+                        <div className="h-5 w-40 animate-pulse rounded bg-white/10" />
+                      </div>
+                    );
+                  }
+
+                  if (matchInfo.status === "noAnalysis") {
+                    return null;
+                  }
+
+                  const matchedSkills = matchInfo.matchedSkills;
+                  const missingSkills = matchInfo.missingSkills;
+
+                  return (
+                    <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-6">
+                      <h2 className="mb-4 text-[18px] font-extrabold text-white">Matched skills</h2>
+                      {matchedSkills.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {matchedSkills.map((skill) => (
+                            <span key={skill} className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-300">
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-[#c4cae9]">No matched skills detected.</p>
+                      )}
+
+                      <h2 className="mb-4 mt-6 text-[18px] font-extrabold text-white flex items-center gap-2">
+                        <AlertTriangle size={18} className="text-rose-300" />
+                        Skills to improve
+                      </h2>
+                      <div className="flex flex-wrap gap-2">
+                        {missingSkills.length > 0 ? (
+                          missingSkills.map((skill) => (
+                            <span key={skill} className="rounded-full border border-rose-400/20 bg-rose-400/10 px-3 py-1.5 text-xs font-semibold text-rose-300">
+                              {skill}
+                            </span>
+                          ))
+                        ) : (
+                          <p className="text-sm text-[#c4cae9]">No specific missing skills detected.</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-6">
                   <h2 className="mb-4 flex items-center gap-2 text-[18px] font-extrabold text-white">

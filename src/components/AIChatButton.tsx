@@ -84,16 +84,23 @@ function AIChatButton() {
     const text = (customText ?? input).trim();
     if (!text || isTyping) return;
 
+    const history = messages.slice(-20).map((m) => ({
+      role: m.sender === "ai" ? "assistant" : "user",
+      content: m.text,
+    }));
+
     const userMessage: Message = { id: Date.now(), sender: "user", text };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsTyping(true);
 
     try {
+      const email = localStorage.getItem("email") || "";
+
       const response = await fetch("http://localhost:8080/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, language }),
+        body: JSON.stringify({ email, message: text, history, language }),
       });
 
       const data = await response.json();
@@ -143,9 +150,9 @@ function AIChatButton() {
 
       {isOpen && (
         <div
-          className={`fixed bottom-6 z-50 flex h-[620px] w-[380px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[rgba(14,18,58,0.96)] shadow-[0_24px_70px_rgba(0,0,0,0.35)] backdrop-blur-xl ${
+          className={`fixed bottom-6 z-50 flex h-[760px] max-h-[85vh] w-[460px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[rgba(14,18,58,0.96)] shadow-[0_24px_70px_rgba(0,0,0,0.35)] backdrop-blur-xl ${
             isRTL ? "left-6" : "right-6"
-          } max-[640px]:bottom-3 max-[640px]:left-3 max-[640px]:right-3 max-[640px]:h-[78vh] max-[640px]:w-auto`}
+          } max-[640px]:bottom-3 max-[640px]:left-3 max-[640px]:right-3 max-[640px]:h-[85vh] max-[640px]:w-auto`}
           dir={isRTL ? "rtl" : "ltr"}
         >
           {/* Header */}

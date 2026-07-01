@@ -7,10 +7,13 @@ import {
   Save,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import { translations } from "../translations";
 
 function PostJob() {
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const t = translations[language];
+  const p = t.postJobPage;
   const isRTL = language === "ar" || language === "he";
 
   const [skills, setSkills] = useState(["React", "TypeScript"]);
@@ -42,14 +45,14 @@ function PostJob() {
   };
 
   const handleSaveDraft = () => {
-    alert("Job saved as draft!");
+    alert(p.jobSavedAsDraft);
   };
 
   const handlePostJob = async () => {
     if (isSubmitting) return;
 
     if (!jobTitle.trim() || !description.trim()) {
-      alert("Please fill in Job Title and Description.");
+      alert(p.fillTitleAndDescription);
       return;
     }
 
@@ -60,7 +63,7 @@ function PostJob() {
       "Company";
 
     if (!companyEmail) {
-      alert("Company email not found. Please login again.");
+      alert(p.companyEmailNotFound);
       return;
     }
 
@@ -100,18 +103,18 @@ function PostJob() {
       const data = await response.json();
 
       if (!data.success) {
-        alert(data.message || "Failed to post job.");
+        alert(data.message || p.failedToPostJob);
         return;
       }
 
-      setSuccessMessage("Job posted successfully!");
+      setSuccessMessage(p.jobPostedSuccessfully);
 
       setTimeout(() => {
         navigate("/company-job-postings");
       }, 1800);
     } catch (error) {
       console.error(error);
-      alert("Server connection failed.");
+      alert(p.serverConnectionFailed);
     } finally {
       setIsSubmitting(false);
     }
@@ -132,7 +135,7 @@ function PostJob() {
             </div>
 
             <div>
-              <p className="text-sm text-emerald-200/75">Success</p>
+              <p className="text-sm text-emerald-200/75">{p.success}</p>
               <h3 className="text-[16px] font-bold text-white">
                 {successMessage}
               </h3>
@@ -151,7 +154,7 @@ function PostJob() {
           className="mb-10 inline-flex items-center gap-3 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-6 py-3 text-[16px] font-semibold text-white/85 backdrop-blur-[8px] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-white"
         >
           <ArrowLeft size={18} className={isRTL ? "rotate-180" : ""} />
-          Back to Jobs
+          {p.backToJobs}
         </button>
 
         <div className="mb-10 flex items-center gap-5">
@@ -161,7 +164,7 @@ function PostJob() {
 
           <div>
             <h1 className="text-[42px] font-extrabold leading-none text-white max-[900px]:text-[32px]">
-              Create New Job
+              {p.createNewJob}
             </h1>
           </div>
         </div>
@@ -169,32 +172,32 @@ function PostJob() {
         <div className="mx-auto max-w-[1020px] space-y-8">
           <div className="rounded-[28px] border border-white/10 bg-[rgba(48,46,108,0.72)] p-8 shadow-[0_10px_35px_rgba(0,0,0,0.16)] backdrop-blur-[10px]">
             <h2 className="mb-8 text-[22px] font-extrabold text-white">
-              Basic Information
+              {p.basicInformation}
             </h2>
 
             <div className="space-y-6">
               <div>
                 <label className="mb-3 block text-[16px] font-medium text-white/75">
-                  Job Title *
+                  {p.jobTitleRequired}
                 </label>
                 <input
                   type="text"
                   value={jobTitle}
                   onChange={(e) => setJobTitle(e.target.value)}
-                  placeholder="e.g., Senior Frontend Developer"
+                  placeholder={p.jobTitlePlaceholder}
                   className="h-14 w-full rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white placeholder:text-white/28 outline-none transition focus:border-[#7f6bff]"
                 />
               </div>
 
               <div>
                 <label className="mb-3 block text-[16px] font-medium text-white/75">
-                  Description *
+                  {p.descriptionRequired}
                 </label>
                 <textarea
                   rows={7}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe the role and responsibilities..."
+                  placeholder={p.descriptionPlaceholder}
                   className="w-full rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 py-4 text-[17px] text-white placeholder:text-white/28 outline-none transition focus:border-[#7f6bff]"
                 />
               </div>
@@ -206,13 +209,13 @@ function PostJob() {
               >
                 <div>
                   <label className="mb-3 block text-[16px] font-medium text-white/75">
-                    Location
+                    {p.location}
                   </label>
                   <input
                     type="text"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    placeholder="e.g., Tel Aviv"
+                    placeholder={p.locationPlaceholder}
                     className="h-14 w-full rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white placeholder:text-white/28 outline-none transition focus:border-[#7f6bff]"
                   />
                 </div>
@@ -227,9 +230,15 @@ function PostJob() {
                         className="peer sr-only"
                       />
                       <div className="h-8 w-14 rounded-full bg-white/25 transition peer-checked:bg-[#7f6bff]" />
-                      <div className="absolute left-1 top-1 h-6 w-6 rounded-full bg-white transition peer-checked:translate-x-6" />
+                      <div
+                        className={`absolute top-1 h-6 w-6 rounded-full bg-white transition ${
+                          isRTL
+                            ? "right-1 peer-checked:-translate-x-6"
+                            : "left-1 peer-checked:translate-x-6"
+                        }`}
+                      />
                     </div>
-                    <span>Remote Work Available</span>
+                    <span>{p.remoteWorkAvailable}</span>
                   </label>
                 </div>
               </div>
@@ -238,14 +247,14 @@ function PostJob() {
 
           <div className="rounded-[28px] border border-white/10 bg-[rgba(48,46,108,0.72)] p-8 shadow-[0_10px_35px_rgba(0,0,0,0.16)] backdrop-blur-[10px]">
             <h2 className="mb-8 text-[22px] font-extrabold text-white">
-              Requirements
+              {p.requirements}
             </h2>
 
             <div className="space-y-6">
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
                   <label className="mb-3 block text-[16px] font-medium text-white/75">
-                    Seniority Level
+                    {p.seniorityLevel}
                   </label>
                   <div className="relative">
                     <select
@@ -253,28 +262,36 @@ function PostJob() {
                       onChange={(e) => setSeniorityLevel(e.target.value)}
                       className="h-14 w-full appearance-none rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white outline-none transition focus:border-[#7f6bff]"
                     >
-                      {["", "Junior", "Mid-Level", "Senior", "Lead"].map(
-                        (level) => (
-                          <option
-                            key={level || "empty"}
-                            value={level}
-                            style={{
-                              backgroundColor: "#2f2d68",
-                              color: "white",
-                            }}
-                          >
-                            {level || "Select level"}
-                          </option>
-                        )
-                      )}
+                      {[
+                        { value: "", label: p.selectLevel },
+                        { value: "Junior", label: p.levelJunior },
+                        { value: "Mid-Level", label: p.levelMidLevel },
+                        { value: "Senior", label: p.levelSenior },
+                        { value: "Lead", label: p.levelLead },
+                      ].map((level) => (
+                        <option
+                          key={level.value || "empty"}
+                          value={level.value}
+                          style={{
+                            backgroundColor: "#2f2d68",
+                            color: "white",
+                          }}
+                        >
+                          {level.label}
+                        </option>
+                      ))}
                     </select>
-                    <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/45" />
+                    <ChevronDown
+                      className={`pointer-events-none absolute top-1/2 h-5 w-5 -translate-y-1/2 text-white/45 ${
+                        isRTL ? "left-4" : "right-4"
+                      }`}
+                    />
                   </div>
                 </div>
 
                 <div>
                   <label className="mb-3 block text-[16px] font-medium text-white/75">
-                    Employment Type
+                    {p.employmentType}
                   </label>
                   <div className="relative">
                     <select
@@ -282,22 +299,29 @@ function PostJob() {
                       onChange={(e) => setEmploymentType(e.target.value)}
                       className="h-14 w-full appearance-none rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white outline-none transition focus:border-[#7f6bff]"
                     >
-                      {["Full-time", "Part-time", "Contract", "Internship"].map(
-                        (type) => (
-                          <option
-                            key={type}
-                            value={type}
-                            style={{
-                              backgroundColor: "#2f2d68",
-                              color: "white",
-                            }}
-                          >
-                            {type}
-                          </option>
-                        )
-                      )}
+                      {[
+                        { value: "Full-time", label: p.fullTime },
+                        { value: "Part-time", label: p.partTime },
+                        { value: "Contract", label: p.contract },
+                        { value: "Internship", label: p.internship },
+                      ].map((type) => (
+                        <option
+                          key={type.value}
+                          value={type.value}
+                          style={{
+                            backgroundColor: "#2f2d68",
+                            color: "white",
+                          }}
+                        >
+                          {type.label}
+                        </option>
+                      ))}
                     </select>
-                    <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/45" />
+                    <ChevronDown
+                      className={`pointer-events-none absolute top-1/2 h-5 w-5 -translate-y-1/2 text-white/45 ${
+                        isRTL ? "left-4" : "right-4"
+                      }`}
+                    />
                   </div>
                 </div>
               </div>
@@ -305,14 +329,14 @@ function PostJob() {
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
                   <label className="mb-3 block text-[16px] font-medium text-white/75">
-                    Experience (years)
+                    {p.experienceYears}
                   </label>
                   <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                     <input
                       type="number"
                       value={minExperience}
                       onChange={(e) => setMinExperience(e.target.value)}
-                      placeholder="Min"
+                      placeholder={p.min}
                       className="h-14 rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white placeholder:text-white/28 outline-none transition focus:border-[#7f6bff]"
                     />
                     <span className="text-white/40">-</span>
@@ -320,7 +344,7 @@ function PostJob() {
                       type="number"
                       value={maxExperience}
                       onChange={(e) => setMaxExperience(e.target.value)}
-                      placeholder="Max"
+                      placeholder={p.max}
                       className="h-14 rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white placeholder:text-white/28 outline-none transition focus:border-[#7f6bff]"
                     />
                   </div>
@@ -328,14 +352,14 @@ function PostJob() {
 
                 <div>
                   <label className="mb-3 block text-[16px] font-medium text-white/75">
-                    Salary Range
+                    {p.salaryRange}
                   </label>
                   <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                     <input
                       type="number"
                       value={minSalary}
                       onChange={(e) => setMinSalary(e.target.value)}
-                      placeholder="Min"
+                      placeholder={p.min}
                       className="h-14 rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white placeholder:text-white/28 outline-none transition focus:border-[#7f6bff]"
                     />
                     <span className="text-white/40">-</span>
@@ -343,7 +367,7 @@ function PostJob() {
                       type="number"
                       value={maxSalary}
                       onChange={(e) => setMaxSalary(e.target.value)}
-                      placeholder="Max"
+                      placeholder={p.max}
                       className="h-14 rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white placeholder:text-white/28 outline-none transition focus:border-[#7f6bff]"
                     />
                   </div>
@@ -352,7 +376,7 @@ function PostJob() {
 
               <div>
                 <label className="mb-3 block text-[16px] font-medium text-white/75">
-                  Required Skills
+                  {p.requiredSkills}
                 </label>
 
                 <div className="flex gap-3">
@@ -366,7 +390,7 @@ function PostJob() {
                         addSkill();
                       }
                     }}
-                    placeholder="Add a skill..."
+                    placeholder={p.addSkillPlaceholder}
                     className="h-14 flex-1 rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white placeholder:text-white/28 outline-none transition focus:border-[#7f6bff]"
                   />
 
@@ -411,7 +435,7 @@ function PostJob() {
               onClick={handleSaveDraft}
               className="inline-flex h-14 items-center justify-center rounded-[14px] bg-white px-8 text-[16px] font-bold text-[#2a265f] shadow-[0_10px_24px_rgba(255,255,255,0.12)] transition hover:opacity-90"
             >
-              Save as Draft
+              {p.saveAsDraft}
             </button>
 
             <button
@@ -421,7 +445,7 @@ function PostJob() {
               className="inline-flex h-14 items-center gap-3 rounded-[14px] bg-[linear-gradient(135deg,#7f6bff,#9b3ff5)] px-8 text-[16px] font-bold text-white shadow-[0_14px_30px_rgba(139,92,246,0.25)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
             >
               <Save size={18} />
-              {isSubmitting ? "Posting..." : "Post Job"}
+              {isSubmitting ? p.posting : p.postJob}
             </button>
           </div>
         </div>

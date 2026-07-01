@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
+import { computeProfileCompleteness } from "./ProfilePage";
 import {
   BriefcaseBusiness,
   FileText,
@@ -20,7 +21,7 @@ type RecentApplication = {
   title: string;
   company: string;
   location: string;
-  percent: number;
+  percent: number | null;
   status: string;
   days: string;
   statusClass: string;
@@ -44,8 +45,6 @@ type BackendApplication = {
   location?: string;
   status?: string;
   appliedDate?: string;
-  matchPercent?: number | string;
-  matchScore?: number | string;
 };
 
 type BackendJob = {
@@ -55,18 +54,14 @@ type BackendJob = {
   companyName?: string;
   location?: string;
   remote?: boolean;
-  matchPercent?: number | string;
-  matchScore?: number | string;
+};
+
+type MatchScoreEntry = {
+  matchPercent: number;
 };
 
 const API_BASE_URL = "http://localhost:8080";
 const FREE_PLAN_LIMIT = 10;
-
-function toNumber(value: unknown, fallback = 80) {
-  if (value === null || value === undefined || value === "") return fallback;
-  const num = Number(String(value).replace("%", ""));
-  return Number.isNaN(num) ? fallback : num;
-}
 
 function getStatusClass(status: string) {
   const clean = status.toLowerCase();
@@ -86,7 +81,18 @@ function getStatusClass(status: string) {
   return "border border-yellow-400/20 bg-yellow-500/12 text-yellow-300";
 }
 
-function ScoreRing({ value }: { value: number }) {
+function ScoreRing({ value }: { value: number | null }) {
+  if (value === null) {
+    return (
+      <div className="relative h-[88px] w-[88px] shrink-0">
+        <div className="h-full w-full animate-pulse rounded-full bg-[#2a2c5a]" />
+        <div className="absolute inset-[8px] flex items-center justify-center rounded-full bg-[#252654] text-[11px] font-semibold text-white/50 shadow-inner">
+          N/A
+        </div>
+      </div>
+    );
+  }
+
   const ringColor =
     value >= 85 ? "#49e38d" : value >= 75 ? "#8b93ff" : "#f5c542";
 
@@ -123,6 +129,8 @@ function CandidateDashboard() {
   const [applications, setApplications] = useState<RecentApplication[]>([]);
   const [jobsCount, setJobsCount] = useState("0");
   const [applicationsCount, setApplicationsCount] = useState("0");
+  const [interviewsCount, setInterviewsCount] = useState("0");
+  const [profileScore, setProfileScore] = useState(0);
 
   const usedApplications = Number(applicationsCount);
   const remainingApplications = Math.max(FREE_PLAN_LIMIT - usedApplications, 0);
@@ -134,7 +142,7 @@ function CandidateDashboard() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [jobsRes, appsRes] = await Promise.all([
+        const [jobsRes, appsRes, cvRes] = await Promise.all([
           fetch(`${API_BASE_URL}/api/jobs/all`),
           userEmail
             ? fetch(
@@ -142,37 +150,112 @@ function CandidateDashboard() {
                   userEmail
                 )}`
               )
-            : fetch(`${API_BASE_URL}/api/applications/all`),
+            : Promise.resolve(null),
+          userEmail
+            ? fetch(`${API_BASE_URL}/api/cv/current?email=${encodeURIComponent(userEmail)}`)
+            : Promise.resolve(null),
         ]);
 
         const jobsData: BackendJob[] = jobsRes.ok ? await jobsRes.json() : [];
-        const appsData: BackendApplication[] = appsRes.ok
-          ? await appsRes.json()
-          : [];
+        const appsData: BackendApplication[] =
+          appsRes && appsRes.ok ? await appsRes.json() : [];
 
         setJobsCount(String(jobsData.length));
         setApplicationsCount(String(appsData.length));
 
+        const interviewCount = appsData.filter((app) =>
+          (app.status || "").toLowerCase().includes("interview")
+        ).length;
+        setInterviewsCount(String(interviewCount));
+
+        const resumeFileName = cvRes && cvRes.ok ? (await cvRes.text()).trim() : "";
+
+        const rawSkills = localStorage.getItem("skills");
+        let skills: string[] = [];
+        try {
+          skills = rawSkills ? JSON.parse(rawSkills) : [];
+        } catch {
+          skills = [];
+        }
+
+        setProfileScore(
+          computeProfileCompleteness({
+            name: localStorage.getItem("name") || "",
+            phone: localStorage.getItem("phone") || "",
+            location: localStorage.getItem("location") || "",
+            currentTitle: localStorage.getItem("currentTitle") || "",
+            experience: localStorage.getItem("experience") || "",
+            summary: localStorage.getItem("summary") || "",
+            skills,
+            hasResume: Boolean(resumeFileName || localStorage.getItem("resumeFileName")),
+          })
+        );
+
+        const jobIdsFromJobs = jobsData
+          .map((job) => job.id)
+          .filter((id): id is number => typeof id === "number");
+        const jobIdsFromApps = appsData
+          .map((app) => app.jobId)
+          .filter((id): id is number => typeof id === "number");
+        const combinedJobIds = Array.from(
+          new Set([...jobIdsFromJobs, ...jobIdsFromApps])
+        );
+
+        const matchByJobId = new Map<number, MatchScoreEntry>();
+
+        if (userEmail && combinedJobIds.length > 0) {
+          const matchRes = await fetch(`${API_BASE_URL}/api/jobs/match-scores`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: userEmail,
+              jobIds: combinedJobIds,
+              language,
+            }),
+          });
+
+          if (matchRes.ok) {
+            const matchData: {
+              hasAnalysis: boolean;
+              matches: { jobId: number; matchPercent: number }[];
+            } = await matchRes.json();
+
+            (matchData.matches || []).forEach((match) => {
+              matchByJobId.set(match.jobId, { matchPercent: match.matchPercent });
+            });
+          }
+        }
+
+        const jobsWithScores = jobsData
+          .filter((job) => typeof job.id === "number" && matchByJobId.has(job.id))
+          .map((job) => ({
+            job,
+            score: matchByJobId.get(job.id as number)!.matchPercent,
+          }))
+          .sort((a, b) => b.score - a.score);
+
         setTopMatches(
-          jobsData.slice(0, 3).map((job) => ({
+          jobsWithScores.slice(0, 3).map(({ job, score }) => ({
             title: job.title || "Job Position",
             company: job.company || job.companyName || "Company",
             location: job.location || "Not specified",
             remote: job.remote ?? true,
-            score: toNumber(job.matchPercent ?? job.matchScore, 80),
+            score,
           }))
         );
 
         setApplications(
           appsData.slice(0, 3).map((app) => {
             const status = app.status || "Under Review";
+            const scoreEntry =
+              typeof app.jobId === "number" ? matchByJobId.get(app.jobId) : undefined;
 
             return {
               id: app.id || app.jobId || Math.floor(Math.random() * 100000),
               title: app.title || app.jobTitle || "Application",
               company: app.company || app.companyName || "Company",
               location: app.location || "Not specified",
-              percent: toNumber(app.matchPercent ?? app.matchScore, 80),
+              percent: scoreEntry ? scoreEntry.matchPercent : null,
               status,
               days: app.appliedDate || "Recently",
               statusClass: getStatusClass(status),
@@ -185,7 +268,7 @@ function CandidateDashboard() {
     };
 
     fetchDashboardData();
-  }, [userEmail]);
+  }, [userEmail, language]);
 
   const stats = useMemo(
     () => [
@@ -207,24 +290,24 @@ function CandidateDashboard() {
       },
       {
         icon: <CalendarDays size={22} />,
-        value: "3",
+        value: interviewsCount,
         label: t.dashboard.stats.interviews,
         iconBg: "bg-[#34d3991f]",
         iconColor: "text-[#6ee7b7]",
       },
       {
         icon: <Sparkles size={22} />,
-        value: "78%",
+        value: `${profileScore}%`,
         label: t.dashboard.stats.profileScore,
         iconBg: "bg-[#a855f71f]",
         iconColor: "text-[#d8b4fe]",
         onClick: () => navigate("/profile"),
       },
     ],
-    [jobsCount, applicationsCount, navigate, t]
+    [jobsCount, applicationsCount, interviewsCount, profileScore, navigate, t]
   );
 
-  const profilePercent = 78;
+  const profilePercent = profileScore;
 
   return (
     <div
@@ -509,10 +592,15 @@ function CandidateDashboard() {
 
               <div className={isRTL ? "text-right" : "text-left"}>
                 <h3 className="text-[24px] font-extrabold text-white">
-                  {t.dashboard.profileBox.title}
+                  {profilePercent >= 100
+                    ? t.dashboard.profileBox.completeTitle || "Profile Complete!"
+                    : t.dashboard.profileBox.title}
                 </h3>
                 <p className="mt-2 max-w-[520px] text-[16px] leading-7 text-[#aeb4d6]">
-                  {t.dashboard.profileBox.subtitle}
+                  {profilePercent >= 100
+                    ? t.dashboard.profileBox.completeSubtitle ||
+                      "Great job! Your profile is fully filled out."
+                    : t.dashboard.profileBox.subtitle}
                 </p>
 
                 <div className="mt-4 flex items-center gap-2 text-emerald-300">

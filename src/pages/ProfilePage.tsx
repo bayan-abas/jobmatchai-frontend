@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   User,
@@ -19,6 +19,33 @@ import {
   Save,
 } from "lucide-react";
 
+export type ProfileCompletenessFields = {
+  name: string;
+  phone: string;
+  location: string;
+  currentTitle: string;
+  experience: string;
+  summary: string;
+  skills: string[];
+  hasResume: boolean;
+};
+
+export function computeProfileCompleteness(fields: ProfileCompletenessFields): number {
+  const checks = [
+    fields.name.trim().length > 0,
+    fields.phone.trim().length > 0,
+    fields.location.trim().length > 0,
+    fields.currentTitle.trim().length > 0,
+    fields.experience.trim().length > 0,
+    fields.summary.trim().length > 0,
+    fields.skills.length > 0,
+    fields.hasResume,
+  ];
+
+  const filled = checks.filter(Boolean).length;
+  return Math.round((filled / checks.length) * 100);
+}
+
 function ProfilePage() {
   const navigate = useNavigate();
   const { language } = useLanguage();
@@ -28,39 +55,65 @@ function ProfilePage() {
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  const [userName, setUserName] = useState(
-    localStorage.getItem("name") || "Alex Johnson"
-  );
-  const [userEmail, setUserEmail] = useState(
-    localStorage.getItem("email") || "alex.johnson@email.com"
-  );
-  const [userPhone, setUserPhone] = useState(
-    localStorage.getItem("phone") || "+1 (555) 123-4567"
-  );
+  const [userName, setUserName] = useState(localStorage.getItem("name") || "");
+  const [userEmail, setUserEmail] = useState(localStorage.getItem("email") || "");
+  const [userPhone, setUserPhone] = useState(localStorage.getItem("phone") || "");
   const [userLocation, setUserLocation] = useState(
-    localStorage.getItem("location") || "Haifa, Israel"
+    localStorage.getItem("location") || ""
   );
   const [userTitle, setUserTitle] = useState(
-    localStorage.getItem("currentTitle") || "Senior Frontend Developer"
+    localStorage.getItem("currentTitle") || ""
   );
   const [userExperience, setUserExperience] = useState(
-    localStorage.getItem("experience") || "6 years"
+    localStorage.getItem("experience") || ""
   );
   const [userSummary, setUserSummary] = useState(
-    localStorage.getItem("summary") ||
-      "Passionate frontend developer with 6+ years of experience building modern web applications. Specialized in React ecosystem and performance optimization."
+    localStorage.getItem("summary") || ""
   );
   const [userSkills, setUserSkills] = useState<string[]>(() => {
     const savedSkills = localStorage.getItem("skills");
     try {
-      return savedSkills ? JSON.parse(savedSkills) : ["React", "TypeScript"];
+      return savedSkills ? JSON.parse(savedSkills) : [];
     } catch {
-      return ["React", "TypeScript"];
+      return [];
     }
   });
   const [skillsInput, setSkillsInput] = useState(userSkills.join(", "));
+  const [hasResume, setHasResume] = useState(
+    Boolean(localStorage.getItem("resumeFileName"))
+  );
+  const [applicationsCount, setApplicationsCount] = useState(0);
 
-  const profileScore = 78;
+  useEffect(() => {
+    if (!userEmail) return;
+
+    fetch(
+      `http://localhost:8080/api/applications/candidate/${encodeURIComponent(
+        userEmail
+      )}`
+    )
+      .then((res) => (res.ok ? res.json() : []))
+      .then((apps) => setApplicationsCount(Array.isArray(apps) ? apps.length : 0))
+      .catch(() => setApplicationsCount(0));
+
+    fetch(`http://localhost:8080/api/cv/current?email=${encodeURIComponent(userEmail)}`)
+      .then((res) => (res.ok ? res.text() : ""))
+      .then((fileName) => setHasResume(Boolean(fileName && fileName.trim())))
+      .catch(() => {});
+  }, [userEmail]);
+
+  const FREE_PLAN_LIMIT = 10;
+
+  const profileScore = computeProfileCompleteness({
+    name: userName,
+    phone: userPhone,
+    location: userLocation,
+    currentTitle: userTitle,
+    experience: userExperience,
+    summary: userSummary,
+    skills: userSkills,
+    hasResume,
+  });
 
   const handleSaveChanges = () => {
     const parsedSkills = skillsInput
@@ -176,11 +229,12 @@ function ProfilePage() {
 
                   <div>
                     <h3 className="text-[20px] font-extrabold text-white">
-                      Current Plan: Free
+                      {t.profilePage.currentPlanFree || "Current Plan: Free"}
                     </h3>
 
                     <p className="mt-1 text-[15px] text-[#aeb4d6]">
-                      7 of 10 applications used this month
+                      {applicationsCount} {t.profilePage.of || "of"} {FREE_PLAN_LIMIT}{" "}
+                      {t.profilePage.applicationsUsedThisMonth || "applications used this month"}
                     </p>
                   </div>
                 </div>
@@ -201,7 +255,7 @@ function ProfilePage() {
             <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] p-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
               <div className="flex flex-col items-center text-center">
                 <div className="mb-6 flex h-[96px] w-[96px] items-center justify-center rounded-[28px] bg-gradient-to-br from-[#6f6bff] to-[#a855f7] text-[44px] font-extrabold text-white shadow-[0_16px_30px_rgba(127,76,255,0.28)]">
-                  {userName.charAt(0).toUpperCase()}
+                  {(userName.charAt(0) || "?").toUpperCase()}
                 </div>
 
                 <h2 className="text-[24px] font-extrabold text-white">
@@ -229,8 +283,11 @@ function ProfilePage() {
                 </div>
 
                 <p className="max-w-[220px] text-[15px] leading-7 text-[#b8bfdc]">
-                  {t.profilePage.profileHint ||
-                    "Complete your profile to improve your match score"}
+                  {profileScore >= 100
+                    ? t.profilePage.profileCompleteHint ||
+                      "Your profile is complete! Great work."
+                    : t.profilePage.profileHint ||
+                      "Complete your profile to improve your match score"}
                 </p>
               </div>
             </div>

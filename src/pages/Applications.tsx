@@ -32,15 +32,13 @@ type BackendApplication = {
   appliedDate?: string;
   date?: string;
   status?: string;
-  matchPercent?: number | string;
-  matchScore?: number | string;
   interviewScore?: number | string;
   score?: number | string;
 };
 
 type ApplicationItem = {
   id: number;
-  percent: string;
+  jobId: number | null;
   title: string;
   company: string;
   location: string;
@@ -129,7 +127,7 @@ function mapBackendApplication(app: BackendApplication): ApplicationItem {
 
   return {
     id: app.id ?? app.jobId ?? Math.floor(Math.random() * 100000),
-    percent: toPercent(app.matchPercent ?? app.matchScore, "80%"),
+    jobId: typeof app.jobId === "number" ? app.jobId : null,
     title: app.jobTitle ?? app.title ?? "Job Application",
     company: app.companyName ?? app.company ?? "Company",
     location: app.location ?? "Not specified",
@@ -152,22 +150,36 @@ function mapBackendApplication(app: BackendApplication): ApplicationItem {
   };
 }
 
-function ScoreRing({ percent }: { percent: string }) {
-  const value = parseInt(percent.replace("%", ""));
-  const safeValue = Number.isNaN(value) ? 0 : value;
+type MatchScoreEntry = {
+  matchPercent: number;
+  matchReason: string;
+};
+
+type MatchInfo =
+  | { status: "loading" }
+  | { status: "noAnalysis" }
+  | { status: "scored"; percent: number; reason: string };
+
+function ScoreRing({ info }: { info: MatchInfo }) {
+  const safeValue = info.status === "scored" ? info.percent : 0;
   const ringColor = safeValue >= 90 ? "#49e38d" : safeValue >= 80 ? "#8b93ff" : "#f5c542";
 
   return (
     <div className="relative h-[98px] w-[98px] shrink-0">
       <div
-        className="h-full w-full rounded-full transition-all duration-[1800ms] ease-out"
+        className={`h-full w-full rounded-full transition-all duration-[1800ms] ease-out ${
+          info.status === "loading" ? "animate-pulse" : ""
+        }`}
         style={{
-          background: `conic-gradient(${ringColor} ${safeValue * 3.6}deg, #2a2c5a 0deg)`,
-          boxShadow: `0 0 24px ${ringColor}22`,
+          background:
+            info.status === "scored"
+              ? `conic-gradient(${ringColor} ${safeValue * 3.6}deg, #2a2c5a 0deg)`
+              : "conic-gradient(#5f648a 360deg, #2a2c5a 0deg)",
+          boxShadow: info.status === "scored" ? `0 0 24px ${ringColor}22` : "0 0 0 rgba(0,0,0,0)",
         }}
       />
       <div className="absolute inset-[8px] flex items-center justify-center rounded-full bg-[#252654] text-[22px] font-extrabold text-white shadow-inner">
-        {percent}
+        {info.status === "scored" ? `${info.percent}%` : info.status === "loading" ? "" : "?"}
       </div>
     </div>
   );
@@ -188,19 +200,27 @@ function Applications() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [savedScrollY, setSavedScrollY] = useState(0);
 
+  const [candidateEmail, setCandidateEmail] = useState("");
+  const [matchScores, setMatchScores] = useState<Map<number, MatchScoreEntry>>(new Map());
+  const [hasAnalysis, setHasAnalysis] = useState<boolean | null>(null);
+  const [matchScoresLoading, setMatchScoresLoading] = useState(false);
+
   useEffect(() => {
     const fetchApplications = async () => {
       try {
         setLoading(true);
         setError("");
 
-        const candidateEmail =
+        const email =
           localStorage.getItem("email") ||
           localStorage.getItem("userEmail") ||
-          localStorage.getItem("candidateEmail");
+          localStorage.getItem("candidateEmail") ||
+          "";
 
-        const url = candidateEmail
-          ? `${API_BASE_URL}/api/applications/candidate/${encodeURIComponent(candidateEmail)}`
+        setCandidateEmail(email);
+
+        const url = email
+          ? `${API_BASE_URL}/api/applications/candidate/${encodeURIComponent(email)}`
           : `${API_BASE_URL}/api/applications/all`;
 
         const response = await fetch(url);
@@ -221,6 +241,99 @@ function Applications() {
 
     fetchApplications();
   }, []);
+
+  useEffect(() => {
+    if (applications.length === 0) return;
+
+    if (!candidateEmail) {
+      setHasAnalysis(false);
+      setMatchScores(new Map());
+      return;
+    }
+
+    const jobIds = Array.from(
+      new Set(
+        applications
+          .map((app) => app.jobId)
+          .filter((id): id is number => typeof id === "number")
+      )
+    );
+
+    if (jobIds.length === 0) {
+      setHasAnalysis(false);
+      setMatchScores(new Map());
+      return;
+    }
+
+    let cancelled = false;
+    setMatchScoresLoading(true);
+
+    fetch(`${API_BASE_URL}/api/jobs/match-scores`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: candidateEmail,
+        jobIds,
+        language,
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to load match scores");
+        }
+        return res.json();
+      })
+      .then((data: { hasAnalysis: boolean; matches: { jobId: number; matchPercent: number; matchReason: string }[] }) => {
+        if (cancelled) return;
+
+        setHasAnalysis(Boolean(data.hasAnalysis));
+
+        const nextScores = new Map<number, MatchScoreEntry>();
+        (data.matches || []).forEach((match) => {
+          nextScores.set(match.jobId, {
+            matchPercent: match.matchPercent,
+            matchReason: match.matchReason,
+          });
+        });
+
+        setMatchScores(nextScores);
+      })
+      .catch((err) => {
+        console.error(err);
+        if (!cancelled) {
+          setHasAnalysis(false);
+          setMatchScores(new Map());
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setMatchScoresLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [applications, candidateEmail, language]);
+
+  const getMatchInfo = (app: ApplicationItem): MatchInfo => {
+    if (matchScoresLoading || hasAnalysis === null) {
+      return { status: "loading" };
+    }
+
+    if (!hasAnalysis) {
+      return { status: "noAnalysis" };
+    }
+
+    const entry = app.jobId !== null ? matchScores.get(app.jobId) : undefined;
+    if (!entry) {
+      return { status: "noAnalysis" };
+    }
+
+    return { status: "scored", percent: entry.matchPercent, reason: entry.matchReason };
+  };
 
   useEffect(() => {
     const idFromNav = location.state?.selectedApplicationId;
@@ -249,6 +362,10 @@ function Applications() {
 
   const selectedApplication =
     applications.find((app) => app.id === selectedId) ?? null;
+
+  const selectedMatchInfo: MatchInfo = selectedApplication
+    ? getMatchInfo(selectedApplication)
+    : { status: "loading" };
 
   const getReviewStatusLabel = (status: string) => {
     switch (status) {
@@ -411,7 +528,10 @@ function Applications() {
 
             {!loading && !error && (
               <section className="space-y-5">
-                {filteredApplications.map((app, index) => (
+                {filteredApplications.map((app, index) => {
+                  const matchInfo = getMatchInfo(app);
+
+                  return (
                   <article
                     key={`${app.id}-${index}`}
                     onClick={() => {
@@ -421,8 +541,27 @@ function Applications() {
                     className="group cursor-pointer rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)] transition hover:border-white/20 hover:bg-[rgba(50,52,108,0.96)]"
                   >
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
-                      <div className="flex justify-center lg:justify-start">
-                        <ScoreRing percent={app.percent} />
+                      <div className="flex flex-col items-center justify-center gap-2 lg:justify-start">
+                        <ScoreRing info={matchInfo} />
+
+                        {matchInfo.status === "loading" && (
+                          <span className="text-[12px] font-medium text-white/40">
+                            {t.jobMatches.matchScoreLoading}
+                          </span>
+                        )}
+
+                        {matchInfo.status === "noAnalysis" && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate("/resume-manager");
+                            }}
+                            className="rounded-full border border-[#7c88ff]/30 bg-[#7c88ff]/15 px-3 py-1 text-center text-[11px] font-semibold text-[#c4b5fd] transition hover:bg-[#7c88ff]/25"
+                          >
+                            {t.jobMatches.analyzeCvForScore}
+                          </button>
+                        )}
                       </div>
 
                       <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
@@ -491,7 +630,8 @@ function Applications() {
                       </div>
                     </div>
                   </article>
-                ))}
+                  );
+                })}
 
                 {filteredApplications.length === 0 && (
                   <div className="rounded-[30px] border border-white/10 bg-white/[0.05] px-8 py-12 text-center">
@@ -530,7 +670,34 @@ function Applications() {
 
             <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-7 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
-                <ScoreRing percent={selectedApplication.percent} />
+                <div className="flex flex-col items-center gap-2">
+                  <ScoreRing info={selectedMatchInfo} />
+
+                  {selectedMatchInfo.status === "loading" && (
+                    <span className="text-[12px] font-medium text-white/40">
+                      {t.jobMatches.matchScoreLoading}
+                    </span>
+                  )}
+
+                  {selectedMatchInfo.status === "noAnalysis" && (
+                    <button
+                      type="button"
+                      onClick={() => navigate("/resume-manager")}
+                      className="rounded-full border border-[#7c88ff]/30 bg-[#7c88ff]/15 px-3 py-1 text-center text-[11px] font-semibold text-[#c4b5fd] transition hover:bg-[#7c88ff]/25"
+                    >
+                      {t.jobMatches.analyzeCvForScore}
+                    </button>
+                  )}
+
+                  {selectedMatchInfo.status === "scored" && selectedMatchInfo.reason && (
+                    <p
+                      className="max-w-[220px] text-center text-[12px] leading-5 text-[#aeb4d6]"
+                      title={selectedMatchInfo.reason}
+                    >
+                      {selectedMatchInfo.reason}
+                    </p>
+                  )}
+                </div>
 
                 <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

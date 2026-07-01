@@ -10,8 +10,15 @@ import {
   BriefcaseBusiness,
   FileText,
 } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
+import { translations } from "../translations";
 
 function CompanyProfile() {
+  const { language } = useLanguage();
+  const t = translations[language];
+  const c = t.companyProfilePage;
+  const isRTL = language === "ar" || language === "he";
+
   const getStoredValue = (keys: string[], fallback: string) => {
     for (const key of keys) {
       const value = localStorage.getItem(key);
@@ -25,31 +32,31 @@ function CompanyProfile() {
   const [companyData, setCompanyData] = useState({
     companyName: getStoredValue(
       ["companyName", "name", "fullName", "registerCompanyName"],
-      "My Company"
+      c.defaultCompanyName
     ),
     industry: getStoredValue(
       ["companyIndustry", "industry", "registerIndustry"],
-      "Technology"
+      c.defaultIndustry
     ),
     companySize: getStoredValue(
       ["companySize", "size", "registerCompanySize"],
-      "1-50 employees"
+      c.defaultCompanySize
     ),
     location: getStoredValue(
       ["companyLocation", "location", "registerLocation"],
-      "Tel Aviv, Israel"
+      c.defaultLocation
     ),
     website: getStoredValue(
       ["companyWebsite", "website", "registerWebsite"],
-      "Not provided"
+      c.defaultWebsite
     ),
     email: getStoredValue(
       ["companyEmail", "email", "userEmail", "registerEmail"],
-      "No email provided"
+      c.defaultEmail
     ),
     description: getStoredValue(
       ["companyDescription", "description", "registerDescription"],
-      "No company description added yet."
+      c.defaultDescription
     ),
   });
 
@@ -76,28 +83,35 @@ function CompanyProfile() {
   };
 
   return (
-    <div className="w-full min-h-screen px-6 md:px-10 lg:px-14 py-8 text-white">
+    <div
+      dir={isRTL ? "rtl" : "ltr"}
+      className={`w-full min-h-screen px-6 md:px-10 lg:px-14 py-8 text-white ${
+        isRTL ? "text-right" : "text-left"
+      }`}
+    >
       <div className="mx-auto max-w-[1500px]">
         <button
           onClick={() => window.history.back()}
-          className="mb-8 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
+          className={`mb-8 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white ${
+            isRTL ? "flex-row-reverse" : ""
+          }`}
         >
-          <ArrowLeft size={18} />
-          Back
+          <ArrowLeft size={18} className={isRTL ? "rotate-180" : ""} />
+          {t.common.back}
         </button>
 
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-4">
+          <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/20">
               <Building2 size={26} />
             </div>
 
-            <div>
+            <div className={isRTL ? "text-right" : "text-left"}>
               <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-                Company Profile
+                {c.title}
               </h1>
               <p className="mt-1 text-sm md:text-base text-white/60">
-                Manage your company information and public details
+                {c.subtitle}
               </p>
             </div>
           </div>
@@ -111,13 +125,15 @@ function CompanyProfile() {
                 }
               }}
               className={`flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white transition ${
+                isRTL ? "flex-row-reverse" : ""
+              } ${
                 isEditing
                   ? "rounded-lg bg-green-500 hover:bg-green-600 shadow-md"
                   : "rounded-2xl bg-gradient-to-r from-violet-500 to-indigo-500 shadow-lg shadow-violet-500/20 hover:scale-[1.02]"
               }`}
             >
               <Pencil size={16} />
-              {isEditing ? "Save Changes" : "Edit Profile"}
+              {isEditing ? c.saveChanges : c.editProfile}
             </button>
         </div>
 
@@ -152,8 +168,8 @@ function CompanyProfile() {
                 <p className="mt-3 text-lg text-white/70">{companyData.industry}</p>
               )}
 
-              <div className="mt-8 w-full space-y-4 text-left">
-                <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-white/80">
+              <div className={`mt-8 w-full space-y-4 ${isRTL ? "text-right" : "text-left"}`}>
+                <div className={`flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-white/80 ${isRTL ? "flex-row-reverse" : ""}`}>
                   <MapPin size={18} className="text-violet-300" />
                   {isEditing ? (
                     <input
@@ -168,7 +184,7 @@ function CompanyProfile() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-white/80">
+                <div className={`flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-white/80 ${isRTL ? "flex-row-reverse" : ""}`}>
                   <Users size={18} className="text-violet-300" />
                   {isEditing ? (
                     <input
@@ -183,7 +199,7 @@ function CompanyProfile() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-white/80">
+                <div className={`flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-white/80 ${isRTL ? "flex-row-reverse" : ""}`}>
                   <Mail size={18} className="text-violet-300" />
                   <span className="break-all">{companyData.email}</span>
                 </div>
@@ -192,13 +208,13 @@ function CompanyProfile() {
           </div>
 
           <div className="rounded-[28px] border border-white/10 bg-white/5 p-8 md:p-10 shadow-2xl backdrop-blur-xl">
-            <h3 className="mb-8 text-2xl font-bold">Company Information</h3>
+            <h3 className="mb-8 text-2xl font-bold">{c.companyInformation}</h3>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                <div className="mb-2 flex items-center gap-2 text-sm text-white/60">
+                <div className={`mb-2 flex items-center gap-2 text-sm text-white/60 ${isRTL ? "flex-row-reverse" : ""}`}>
                   <Building2 size={16} />
-                  Company Name
+                  {c.companyName}
                 </div>
                 {isEditing ? (
                   <input
@@ -214,9 +230,9 @@ function CompanyProfile() {
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                <div className="mb-2 flex items-center gap-2 text-sm text-white/60">
+                <div className={`mb-2 flex items-center gap-2 text-sm text-white/60 ${isRTL ? "flex-row-reverse" : ""}`}>
                   <BriefcaseBusiness size={16} />
-                  Industry
+                  {c.industry}
                 </div>
                 {isEditing ? (
                   <input
@@ -232,9 +248,9 @@ function CompanyProfile() {
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                <div className="mb-2 flex items-center gap-2 text-sm text-white/60">
+                <div className={`mb-2 flex items-center gap-2 text-sm text-white/60 ${isRTL ? "flex-row-reverse" : ""}`}>
                   <Users size={16} />
-                  Company Size
+                  {c.companySize}
                 </div>
                 {isEditing ? (
                   <input
@@ -250,9 +266,9 @@ function CompanyProfile() {
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                <div className="mb-2 flex items-center gap-2 text-sm text-white/60">
+                <div className={`mb-2 flex items-center gap-2 text-sm text-white/60 ${isRTL ? "flex-row-reverse" : ""}`}>
                   <MapPin size={16} />
-                  Location
+                  {c.location}
                 </div>
                 {isEditing ? (
                   <input
@@ -268,9 +284,9 @@ function CompanyProfile() {
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                <div className="mb-2 flex items-center gap-2 text-sm text-white/60">
+                <div className={`mb-2 flex items-center gap-2 text-sm text-white/60 ${isRTL ? "flex-row-reverse" : ""}`}>
                   <Globe size={16} />
-                  Website
+                  {c.website}
                 </div>
                 {isEditing ? (
                   <input
@@ -286,9 +302,9 @@ function CompanyProfile() {
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                <div className="mb-2 flex items-center gap-2 text-sm text-white/60">
+                <div className={`mb-2 flex items-center gap-2 text-sm text-white/60 ${isRTL ? "flex-row-reverse" : ""}`}>
                   <Mail size={16} />
-                  Contact Email
+                  {c.contactEmail}
                 </div>
                 {isEditing ? (
                   <input
@@ -305,9 +321,9 @@ function CompanyProfile() {
             </div>
 
             <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6">
-              <div className="mb-3 flex items-center gap-2 text-sm text-white/60">
+              <div className={`mb-3 flex items-center gap-2 text-sm text-white/60 ${isRTL ? "flex-row-reverse" : ""}`}>
                 <FileText size={16} />
-                Company Description
+                {c.companyDescription}
               </div>
               {isEditing ? (
                 <textarea
