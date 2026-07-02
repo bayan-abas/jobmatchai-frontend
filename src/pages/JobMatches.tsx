@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
+import { getRingColor as getSharedRingColor } from "../utils/jobInference";
 
 type BackendJob = {
   id?: number;
@@ -56,10 +57,11 @@ type Job = {
 };
 
 type MatchScoreEntry = {
-  matchPercent: number;
+  matchPercent: number | null;
   matchReason: string;
   matchedSkills: string[];
   missingSkills: string[];
+  fieldRelated: boolean;
 };
 
 type JobDetailExtra = {
@@ -79,7 +81,7 @@ function JobMatches() {
   const [industry, setIndustry] = useState("");
   const [seniority, setSeniority] = useState("");
   const [minSalary, setMinSalary] = useState(0);
-  const [minMatch, setMinMatch] = useState(15);
+  const [minMatch, setMinMatch] = useState(0);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [savedScrollY, setSavedScrollY] = useState(0);
   const [showSavedJobs, setShowSavedJobs] = useState(false);
@@ -94,14 +96,11 @@ function JobMatches() {
   const [hasAnalysis, setHasAnalysis] = useState<boolean | null>(null);
   const [matchScoresLoading, setMatchScoresLoading] = useState(false);
 
-  const [savedJobs, setSavedJobs] = useState<Job[]>(() => {
-    try {
-      const stored = localStorage.getItem("savedJobs");
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [savedJobIds, setSavedJobIds] = useState<Set<number>>(new Set());
+  const savedJobs = useMemo(
+    () => jobs.filter((job) => typeof job.id === "number" && savedJobIds.has(job.id)),
+    [jobs, savedJobIds]
+  );
 
   const [industryOpen, setIndustryOpen] = useState(false);
   const [seniorityOpen, setSeniorityOpen] = useState(false);
@@ -579,7 +578,8 @@ function JobMatches() {
         hasAnalysis: boolean;
         matches: {
           jobId: number;
-          matchPercent: number;
+          fieldRelated?: boolean;
+          matchPercent: number | null;
           matchReason: string;
           matchedSkills?: string[];
           missingSkills?: string[];
@@ -596,6 +596,7 @@ function JobMatches() {
             matchReason: match.matchReason,
             matchedSkills: match.matchedSkills || [],
             missingSkills: match.missingSkills || [],
+            fieldRelated: match.fieldRelated !== false,
           });
         });
 
@@ -803,8 +804,57 @@ const industryOptions = [
   }, [selectedJob]);
 
   useEffect(() => {
-    localStorage.setItem("savedJobs", JSON.stringify(savedJobs));
-  }, [savedJobs]);
+    const identity = readCandidateIdentity();
+    if (!identity.email) return;
+
+    const loadSavedJobs = () => {
+      fetch(`http://localhost:8080/api/saved-jobs/candidate/${encodeURIComponent(identity.email)}`)
+        .then((res) => (res.ok ? res.json() : []))
+        .then((rows: { jobId: number; jobType: string }[]) => {
+          const ids = Array.isArray(rows)
+            ? rows.filter((row) => row.jobType === "internal").map((row) => row.jobId)
+            : [];
+          setSavedJobIds(new Set(ids));
+        })
+        .catch(() => {});
+    };
+
+    if (!localStorage.getItem("savedJobsMigratedV1")) {
+      let legacyJobs: Job[] = [];
+      try {
+        const stored = localStorage.getItem("savedJobs");
+        legacyJobs = stored ? JSON.parse(stored) : [];
+      } catch {
+        legacyJobs = [];
+      }
+
+      const migratable = legacyJobs.filter((job) => typeof job.id === "number");
+      Promise.all(
+        migratable.map((job) =>
+          fetch("http://localhost:8080/api/saved-jobs/save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              candidateEmail: identity.email,
+              jobId: job.id,
+              jobType: "internal",
+              jobTitle: job.title,
+              companyName: job.company,
+              location: job.location,
+              salary: job.salary,
+            }),
+          }).catch(() => {})
+        )
+      ).finally(() => {
+        localStorage.setItem("savedJobsMigratedV1", "1");
+        localStorage.removeItem("savedJobs");
+        loadSavedJobs();
+      });
+    } else {
+      loadSavedJobs();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const extractSalaryNumber = (salary: string) => {
     if (!salary) return 0;
@@ -831,6 +881,7 @@ const industryOptions = [
   type MatchInfo =
     | { status: "loading" }
     | { status: "noAnalysis" }
+    | { status: "noScore"; reason: string }
     | {
         status: "scored";
         percent: number;
@@ -853,6 +904,10 @@ const industryOptions = [
       return { status: "noAnalysis" };
     }
 
+    if (!entry.fieldRelated || entry.matchPercent === null) {
+      return { status: "noScore", reason: entry.matchReason };
+    }
+
     return {
       status: "scored",
       percent: entry.matchPercent,
@@ -863,7 +918,7 @@ const industryOptions = [
   };
 
   const filteredJobs = useMemo(() => {
-    return jobs.filter((job) => {
+    const filtered = jobs.filter((job) => {
       const matchesIndustry = !industry || job.industry === industry;
       const matchesLevel =
         !seniority || job.level.toLowerCase() === seniority.toLowerCase();
@@ -875,19 +930,25 @@ const industryOptions = [
 
       return matchesIndustry && matchesLevel && matchesSalary && matchesScore;
     });
+
+    return [...filtered].sort((a, b) => {
+      const infoA = getMatchInfo(a);
+      const infoB = getMatchInfo(b);
+      const scoreA = infoA.status === "scored" ? infoA.percent : -1;
+      const scoreB = infoB.status === "scored" ? infoB.percent : -1;
+      return scoreB - scoreA;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobs, industry, seniority, minSalary, minMatch, matchScores, hasAnalysis, matchScoresLoading]);
 
   const activeFiltersCount =
     (industry ? 1 : 0) +
     (seniority ? 1 : 0) +
-    (minSalary !== 40 ? 1 : 0) +
-    (minMatch !== 15 ? 1 : 0);
+    (minSalary !== 0 ? 1 : 0) +
+    (minMatch !== 0 ? 1 : 0);
 
-  const getRingColor = (info: MatchInfo) => {
-    if (info.status !== "scored") return "#5f648a";
-    return info.percent >= 80 ? "#49e38d" : "#f5c542";
-  };
+  const getRingColor = (info: MatchInfo) =>
+    getSharedRingColor(info.status, info.status === "scored" ? info.percent : 0);
 
   const selectedDetails = selectedJob ? jobDetailsMap[selectedJob.title] : undefined;
 
@@ -915,39 +976,58 @@ const industryOptions = [
   };
 
   const isJobSaved = (job: Job) => {
-    return savedJobs.some(
-      (savedJob) =>
-        savedJob.title === job.title &&
-        savedJob.company === job.company &&
-        savedJob.location === job.location
-    );
+    return typeof job.id === "number" && savedJobIds.has(job.id);
   };
 
   const handleSaveJob = (job: Job) => {
-    setSavedJobs((prev) => {
-      const alreadySaved = prev.some(
-        (savedJob) =>
-          savedJob.title === job.title &&
-          savedJob.company === job.company &&
-          savedJob.location === job.location
-      );
+    if (typeof job.id !== "number") return;
+    const jobId = job.id;
 
-      if (alreadySaved) return prev;
-      return [...prev, job];
+    setSavedJobIds((prev) => new Set(prev).add(jobId));
+
+    const identity = readCandidateIdentity();
+    if (!identity.email) return;
+
+    fetch("http://localhost:8080/api/saved-jobs/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        candidateEmail: identity.email,
+        jobId,
+        jobType: "internal",
+        jobTitle: job.title,
+        companyName: job.company,
+        location: job.location,
+        salary: job.salary,
+      }),
+    }).catch(() => {
+      setSavedJobIds((prev) => {
+        const next = new Set(prev);
+        next.delete(jobId);
+        return next;
+      });
     });
   };
 
   const handleRemoveSavedJob = (job: Job) => {
-    setSavedJobs((prev) =>
-      prev.filter(
-        (savedJob) =>
-          !(
-            savedJob.title === job.title &&
-            savedJob.company === job.company &&
-            savedJob.location === job.location
-          )
-      )
-    );
+    if (typeof job.id !== "number") return;
+    const jobId = job.id;
+
+    setSavedJobIds((prev) => {
+      const next = new Set(prev);
+      next.delete(jobId);
+      return next;
+    });
+
+    const identity = readCandidateIdentity();
+    if (!identity.email) return;
+
+    fetch(
+      `http://localhost:8080/api/saved-jobs/candidate/${encodeURIComponent(identity.email)}/internal/${jobId}`,
+      { method: "DELETE" }
+    ).catch(() => {
+      setSavedJobIds((prev) => new Set(prev).add(jobId));
+    });
   };
 
   const hasAppliedToJob = (job: Job) => {
@@ -1200,6 +1280,19 @@ const industryOptions = [
               </button>
             )}
 
+            {job.id != null && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/job-details/internal/${job.id}`);
+                }}
+                className="rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/[0.1] hover:text-white"
+              >
+                {t.jobMatches.viewFullDetails || "View Full Details"}
+              </button>
+            )}
+
             <button
               type="button"
               className="flex h-11 w-11 items-center justify-center rounded-full text-white/30 transition group-hover:bg-white/5 group-hover:text-white/70"
@@ -1316,7 +1409,7 @@ const industryOptions = [
                         setIndustry("");
                         setSeniority("");
                         setMinSalary(0);
-                        setMinMatch(15);
+                        setMinMatch(0);
                       }}
                     >
                       {t.jobMatches.clearAll}
@@ -1506,7 +1599,7 @@ const industryOptions = [
 
                         <input
                           type="range"
-                          min={15}
+                          min={0}
                           max={100}
                           step={1}
                           value={minMatch}
@@ -1724,16 +1817,19 @@ const industryOptions = [
                     <p className="mt-4 text-sm font-semibold text-[#aeb4d6]">
                       {selectedMatchInfo?.status === "scored"
                         ? t.jobMatches.profileMatchScore
+                        : selectedMatchInfo?.status === "noScore"
+                        ? t.jobDetails.differentField
                         : selectedMatchInfo?.status === "loading"
                         ? t.jobMatches.matchScoreLoading
                         : t.jobMatches.noScoreAvailable}
                     </p>
 
-                    {selectedMatchInfo?.status === "scored" && selectedMatchInfo.reason && (
-                      <p className="mt-3 text-[13px] leading-6 text-[#c4cae9]" title={selectedMatchInfo.reason}>
-                        {selectedMatchInfo.reason}
-                      </p>
-                    )}
+                    {(selectedMatchInfo?.status === "scored" || selectedMatchInfo?.status === "noScore") &&
+                      selectedMatchInfo.reason && (
+                        <p className="mt-3 text-[13px] leading-6 text-[#c4cae9]" title={selectedMatchInfo.reason}>
+                          {selectedMatchInfo.reason}
+                        </p>
+                      )}
 
                     {selectedMatchInfo?.status === "noAnalysis" && (
                       <button
@@ -1780,6 +1876,17 @@ const industryOptions = [
                       <Bookmark size={18} />
                       <span>{isJobSaved(selectedJob) ? "Saved" : "Save Job"}</span>
                     </button>
+
+                    {selectedJob.id != null && (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/job-details/internal/${selectedJob.id}`)}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-6 py-4 text-[15px] font-bold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white"
+                      >
+                        <Target size={18} />
+                        <span>{t.jobMatches.viewFullDetails || "View Full Details"}</span>
+                      </button>
+                    )}
                   </div>
 
                   {applyMessage && (
@@ -1800,7 +1907,7 @@ const industryOptions = [
                     );
                   }
 
-                  if (matchInfo.status === "noAnalysis") {
+                  if (matchInfo.status === "noAnalysis" || matchInfo.status === "noScore") {
                     return null;
                   }
 

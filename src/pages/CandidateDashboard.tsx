@@ -3,8 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
 import { computeProfileCompleteness } from "./ProfilePage";
+import { getRingColor } from "../utils/jobInference";
 import {
   BriefcaseBusiness,
+  Globe2,
+  Layers,
   FileText,
   CalendarDays,
   Sparkles,
@@ -57,7 +60,16 @@ type BackendJob = {
 };
 
 type MatchScoreEntry = {
-  matchPercent: number;
+  matchPercent: number | null;
+  fieldRelated: boolean;
+};
+
+type RecentlyViewedItem = {
+  jobId: number;
+  jobType: "internal" | "external";
+  jobTitle?: string;
+  companyName?: string;
+  location?: string;
 };
 
 const API_BASE_URL = "http://localhost:8080";
@@ -93,8 +105,7 @@ function ScoreRing({ value }: { value: number | null }) {
     );
   }
 
-  const ringColor =
-    value >= 85 ? "#49e38d" : value >= 75 ? "#8b93ff" : "#f5c542";
+  const ringColor = getRingColor("scored", value);
 
   return (
     <div className="relative h-[88px] w-[88px] shrink-0">
@@ -131,6 +142,8 @@ function CandidateDashboard() {
   const [applicationsCount, setApplicationsCount] = useState("0");
   const [interviewsCount, setInterviewsCount] = useState("0");
   const [profileScore, setProfileScore] = useState(0);
+  const [jobStats, setJobStats] = useState({ internal: 0, external: 0, total: 0 });
+  const [recentlyViewed, setRecentlyViewed] = useState<RecentlyViewedItem[]>([]);
 
   const usedApplications = Number(applicationsCount);
   const remainingApplications = Math.max(FREE_PLAN_LIMIT - usedApplications, 0);
@@ -217,20 +230,27 @@ function CandidateDashboard() {
           if (matchRes.ok) {
             const matchData: {
               hasAnalysis: boolean;
-              matches: { jobId: number; matchPercent: number }[];
+              matches: { jobId: number; matchPercent: number | null; fieldRelated?: boolean }[];
             } = await matchRes.json();
 
             (matchData.matches || []).forEach((match) => {
-              matchByJobId.set(match.jobId, { matchPercent: match.matchPercent });
+              matchByJobId.set(match.jobId, {
+                matchPercent: match.matchPercent,
+                fieldRelated: match.fieldRelated !== false,
+              });
             });
           }
         }
 
         const jobsWithScores = jobsData
-          .filter((job) => typeof job.id === "number" && matchByJobId.has(job.id))
+          .filter((job) => {
+            if (typeof job.id !== "number") return false;
+            const entry = matchByJobId.get(job.id);
+            return Boolean(entry && entry.fieldRelated && entry.matchPercent !== null);
+          })
           .map((job) => ({
             job,
-            score: matchByJobId.get(job.id as number)!.matchPercent,
+            score: matchByJobId.get(job.id as number)!.matchPercent as number,
           }))
           .sort((a, b) => b.score - a.score);
 
@@ -269,6 +289,30 @@ function CandidateDashboard() {
 
     fetchDashboardData();
   }, [userEmail, language]);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/dashboard/stats`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) {
+          setJobStats({
+            internal: data.totalInternalJobs || 0,
+            external: data.totalExternalJobs || 0,
+            total: data.totalJobs || 0,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!userEmail) return;
+
+    fetch(`${API_BASE_URL}/api/recently-viewed/candidate/${encodeURIComponent(userEmail)}`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: RecentlyViewedItem[]) => setRecentlyViewed(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, [userEmail]);
 
   const stats = useMemo(
     () => [
@@ -375,6 +419,38 @@ function CandidateDashboard() {
               <p className="text-[15px] text-[#aeb4d6]">{stat.label}</p>
             </button>
           ))}
+        </section>
+
+        <section className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div
+            onClick={() => navigate("/job-matches")}
+            className="cursor-pointer rounded-[28px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.14)] transition hover:-translate-y-1 hover:bg-white/[0.065]"
+          >
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#5e66ff1f] text-[#7c88ff]">
+              <BriefcaseBusiness size={22} />
+            </div>
+            <div className="text-4xl font-extrabold text-white">{jobStats.internal}</div>
+            <p className="mt-1 text-[15px] text-white/60">{t.jobStats.internal}</p>
+          </div>
+
+          <div
+            onClick={() => navigate("/external-jobs")}
+            className="cursor-pointer rounded-[28px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.14)] transition hover:-translate-y-1 hover:bg-white/[0.065]"
+          >
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#22d3ee1f] text-[#67e8f9]">
+              <Globe2 size={22} />
+            </div>
+            <div className="text-4xl font-extrabold text-white">{jobStats.external}</div>
+            <p className="mt-1 text-[15px] text-white/60">{t.jobStats.external}</p>
+          </div>
+
+          <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.14)]">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#a855f71f] text-[#d8b4fe]">
+              <Layers size={22} />
+            </div>
+            <div className="text-4xl font-extrabold text-white">{jobStats.total}</div>
+            <p className="mt-1 text-[15px] text-white/60">{t.jobStats.total}</p>
+          </div>
         </section>
 
         <section className="mb-8 grid grid-cols-1 gap-6 xl:grid-cols-[1.25fr_0.95fr]">
@@ -572,6 +648,62 @@ function CandidateDashboard() {
             </button>
           </div>
         </section>
+
+        {recentlyViewed.length > 0 && (
+          <section className="mb-8 rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+            <div className="mb-5 flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#a855f71f] text-[#d8b4fe]">
+                <CalendarDays size={22} />
+              </div>
+              <div className={isRTL ? "text-right" : "text-left"}>
+                <h3 className="text-[22px] font-extrabold text-white">
+                  {t.dashboard.recentlyViewed.title}
+                </h3>
+                <p className="mt-1 text-[15px] text-[#aeb4d6]">
+                  {t.dashboard.recentlyViewed.subtitle}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-4 overflow-x-auto pb-2">
+              {recentlyViewed.map((item) => (
+                <button
+                  key={`${item.jobType}-${item.jobId}`}
+                  type="button"
+                  onClick={() => navigate(`/job-details/${item.jobType}/${item.jobId}`)}
+                  className={`w-[260px] shrink-0 rounded-[22px] border border-white/10 bg-[rgba(50,52,108,0.78)] p-5 transition hover:border-white/20 hover:bg-[rgba(56,58,118,0.95)] ${
+                    isRTL ? "text-right" : "text-left"
+                  }`}
+                >
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <span className="truncate text-[16px] font-bold text-white">
+                      {item.jobTitle || "Untitled Job"}
+                    </span>
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        item.jobType === "external"
+                          ? "border border-cyan-400/20 bg-cyan-400/10 text-cyan-300"
+                          : "border border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
+                      }`}
+                    >
+                      {item.jobType === "external" ? t.jobDetails.externalJobBadge : t.jobDetails.internalJobBadge}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[13px] text-[#aeb4d6]">
+                    <Building2 size={14} />
+                    <span className="truncate">{item.companyName || "Unknown Company"}</span>
+                  </div>
+                  {item.location && (
+                    <div className="mt-1 flex items-center gap-2 text-[13px] text-[#aeb4d6]">
+                      <MapPin size={14} />
+                      <span className="truncate">{item.location}</span>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-7 py-7 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">

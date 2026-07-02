@@ -4,6 +4,7 @@ import { translations } from "../translations";
 import {
   LayoutDashboard,
   BriefcaseBusiness,
+  Globe2,
   FileText,
   User,
   FileBadge,
@@ -11,6 +12,7 @@ import {
   LogOut,
   Sparkles,
   ChevronLeft,
+  Bookmark,
 } from "lucide-react";
 
 type CandidateSidebarProps = {
@@ -28,6 +30,8 @@ function CandidateSidebar({ isCollapsed, setIsCollapsed }: CandidateSidebarProps
   const menuItems = [
     { label: t.sidebar.dashboard,     path: "/candidate-dashboard", icon: LayoutDashboard },
     { label: t.sidebar.jobMatches,    path: "/job-matches",         icon: BriefcaseBusiness },
+    { label: t.sidebar.externalJobs,  path: "/external-jobs",       icon: Globe2 },
+    { label: t.sidebar.favorites,     path: "/favorites",           icon: Bookmark },
     { label: t.sidebar.applications,  path: "/applications",        icon: FileText },
     { label: t.sidebar.myProfile,     path: "/profile",             icon: User },
     { label: t.sidebar.myResume,      path: "/resume-manager",      icon: FileBadge },

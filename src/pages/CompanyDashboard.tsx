@@ -1,6 +1,9 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BriefcaseBusiness,
+  Globe2,
+  Layers,
   Users,
   FileText,
   Star,
@@ -16,11 +19,30 @@ import {
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
 
+const API_BASE_URL = "http://localhost:8080";
+
 function CompanyDashboard() {
   const navigate = useNavigate();
   const { language } = useLanguage();
   const t = translations[language] || translations.en;
   const isRTL = language === "ar" || language === "he";
+
+  const [jobStats, setJobStats] = useState({ internal: 0, external: 0, total: 0 });
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/dashboard/stats`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) {
+          setJobStats({
+            internal: data.totalInternalJobs || 0,
+            external: data.totalExternalJobs || 0,
+            total: data.totalJobs || 0,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const stats = [
     {
@@ -193,6 +215,35 @@ function CompanyDashboard() {
                   </div>
                 );
               })}
+            </div>
+
+            <div className="mt-5 grid gap-5 md:grid-cols-3">
+              <div
+                onClick={() => navigate("/company-job-postings")}
+                className="cursor-pointer rounded-[28px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.14)] transition hover:-translate-y-1 hover:bg-white/[0.065]"
+              >
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/15 text-indigo-300">
+                  <BriefcaseBusiness size={22} />
+                </div>
+                <div className="text-4xl font-extrabold text-white">{jobStats.internal}</div>
+                <p className="mt-1 text-[15px] text-white/60">{t.jobStats.internal}</p>
+              </div>
+
+              <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.14)]">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/15 text-cyan-300">
+                  <Globe2 size={22} />
+                </div>
+                <div className="text-4xl font-extrabold text-white">{jobStats.external}</div>
+                <p className="mt-1 text-[15px] text-white/60">{t.jobStats.external}</p>
+              </div>
+
+              <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.14)]">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-300">
+                  <Layers size={22} />
+                </div>
+                <div className="text-4xl font-extrabold text-white">{jobStats.total}</div>
+                <p className="mt-1 text-[15px] text-white/60">{t.jobStats.total}</p>
+              </div>
             </div>
 
             <div className="mt-6 grid gap-6 xl:grid-cols-[1.75fr_0.95fr]">

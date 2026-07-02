@@ -9,6 +9,9 @@ import CandidateDashboard from "./pages/CandidateDashboard";
 import CompanyDashboard from "./pages/CompanyDashboard";
 import NotificationsPage from "./pages/NotificationsPage";
 import JobMatches from "./pages/JobMatches";
+import ExternalJobsPage from "./pages/ExternalJobsPage";
+import JobDetailsPage from "./pages/JobDetailsPage";
+import FavoritesPage from "./pages/FavoritesPage";
 import Applications from "./pages/Applications";
 import ProfilePage from "./pages/ProfilePage";
 import ResumeManager from "./pages/ResumeManager";
@@ -43,6 +46,9 @@ function App() {
         {/* Candidate */}
         <Route path="/candidate-dashboard" element={<CandidateLayout><CandidateDashboard /></CandidateLayout>} />
         <Route path="/job-matches"         element={<CandidateLayout><JobMatches /></CandidateLayout>} />
+        <Route path="/external-jobs"       element={<CandidateLayout><ExternalJobsPage /></CandidateLayout>} />
+        <Route path="/job-details/:jobType/:jobId" element={<CandidateLayout><JobDetailsPage /></CandidateLayout>} />
+        <Route path="/favorites"           element={<CandidateLayout><FavoritesPage /></CandidateLayout>} />
         <Route path="/applications"        element={<CandidateLayout><Applications /></CandidateLayout>} />
         <Route path="/profile"             element={<CandidateLayout><ProfilePage /></CandidateLayout>} />
         <Route path="/resume-manager"      element={<CandidateLayout><ResumeManager /></CandidateLayout>} />
