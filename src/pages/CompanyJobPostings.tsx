@@ -91,8 +91,7 @@ function CompanyJobPostings() {
         skills: job.skills || "",
         postedDate: page.recently || "Recently",
         status: "Active",
-        applicants: 0,
-        newApplicants: 0,
+        applicants: job.applicantsCount ?? 0,
       }));
 
       setJobs(formattedJobs);
@@ -362,7 +361,11 @@ function CompanyJobPostings() {
                   >
                     <button
                       type="button"
-                      onClick={() => navigate("/company-applications")}
+                      onClick={() =>
+                        navigate(
+                          `/company-applications?jobId=${job.id}&jobTitle=${encodeURIComponent(job.title)}`
+                        )
+                      }
                       className="flex-1 rounded-[12px] border border-[rgba(140,157,255,0.25)] bg-[rgba(255,255,255,0.02)] px-4 py-2.5 text-[14px] font-semibold text-[#b8c4ff] transition hover:bg-[rgba(255,255,255,0.06)]"
                     >
                       {page.viewCandidates || "View Candidates"}

@@ -362,15 +362,6 @@ try {
   console.error(error);
   setError(error instanceof ApiError ? error.message : "Server connection failed.");
 }
-
-    setSuccess(
-      t?.candidateRegisterPage?.success ||
-        "Candidate account created successfully!"
-    );
-
-    setTimeout(() => {
-      navigate("/candidate-dashboard");
-    }, 900);
   };
 
   const inputClass = `w-full rounded-2xl border border-white/10 bg-white/5 ${

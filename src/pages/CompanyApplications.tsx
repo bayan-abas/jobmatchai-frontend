@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
-import { apiFetch } from "../utils/api";
+import { apiFetch, ApiError } from "../utils/api";
 import {
   ArrowLeft,
   FileText,
@@ -31,22 +31,72 @@ type FitLevel = "High Fit" | "Medium Fit" | "Low Fit";
 type ApplicationItem = {
   id: number;
   name: string;
-  title: string;
-  appliedFor: string;
+  email: string;
+  jobTitle: string;
   date: string;
-  match: number;
-  interviewScore: number;
-  fit: FitLevel;
+  match: number | null;
+  fit: FitLevel | null;
   stage: ApplicationStage;
   currentStep: number;
-  email: string;
-  phone: string;
-  location: string;
-  summary: string;
+  status: string;
 };
+
+type BackendApplicant = {
+  id: number;
+  jobId: number;
+  jobTitle: string | null;
+  candidateName: string | null;
+  candidateEmail: string | null;
+  status: string | null;
+  appliedDate: string | null;
+  matchPercent: number | null;
+};
+
+function deriveFit(match: number | null): FitLevel | null {
+  if (match === null) return null;
+  if (match >= 85) return "High Fit";
+  if (match >= 65) return "Medium Fit";
+  return "Low Fit";
+}
+
+function deriveStage(status: string | null): ApplicationStage {
+  const normalized = (status || "").toLowerCase();
+  if (normalized === "accepted" || normalized === "rejected") return "Decided";
+  if (normalized === "shortlisted") return "Shortlisted";
+  if (normalized === "screening") return "Screening";
+  return "New";
+}
+
+function deriveStep(stage: ApplicationStage): number {
+  if (stage === "Decided") return 5;
+  if (stage === "Shortlisted") return 4;
+  if (stage === "Screening") return 2;
+  return 1;
+}
+
+function mapApplicant(item: BackendApplicant): ApplicationItem {
+  const match = typeof item.matchPercent === "number" ? item.matchPercent : null;
+  const stage = deriveStage(item.status);
+
+  return {
+    id: item.id,
+    name: item.candidateName || "Unknown Candidate",
+    email: item.candidateEmail || "",
+    jobTitle: item.jobTitle || "Untitled Role",
+    date: item.appliedDate || "",
+    match,
+    fit: deriveFit(match),
+    stage,
+    currentStep: deriveStep(stage),
+    status: item.status || "Under Review",
+  };
+}
 
 function CompanyApplications() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const filterJobId = searchParams.get("jobId");
+  const filterJobTitle = searchParams.get("jobTitle");
   const { language } = useLanguage();
   const t = translations[language] || translations.en;
   const page = t.companyApplicationsPage || {};
@@ -72,93 +122,41 @@ function CompanyApplications() {
   );
   const [interviewNotes, setInterviewNotes] = useState("");
 
-  const [applications, setApplications] = useState<ApplicationItem[]>([
-    {
-      id: 1,
-      name: "Sarah Johnson",
-      title: "Senior Frontend Developer",
-      appliedFor: "Senior Frontend Developer",
-      date: "10.1.2024",
-      match: 95,
-      interviewScore: 88,
-      fit: "High Fit",
-      stage: "Shortlisted",
-      currentStep: 4,
-      email: "sarah.johnson@email.com",
-      phone: "+1 (555) 234-5678",
-      location: "Tel Aviv",
-      summary:
-        "Strong senior frontend candidate with excellent React, TypeScript, and system design skills.",
-    },
-    {
-      id: 2,
-      name: "Michael Chen",
-      title: "Full Stack Engineer",
-      appliedFor: "Full Stack Engineer",
-      date: "12.1.2024",
-      match: 91,
-      interviewScore: 82,
-      fit: "High Fit",
-      stage: "Screening",
-      currentStep: 3,
-      email: "michael.chen@email.com",
-      phone: "+1 (555) 456-8899",
-      location: "Herzliya",
-      summary:
-        "Very balanced full stack engineer with strong backend capabilities and solid frontend knowledge.",
-    },
-    {
-      id: 3,
-      name: "Emily Davis",
-      title: "React Specialist",
-      appliedFor: "Frontend Developer",
-      date: "15.1.2024",
-      match: 88,
-      interviewScore: 75,
-      fit: "Medium Fit",
-      stage: "New",
-      currentStep: 2,
-      email: "emily.davis@email.com",
-      phone: "+1 (555) 992-1144",
-      location: "Nazareth",
-      summary:
-        "Frontend-focused candidate with good UI implementation skills and promising technical fundamentals.",
-    },
-    {
-      id: 4,
-      name: "David Wilson",
-      title: "Software Engineer",
-      appliedFor: "Frontend Developer",
-      date: "18.1.2024",
-      match: 82,
-      interviewScore: 70,
-      fit: "Medium Fit",
-      stage: "New",
-      currentStep: 1,
-      email: "david.wilson@email.com",
-      phone: "+1 (555) 301-7788",
-      location: "Acre",
-      summary:
-        "Junior-to-mid candidate with solid basics and good potential for growth in frontend roles.",
-    },
-    {
-      id: 5,
-      name: "Jessica Martinez",
-      title: "Frontend Lead",
-      appliedFor: "Senior Frontend Developer",
-      date: "5.1.2024",
-      match: 94,
-      interviewScore: 92,
-      fit: "High Fit",
-      stage: "Decided",
-      currentStep: 5,
-      email: "jessica.martinez@email.com",
-      phone: "+1 (555) 678-1122",
-      location: "Haifa",
-      summary:
-        "Excellent leadership candidate with strong architecture, frontend strategy, and mentoring background.",
-    },
-  ]);
+  const [applications, setApplications] = useState<ApplicationItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setLoadError("");
+    setSelectedApplication(null);
+
+    const endpoint = filterJobId
+      ? `/api/jobs/${encodeURIComponent(filterJobId)}/applications`
+      : "/api/applications/company";
+
+    apiFetch(endpoint)
+      .then((data: BackendApplicant[]) => {
+        if (cancelled) return;
+        setApplications(Array.isArray(data) ? data.map(mapApplicant) : []);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setLoadError(
+          error instanceof ApiError
+            ? error.message
+            : "Could not load applications. Make sure the backend is running."
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [filterJobId]);
 
   const tabs: ("All" | "New" | "Screening" | "Shortlisted" | "Decided")[] = [
     "All",
@@ -175,84 +173,59 @@ function CompanyApplications() {
 
   const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
-  const getFitStyles = (fit: FitLevel) => {
+  const getFitStyles = (fit: FitLevel | null) => {
     if (fit === "High Fit") {
       return "bg-emerald-500/15 text-emerald-300 border border-emerald-400/20";
     }
     if (fit === "Medium Fit") {
       return "bg-amber-500/15 text-amber-300 border border-amber-400/20";
     }
-    return "bg-rose-500/15 text-rose-300 border border-rose-400/20";
+    if (fit === "Low Fit") {
+      return "bg-rose-500/15 text-rose-300 border border-rose-400/20";
+    }
+    return "bg-white/10 text-white/50 border border-white/15";
   };
 
-  const getFitLabel = (fit: FitLevel) => {
+  const getFitLabel = (fit: FitLevel | null) => {
     if (fit === "High Fit") return fitLabels.high || "High Fit";
     if (fit === "Medium Fit") return fitLabels.medium || "Medium Fit";
-    return page.lowFit || "Low Fit";
+    if (fit === "Low Fit") return page.lowFit || "Low Fit";
+    return "Not Scored";
   };
 
   const getStageLabel = (stage: ApplicationStage) => {
     return page.tabs?.[stage] || stage;
   };
 
+  const applyStatusUpdate = async (id: number, status: "Accepted" | "Rejected") => {
+    try {
+      const data = await apiFetch(`/api/applications/${id}/status`, {
+        method: "PUT",
+        body: JSON.stringify({ status }),
+      });
+
+      if (!data.success) return;
+
+      const patch = { status, stage: "Decided" as ApplicationStage, currentStep: 5 };
+
+      setApplications((prev) =>
+        prev.map((app) => (app.id === id ? { ...app, ...patch } : app))
+      );
+
+      setSelectedApplication((prev) =>
+        prev && prev.id === id ? { ...prev, ...patch } : prev
+      );
+    } catch {
+      // Leave state untouched on failure so the UI reflects the real backend state.
+    }
+  };
+
   const handleAccept = (id: number) => {
-    apiFetch(`/api/applications/${id}/status`, {
-      method: "PUT",
-      body: JSON.stringify({ status: "Accepted" }),
-    }).catch(() => null);
-
-    setApplications((prev) =>
-      prev.map((app) =>
-        app.id === id
-          ? {
-              ...app,
-              stage: "Decided",
-              currentStep: 5,
-            }
-          : app
-      )
-    );
-
-    setSelectedApplication((prev) =>
-      prev && prev.id === id
-        ? {
-            ...prev,
-            stage: "Decided",
-            currentStep: 5,
-          }
-        : prev
-    );
+    applyStatusUpdate(id, "Accepted");
   };
 
   const handleReject = (id: number) => {
-    apiFetch(`/api/applications/${id}/status`, {
-      method: "PUT",
-      body: JSON.stringify({ status: "Rejected" }),
-    }).catch(() => null);
-
-    setApplications((prev) =>
-      prev.map((app) =>
-        app.id === id
-          ? {
-              ...app,
-              stage: "Decided",
-              currentStep: 5,
-              fit: "Low Fit",
-            }
-          : app
-      )
-    );
-
-    setSelectedApplication((prev) =>
-      prev && prev.id === id
-        ? {
-            ...prev,
-            stage: "Decided",
-            currentStep: 5,
-            fit: "Low Fit",
-          }
-        : prev
-    );
+    applyStatusUpdate(id, "Rejected");
   };
 
   const openContactModal = (app: ApplicationItem) => {
@@ -304,10 +277,33 @@ function CompanyApplications() {
                   {page.title || "Applications"}
                 </h1>
                 <p className="mt-2 text-[18px] text-white/60">
-                  {page.subtitle || "Manage and track all job applications"}
+                  {filterJobId
+                    ? `Showing candidates for "${filterJobTitle || "this job"}"`
+                    : page.subtitle || "Manage and track all job applications"}
                 </p>
               </div>
             </div>
+
+            {filterJobId && (
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#6b78ff]/30 bg-[#5964ff]/10 px-5 py-3">
+                <span className="text-sm font-semibold text-[#cfd5ff]">
+                  Filtered by job: {filterJobTitle || `#${filterJobId}`}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => navigate("/company-applications")}
+                  className="rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs font-semibold text-white/75 transition hover:bg-white/10 hover:text-white"
+                >
+                  View all applications
+                </button>
+              </div>
+            )}
+
+            {loadError && (
+              <div className="mb-6 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-5 py-4 text-sm text-rose-200">
+                {loadError}
+              </div>
+            )}
 
             <div className="mb-6 flex w-fit flex-wrap gap-2 rounded-[18px] border border-white/10 bg-white/[0.04] p-2">
               {tabs.map((tab) => (
@@ -326,6 +322,13 @@ function CompanyApplications() {
               ))}
             </div>
 
+            {loading && (
+              <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-10 text-center text-white/65">
+                Loading applications...
+              </div>
+            )}
+
+            {!loading && (
             <div className="space-y-5">
               {filteredApplications.map((app) => (
                 <div
@@ -353,10 +356,10 @@ function CompanyApplications() {
                           </span>
                         </div>
 
-                        <p className="text-[18px] text-white/70">{app.title}</p>
+                        <p className="text-[18px] text-white/70">{app.email}</p>
 
                         <p className="mt-2 text-sm text-white/45">
-                          {page.appliedFor || "Applied for"} {app.appliedFor} •{" "}
+                          {page.appliedFor || "Applied for"} {app.jobTitle} •{" "}
                           {app.date}
                         </p>
                       </div>
@@ -364,16 +367,13 @@ function CompanyApplications() {
 
                     <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
                       <div className="flex items-center gap-6">
-                        <ScoreRing value={app.match} />
-
-                        <div className="min-w-[70px]">
-                          <p className="text-[14px] text-white/45">
-                            {page.interviewScore || "Interview Score"}
-                          </p>
-                          <p className="text-[18px] font-extrabold text-white">
-                            {app.interviewScore}%
-                          </p>
-                        </div>
+                        {app.match !== null ? (
+                          <ScoreRing value={app.match} />
+                        ) : (
+                          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full border border-white/10 bg-white/5 px-2 text-center text-[11px] font-semibold text-white/40">
+                            {page.matchScore ? "No " + page.matchScore : "No Score"}
+                          </div>
+                        )}
                       </div>
 
                       <ApplicationSteps
@@ -427,6 +427,7 @@ function CompanyApplications() {
                 </div>
               )}
             </div>
+            )}
           </>
         ) : (
           <>
@@ -460,14 +461,12 @@ function CompanyApplications() {
                     </div>
 
                     <p className="mb-4 text-[18px] text-white/70 md:text-[28px]">
-                      {selectedApplication.title}
+                      {selectedApplication.jobTitle}
                     </p>
 
                     <div className="flex flex-wrap gap-x-6 gap-y-3 text-[15px] text-white/60">
-                      <span>{selectedApplication.location}</span>
                       <span>{selectedApplication.email}</span>
-                      <span>{selectedApplication.phone}</span>
-                      <span>{selectedApplication.appliedFor}</span>
+                      <span>{selectedApplication.date}</span>
                     </div>
                   </div>
                 </div>
@@ -520,11 +519,11 @@ function CompanyApplications() {
                   <div className="mb-6 grid gap-4 md:grid-cols-3">
                     <StatCard
                       label={page.matchScore || "Match Score"}
-                      value={`${selectedApplication.match}%`}
+                      value={selectedApplication.match !== null ? `${selectedApplication.match}%` : "—"}
                     />
                     <StatCard
-                      label={page.interviewScore || "Interview Score"}
-                      value={`${selectedApplication.interviewScore}%`}
+                      label={page.date || "Date"}
+                      value={selectedApplication.date || "—"}
                     />
                     <StatCard
                       label={page.stage || "Stage"}
@@ -537,7 +536,9 @@ function CompanyApplications() {
                       {page.hiringSummary || "Hiring Summary"}
                     </h3>
                     <p className="text-[16px] leading-8 text-white/75">
-                      {selectedApplication.summary}
+                      {selectedApplication.match !== null
+                        ? `This candidate has a ${selectedApplication.match}% CV match score for the ${selectedApplication.jobTitle} role.`
+                        : "No CV match analysis is available for this candidate yet."}
                     </p>
                   </div>
                 </div>
@@ -558,7 +559,9 @@ function CompanyApplications() {
                           : selectedApplication.fit === "Medium Fit"
                           ? page.mediumFitText ||
                             "Worth reviewing carefully"
-                          : page.lowFitText || "Lower priority candidate"}
+                          : selectedApplication.fit === "Low Fit"
+                          ? page.lowFitText || "Lower priority candidate"
+                          : "Awaiting CV match analysis"}
                       </h3>
                     </div>
                   </div>
@@ -598,7 +601,7 @@ function CompanyApplications() {
                       <span className="font-semibold text-white">
                         {page.appliedForLabel || "Applied For:"}
                       </span>{" "}
-                      {selectedApplication.appliedFor}
+                      {selectedApplication.jobTitle}
                     </p>
                     <p>
                       <span className="font-semibold text-white">
@@ -611,18 +614,6 @@ function CompanyApplications() {
                         {page.emailLabel || "Email:"}
                       </span>{" "}
                       {selectedApplication.email}
-                    </p>
-                    <p>
-                      <span className="font-semibold text-white">
-                        {page.phoneLabel || "Phone:"}
-                      </span>{" "}
-                      {selectedApplication.phone}
-                    </p>
-                    <p>
-                      <span className="font-semibold text-white">
-                        {page.locationLabel || "Location:"}
-                      </span>{" "}
-                      {selectedApplication.location}
                     </p>
                   </div>
                 </div>
