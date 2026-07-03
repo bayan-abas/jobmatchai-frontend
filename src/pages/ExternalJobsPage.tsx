@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Globe2, Search, DollarSign, SlidersHorizontal } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import ExternalJobCard, { type ExternalJobData, type MatchInfo } from "../components/ExternalJobCard";
 import { inferIndustry, extractSalaryNumber } from "../utils/jobInference";
-
-const API_BASE_URL = "http://localhost:8080";
+import { apiFetch } from "../utils/api";
 
 const INDUSTRY_KEYS = [
   "technology", "engineering", "healthcare", "education", "finance", "marketing",
@@ -16,45 +16,33 @@ const INDUSTRY_KEYS = [
   "writing", "general",
 ];
 
+const COUNTRY_NAMES: Record<string, string> = {
+  IL: "Israel", US: "United States", GB: "United Kingdom", UK: "United Kingdom",
+  DE: "Germany", FR: "France", CA: "Canada", AU: "Australia", NL: "Netherlands",
+  IE: "Ireland", ES: "Spain", IT: "Italy", PL: "Poland", SE: "Sweden",
+  CH: "Switzerland", IN: "India", SG: "Singapore", AE: "United Arab Emirates",
+};
+
+function formatCountryName(code: string) {
+  return COUNTRY_NAMES[code.toUpperCase()] || code;
+}
+
 type MatchScoreEntry = {
   matchPercent: number | null;
   fieldRelated: boolean;
 };
 
-function readCandidateIdentity() {
-  const readObject = (key: string) => {
-    try {
-      const value = localStorage.getItem(key);
-      return value ? JSON.parse(value) : null;
-    } catch {
-      return null;
-    }
-  };
-
-  const user =
-    readObject("currentUser") ||
-    readObject("loggedInUser") ||
-    readObject("user") ||
-    readObject("candidateProfile") ||
-    readObject("userProfile") ||
-    {};
-
-  return {
-    email:
-      user.email ||
-      localStorage.getItem("email") ||
-      localStorage.getItem("userEmail") ||
-      localStorage.getItem("candidateEmail") ||
-      "",
-  };
-}
-
 function ExternalJobsPage() {
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const { user } = useAuth();
   const t = translations[language] || translations.en;
   const p = t.externalJobsPage;
   const isRTL = language === "ar" || language === "he";
+
+  const readCandidateIdentity = () => ({
+    email: user?.email || "",
+  });
 
   const [jobs, setJobs] = useState<ExternalJobData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,11 +62,7 @@ function ExternalJobsPage() {
   const [savedJobIds, setSavedJobIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/external-jobs/all`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to load external jobs");
-        return res.json();
-      })
+    apiFetch(`/api/external-jobs/all`)
       .then((data: ExternalJobData[]) => {
         setJobs(Array.isArray(data) ? data : []);
         setFetchError("");
@@ -103,15 +87,10 @@ function ExternalJobsPage() {
     let cancelled = false;
     setMatchScoresLoading(true);
 
-    fetch(`${API_BASE_URL}/api/external-jobs/match-scores`, {
+    apiFetch(`/api/external-jobs/match-scores`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: identity.email, externalJobIds, language }),
     })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to load match scores");
-        return res.json();
-      })
       .then((data: { hasAnalysis: boolean; matches: { jobId: number; matchPercent: number | null; fieldRelated?: boolean }[] }) => {
         if (cancelled) return;
         setHasAnalysis(Boolean(data.hasAnalysis));
@@ -145,8 +124,7 @@ function ExternalJobsPage() {
     const identity = readCandidateIdentity();
     if (!identity.email) return;
 
-    fetch(`${API_BASE_URL}/api/saved-jobs/candidate/${encodeURIComponent(identity.email)}`)
-      .then((res) => (res.ok ? res.json() : []))
+    apiFetch(`/api/saved-jobs/candidate/${encodeURIComponent(identity.email)}`)
       .then((rows: { jobId: number; jobType: string }[]) => {
         const ids = Array.isArray(rows)
           ? rows.filter((row) => row.jobType === "external").map((row) => row.jobId)
@@ -173,16 +151,15 @@ function ExternalJobsPage() {
     });
 
     if (isSaved) {
-      fetch(
-        `${API_BASE_URL}/api/saved-jobs/candidate/${encodeURIComponent(identity.email)}/external/${job.id}`,
+      apiFetch(
+        `/api/saved-jobs/candidate/${encodeURIComponent(identity.email)}/external/${job.id}`,
         { method: "DELETE" }
       ).catch(() => {
         setSavedJobIds((prev) => new Set(prev).add(job.id));
       });
     } else {
-      fetch(`${API_BASE_URL}/api/saved-jobs/save`, {
+      apiFetch(`/api/saved-jobs/save`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           candidateEmail: identity.email,
           jobId: job.id,
@@ -332,20 +309,22 @@ function ExternalJobsPage() {
               >
                 <option className="text-black" value="">{p.allCountries}</option>
                 {countries.map((country) => (
-                  <option className="text-black" key={country} value={country}>{country}</option>
+                  <option className="text-black" key={country} value={country}>{formatCountryName(country)}</option>
                 ))}
               </select>
 
-              <select
-                value={cityFilter}
-                onChange={(e) => setCityFilter(e.target.value)}
-                className="rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none"
-              >
-                <option className="text-black" value="">{p.allCities}</option>
-                {cities.map((city) => (
-                  <option className="text-black" key={city} value={city}>{city}</option>
-                ))}
-              </select>
+              {cities.length > 0 && (
+                <select
+                  value={cityFilter}
+                  onChange={(e) => setCityFilter(e.target.value)}
+                  className="rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none"
+                >
+                  <option className="text-black" value="">{p.allCities}</option>
+                  {cities.map((city) => (
+                    <option className="text-black" key={city} value={city}>{city}</option>
+                  ))}
+                </select>
+              )}
 
               <select
                 value={typeFilter}

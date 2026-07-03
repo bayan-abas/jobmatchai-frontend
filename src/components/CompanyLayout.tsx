@@ -5,6 +5,7 @@ import CompanySidebar from "./CompanySidebar";
 import AIChatButton from "./AIChatButton";
 import MobileNav from "./MobileNav";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { ArrowLeft, Search, Bell } from "lucide-react";
 
@@ -13,13 +14,14 @@ type CompanyLayoutProps = { children: ReactNode };
 function CompanyLayout({ children }: CompanyLayoutProps) {
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const { user } = useAuth();
   const t = translations[language];
   const isRTL = language === "ar" || language === "he";
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const sidebarWidth = isCollapsed ? 96 : 320;
 
-  const companyName = localStorage.getItem("name") || localStorage.getItem("companyName") || "My Company";
+  const companyName = user?.name || localStorage.getItem("companyName") || "My Company";
 
   return (
     <div className="min-h-screen bg-[linear-gradient(135deg,#17184a_0%,#1a1b56_40%,#17234f_100%)]">

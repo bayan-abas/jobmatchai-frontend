@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { X, Lightbulb, MapPinned, GraduationCap, ListChecks } from "lucide-react";
-
-const API_BASE_URL = "http://localhost:8080";
+import { apiFetch } from "../utils/api";
 
 type SkillExplanationData = {
   skillName: string;
@@ -29,15 +28,10 @@ function SkillExplanationModal({ skillName, jobTitle, language, t, isRTL, onClos
     let cancelled = false;
     setLoading(true);
 
-    fetch(`${API_BASE_URL}/api/skills/explain`, {
+    apiFetch(`/api/skills/explain`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ skillName, jobTitle, language }),
     })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to load skill explanation");
-        return res.json();
-      })
       .then((result: SkillExplanationData) => {
         if (!cancelled) setData(result);
       })

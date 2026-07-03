@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bot, X, Send, Sparkles, MessageSquare, RotateCcw } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import { apiFetch } from "../utils/api";
 
 type Message = {
   id: number;
@@ -95,16 +96,12 @@ function AIChatButton() {
     setIsTyping(true);
 
     try {
-      const email = localStorage.getItem("email") || "";
-
-      const response = await fetch("http://localhost:8080/api/chat", {
+      const data = await apiFetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, message: text, history, language }),
+        body: JSON.stringify({ message: text, history, language }),
       });
 
-      const data = await response.json();
-      const reply = (response.ok && data.reply) ? data.reply : content.errorReply;
+      const reply = data.reply || content.errorReply;
 
       setMessages((prev) => [...prev, { id: Date.now() + 1, sender: "ai", text: reply }]);
     } catch {

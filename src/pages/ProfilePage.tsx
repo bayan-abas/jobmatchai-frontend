@@ -1,7 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { useEffect, useState } from "react";
+import { apiFetch } from "../utils/api";
 import {
   ArrowLeft,
   User,
@@ -49,14 +51,15 @@ export function computeProfileCompleteness(fields: ProfileCompletenessFields): n
 function ProfilePage() {
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const { user } = useAuth();
   const t = translations[language];
   const isRTL = language === "ar" || language === "he";
 
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  const [userName, setUserName] = useState(localStorage.getItem("name") || "");
-  const [userEmail, setUserEmail] = useState(localStorage.getItem("email") || "");
+  const [userName, setUserName] = useState(user?.name || "");
+  const [userEmail, setUserEmail] = useState(user?.email || "");
   const [userPhone, setUserPhone] = useState(localStorage.getItem("phone") || "");
   const [userLocation, setUserLocation] = useState(
     localStorage.getItem("location") || ""
@@ -87,17 +90,11 @@ function ProfilePage() {
   useEffect(() => {
     if (!userEmail) return;
 
-    fetch(
-      `http://localhost:8080/api/applications/candidate/${encodeURIComponent(
-        userEmail
-      )}`
-    )
-      .then((res) => (res.ok ? res.json() : []))
+    apiFetch(`/api/applications/candidate/${encodeURIComponent(userEmail)}`)
       .then((apps) => setApplicationsCount(Array.isArray(apps) ? apps.length : 0))
       .catch(() => setApplicationsCount(0));
 
-    fetch(`http://localhost:8080/api/cv/current?email=${encodeURIComponent(userEmail)}`)
-      .then((res) => (res.ok ? res.text() : ""))
+    apiFetch(`/api/cv/current`)
       .then((fileName) => setHasResume(Boolean(fileName && fileName.trim())))
       .catch(() => {});
   }, [userEmail]);
@@ -123,28 +120,12 @@ function ProfilePage() {
 
     setUserSkills(parsedSkills);
 
-    localStorage.setItem("name", userName);
-    localStorage.setItem("email", userEmail);
     localStorage.setItem("phone", userPhone);
     localStorage.setItem("location", userLocation);
     localStorage.setItem("currentTitle", userTitle);
     localStorage.setItem("experience", userExperience);
     localStorage.setItem("summary", userSummary);
     localStorage.setItem("skills", JSON.stringify(parsedSkills));
-
-    const savedRegisteredUser = localStorage.getItem("registeredUser");
-    if (savedRegisteredUser) {
-      const parsedUser = JSON.parse(savedRegisteredUser);
-      parsedUser.name = userName;
-      parsedUser.email = userEmail;
-      parsedUser.phone = userPhone;
-      parsedUser.location = userLocation;
-      parsedUser.currentTitle = userTitle;
-      parsedUser.experience = userExperience;
-      parsedUser.summary = userSummary;
-      parsedUser.skills = parsedSkills;
-      localStorage.setItem("registeredUser", JSON.stringify(parsedUser));
-    }
 
     setIsEditing(false);
   };

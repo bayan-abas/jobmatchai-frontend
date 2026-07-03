@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Mail, ShieldCheck, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
+import { apiFetch, ApiError } from "../utils/api";
 
 function ForgotPasswordPage() {
   const navigate = useNavigate();
@@ -58,7 +59,7 @@ function ForgotPasswordPage() {
 
   const c = content[language];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -68,22 +69,20 @@ function ForgotPasswordPage() {
       return;
     }
 
-    const candidates = [
-      ...JSON.parse(localStorage.getItem("candidates") || "[]"),
-      ...JSON.parse(localStorage.getItem("users") || "[]"),
-    ];
-    const companies = JSON.parse(localStorage.getItem("companies") || "[]");
+    try {
+      const data = await apiFetch("/api/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email: normalizedEmail }),
+      });
 
-    const found =
-      candidates.find((u: any) => u?.email?.trim().toLowerCase() === normalizedEmail) ||
-      companies.find((u: any) => u?.email?.trim().toLowerCase() === normalizedEmail);
+      if (data.devResetLink) {
+        console.info("Dev-mode password reset link:", data.devResetLink);
+      }
 
-    if (!found) {
-      setError(c.noAccount);
-      return;
+      setSubmitted(true);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Server connection failed.");
     }
-
-    setSubmitted(true);
   };
 
   return (

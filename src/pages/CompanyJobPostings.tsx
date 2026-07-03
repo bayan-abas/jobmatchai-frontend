@@ -12,7 +12,9 @@ import {
   Trash2,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
+import { apiFetch, ApiError } from "../utils/api";
 
 type JobStatus = "Active" | "Closed" | "Draft";
 
@@ -36,6 +38,7 @@ type JobItem = {
 function CompanyJobPostings() {
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const { user } = useAuth();
   const t = translations[language] || translations.en;
   const page = t.companyJobPostingsPage || {};
   const common = t.common || {};
@@ -65,7 +68,7 @@ function CompanyJobPostings() {
 
   const fetchJobs = async () => {
     try {
-      const companyEmail = localStorage.getItem("email");
+      const companyEmail = user?.email;
 
       if (!companyEmail) {
         setJobs([]);
@@ -73,11 +76,7 @@ function CompanyJobPostings() {
         return;
       }
 
-      const response = await fetch(
-        `http://localhost:8080/api/jobs/company/${companyEmail}`
-      );
-
-      const data = await response.json();
+      const data = await apiFetch(`/api/jobs/company/${companyEmail}`);
 
       const formattedJobs: JobItem[] = data.map((job: any) => ({
         id: job.id,
@@ -131,30 +130,22 @@ function CompanyJobPostings() {
     try {
       setIsUpdating(true);
 
-      const response = await fetch(
-        `http://localhost:8080/api/jobs/${editingJob.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            title: editTitle,
-            companyName:
-              editingJob.companyName || localStorage.getItem("name") || "Company",
-            companyEmail:
-              editingJob.companyEmail || localStorage.getItem("email"),
-            location: editLocation,
-            type: editType,
-            salary: editSalary,
-            description: editDescription,
-            requirements: editRequirements,
-            skills: editSkills,
-          }),
-        }
-      );
-
-      const data = await response.json();
+      const data = await apiFetch(`/api/jobs/${editingJob.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          title: editTitle,
+          companyName:
+            editingJob.companyName || user?.name || "Company",
+          companyEmail:
+            editingJob.companyEmail || user?.email,
+          location: editLocation,
+          type: editType,
+          salary: editSalary,
+          description: editDescription,
+          requirements: editRequirements,
+          skills: editSkills,
+        }),
+      });
 
       if (!data.success) {
         alert(data.message || page.failedToUpdateJob || "Failed to update job.");
@@ -181,7 +172,11 @@ function CompanyJobPostings() {
       setEditingJob(null);
     } catch (error) {
       console.error(error);
-      alert(page.serverConnectionFailed || "Server connection failed.");
+      alert(
+        error instanceof ApiError
+          ? error.message
+          : page.serverConnectionFailed || "Server connection failed."
+      );
     } finally {
       setIsUpdating(false);
     }
@@ -191,11 +186,9 @@ function CompanyJobPostings() {
     try {
       setIsDeleting(jobId);
 
-      const response = await fetch(`http://localhost:8080/api/jobs/${jobId}`, {
+      const data = await apiFetch(`/api/jobs/${jobId}`, {
         method: "DELETE",
       });
-
-      const data = await response.json();
 
       if (!data.success) {
         alert(data.message || page.failedToDeleteJob || "Failed to delete job.");
@@ -207,7 +200,11 @@ function CompanyJobPostings() {
       setOpenMenuId(null);
     } catch (error) {
       console.error(error);
-      alert(page.serverConnectionFailed || "Server connection failed.");
+      alert(
+        error instanceof ApiError
+          ? error.message
+          : page.serverConnectionFailed || "Server connection failed."
+      );
     } finally {
       setIsDeleting(null);
     }

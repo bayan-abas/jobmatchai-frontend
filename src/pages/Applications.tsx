@@ -15,7 +15,9 @@ import {
   Clock3,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
+import { apiFetch } from "../utils/api";
 
 type FilterType = "all" | "active" | "completed";
 type ProgressStep = "applied" | "ai" | "review" | "shortlisted" | "final";
@@ -56,8 +58,6 @@ type ApplicationItem = {
   preInterviewText?: string;
   currentStep: ProgressStep;
 };
-
-const API_BASE_URL = "http://localhost:8080";
 
 function toPercent(value: unknown, fallback = "80%") {
   if (value === null || value === undefined || value === "") return fallback;
@@ -189,6 +189,7 @@ function Applications() {
   const navigate = useNavigate();
   const location = useLocation();
   const { language } = useLanguage();
+  const { user } = useAuth();
   const t = translations[language];
   const isRTL = language === "ar" || language === "he";
 
@@ -211,25 +212,15 @@ function Applications() {
         setLoading(true);
         setError("");
 
-        const email =
-          localStorage.getItem("email") ||
-          localStorage.getItem("userEmail") ||
-          localStorage.getItem("candidateEmail") ||
-          "";
+        const email = user?.email || "";
 
         setCandidateEmail(email);
 
         const url = email
-          ? `${API_BASE_URL}/api/applications/candidate/${encodeURIComponent(email)}`
-          : `${API_BASE_URL}/api/applications/all`;
+          ? `/api/applications/candidate/${encodeURIComponent(email)}`
+          : `/api/applications/all`;
 
-        const response = await fetch(url);
-
-        if (!response.ok) {
-          throw new Error("Failed to load applications");
-        }
-
-        const data: BackendApplication[] = await response.json();
+        const data: BackendApplication[] = await apiFetch(url);
         setApplications(data.map(mapBackendApplication));
       } catch (err) {
         console.error(err);
@@ -240,7 +231,7 @@ function Applications() {
     };
 
     fetchApplications();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (applications.length === 0) return;
@@ -268,23 +259,14 @@ function Applications() {
     let cancelled = false;
     setMatchScoresLoading(true);
 
-    fetch(`${API_BASE_URL}/api/jobs/match-scores`, {
+    apiFetch(`/api/jobs/match-scores`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({
         email: candidateEmail,
         jobIds,
         language,
       }),
     })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to load match scores");
-        }
-        return res.json();
-      })
       .then((data: { hasAnalysis: boolean; matches: { jobId: number; matchPercent: number; matchReason: string }[] }) => {
         if (cancelled) return;
 

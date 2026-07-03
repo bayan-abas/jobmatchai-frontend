@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
+import { apiFetch } from "../utils/api";
 import {
   ArrowLeft,
   FileText,
@@ -195,6 +196,11 @@ function CompanyApplications() {
   };
 
   const handleAccept = (id: number) => {
+    apiFetch(`/api/applications/${id}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status: "Accepted" }),
+    }).catch(() => null);
+
     setApplications((prev) =>
       prev.map((app) =>
         app.id === id
@@ -219,6 +225,11 @@ function CompanyApplications() {
   };
 
   const handleReject = (id: number) => {
+    apiFetch(`/api/applications/${id}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status: "Rejected" }),
+    }).catch(() => null);
+
     setApplications((prev) =>
       prev.map((app) =>
         app.id === id
@@ -664,6 +675,14 @@ function CompanyApplications() {
 
                     <button
                       onClick={() => {
+                        apiFetch("/api/messages", {
+                          method: "POST",
+                          body: JSON.stringify({
+                            applicationId: selectedApplication.id,
+                            content: messageText,
+                          }),
+                        }).catch(() => null);
+
                         alert(page.messageSent || "Message sent!");
                         setShowContactModal(false);
                       }}
@@ -779,6 +798,18 @@ function CompanyApplications() {
 
                     <button
                       onClick={() => {
+                        if (interviewDate && interviewTime) {
+                          apiFetch("/api/interviews", {
+                            method: "POST",
+                            body: JSON.stringify({
+                              applicationId: selectedApplication.id,
+                              scheduledAt: `${interviewDate}T${interviewTime}`,
+                              type: interviewType,
+                              notes: interviewNotes,
+                            }),
+                          }).catch(() => null);
+                        }
+
                         alert(
                           `${page.interviewScheduledWith || "Interview scheduled with"} ${selectedApplication.name}`
                         );

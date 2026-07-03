@@ -1,5 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
+import { useUnreadCount } from "../hooks/useUnreadCount";
 import { translations } from "../translations";
 import {
   LayoutDashboard,
@@ -24,6 +26,8 @@ function CandidateSidebar({ isCollapsed, setIsCollapsed }: CandidateSidebarProps
   const navigate = useNavigate();
   const location = useLocation();
   const { language, setLanguage } = useLanguage();
+  const { logout } = useAuth();
+  const unreadCount = useUnreadCount();
   const isRTL = language === "ar" || language === "he";
   const t = translations[language];
 
@@ -39,12 +43,12 @@ function CandidateSidebar({ isCollapsed, setIsCollapsed }: CandidateSidebarProps
   ];
 
   const handleLogout = () => {
-    const keys = [
-      "currentUser","currentCompany","registeredUser","isLoggedIn","name","email",
-      "role","phone","location","currentTitle","experience","skills","summary",
-      "resumeName","isFirstLogin","isPremium",
+    const nonAuthKeys = [
+      "phone", "location", "currentTitle", "experience", "skills", "summary",
+      "resumeName", "isPremium",
     ];
-    keys.forEach((k) => localStorage.removeItem(k));
+    nonAuthKeys.forEach((k) => localStorage.removeItem(k));
+    logout();
     navigate("/login");
   };
 
@@ -107,7 +111,14 @@ function CandidateSidebar({ isCollapsed, setIsCollapsed }: CandidateSidebarProps
                 }`}
               >
                 <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-4"}`}>
-                  <Icon size={22} strokeWidth={2.1} />
+                  <span className="relative inline-flex">
+                    <Icon size={22} strokeWidth={2.1} />
+                    {item.path === "/notifications" && unreadCount > 0 && (
+                      <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    )}
+                  </span>
                   {!isCollapsed && <span className="text-[17px] font-semibold">{item.label}</span>}
                 </div>
                 {!isCollapsed && active && <span className="h-2.5 w-2.5 rounded-full bg-[#8ea2ff]" />}

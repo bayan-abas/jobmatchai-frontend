@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { computeProfileCompleteness } from "./ProfilePage";
 import { getRingColor } from "../utils/jobInference";
+import { apiFetch } from "../utils/api";
 import {
   BriefcaseBusiness,
   Globe2,
@@ -72,7 +74,6 @@ type RecentlyViewedItem = {
   location?: string;
 };
 
-const API_BASE_URL = "http://localhost:8080";
 const FREE_PLAN_LIMIT = 10;
 
 function getStatusClass(status: string) {
@@ -126,15 +127,12 @@ function ScoreRing({ value }: { value: number | null }) {
 function CandidateDashboard() {
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const { user } = useAuth();
   const t = translations[language] || translations.en;
   const isRTL = language === "ar" || language === "he";
 
-  const userName = localStorage.getItem("name") || "User";
-  const userEmail =
-    localStorage.getItem("email") ||
-    localStorage.getItem("userEmail") ||
-    localStorage.getItem("candidateEmail") ||
-    "";
+  const userName = user?.name || "User";
+  const userEmail = user?.email || "";
 
   const [topMatches, setTopMatches] = useState<MatchItem[]>([]);
   const [applications, setApplications] = useState<RecentApplication[]>([]);
@@ -155,23 +153,18 @@ function CandidateDashboard() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [jobsRes, appsRes, cvRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/jobs/all`),
-          userEmail
-            ? fetch(
-                `${API_BASE_URL}/api/applications/candidate/${encodeURIComponent(
-                  userEmail
-                )}`
-              )
-            : Promise.resolve(null),
-          userEmail
-            ? fetch(`${API_BASE_URL}/api/cv/current?email=${encodeURIComponent(userEmail)}`)
-            : Promise.resolve(null),
-        ]);
-
-        const jobsData: BackendJob[] = jobsRes.ok ? await jobsRes.json() : [];
-        const appsData: BackendApplication[] =
-          appsRes && appsRes.ok ? await appsRes.json() : [];
+        const [jobsData, appsData, cvText]: [BackendJob[], BackendApplication[], string] =
+          await Promise.all([
+            apiFetch(`/api/jobs/all`).catch(() => []),
+            userEmail
+              ? apiFetch(
+                  `/api/applications/candidate/${encodeURIComponent(userEmail)}`
+                ).catch(() => [])
+              : Promise.resolve([]),
+            userEmail
+              ? apiFetch(`/api/cv/current`).catch(() => "")
+              : Promise.resolve(""),
+          ]);
 
         setJobsCount(String(jobsData.length));
         setApplicationsCount(String(appsData.length));
@@ -181,7 +174,7 @@ function CandidateDashboard() {
         ).length;
         setInterviewsCount(String(interviewCount));
 
-        const resumeFileName = cvRes && cvRes.ok ? (await cvRes.text()).trim() : "";
+        const resumeFileName = (cvText || "").trim();
 
         const rawSkills = localStorage.getItem("skills");
         let skills: string[] = [];
@@ -193,7 +186,7 @@ function CandidateDashboard() {
 
         setProfileScore(
           computeProfileCompleteness({
-            name: localStorage.getItem("name") || "",
+            name: user?.name || "",
             phone: localStorage.getItem("phone") || "",
             location: localStorage.getItem("location") || "",
             currentTitle: localStorage.getItem("currentTitle") || "",
@@ -217,21 +210,18 @@ function CandidateDashboard() {
         const matchByJobId = new Map<number, MatchScoreEntry>();
 
         if (userEmail && combinedJobIds.length > 0) {
-          const matchRes = await fetch(`${API_BASE_URL}/api/jobs/match-scores`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: userEmail,
-              jobIds: combinedJobIds,
-              language,
-            }),
-          });
-
-          if (matchRes.ok) {
+          try {
             const matchData: {
               hasAnalysis: boolean;
               matches: { jobId: number; matchPercent: number | null; fieldRelated?: boolean }[];
-            } = await matchRes.json();
+            } = await apiFetch(`/api/jobs/match-scores`, {
+              method: "POST",
+              body: JSON.stringify({
+                email: userEmail,
+                jobIds: combinedJobIds,
+                language,
+              }),
+            });
 
             (matchData.matches || []).forEach((match) => {
               matchByJobId.set(match.jobId, {
@@ -239,6 +229,8 @@ function CandidateDashboard() {
                 fieldRelated: match.fieldRelated !== false,
               });
             });
+          } catch {
+            // keep matchByJobId empty, same as the previous !matchRes.ok fallback
           }
         }
 
@@ -291,8 +283,7 @@ function CandidateDashboard() {
   }, [userEmail, language]);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/dashboard/stats`)
-      .then((res) => (res.ok ? res.json() : null))
+    apiFetch(`/api/dashboard/stats`)
       .then((data) => {
         if (data) {
           setJobStats({
@@ -308,8 +299,7 @@ function CandidateDashboard() {
   useEffect(() => {
     if (!userEmail) return;
 
-    fetch(`${API_BASE_URL}/api/recently-viewed/candidate/${encodeURIComponent(userEmail)}`)
-      .then((res) => (res.ok ? res.json() : []))
+    apiFetch(`/api/recently-viewed/candidate/${encodeURIComponent(userEmail)}`)
       .then((data: RecentlyViewedItem[]) => setRecentlyViewed(Array.isArray(data) ? data : []))
       .catch(() => {});
   }, [userEmail]);

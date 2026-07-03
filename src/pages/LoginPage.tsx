@@ -8,10 +8,13 @@ import {
   UserRound,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
+import { apiFetch, ApiError } from "../utils/api";
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const { language, setLanguage } = useLanguage();
   const t = translations[language];
   const isRTL = language === "ar" || language === "he";
@@ -40,18 +43,13 @@ const handleLogin = async (e: React.FormEvent) => {
   }
 
   try {
-    const response = await fetch("http://localhost:8080/api/users/login", {
+    const data = await apiFetch("/api/users/login", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({
         email: normalizedEmail,
         password: normalizedPassword,
       }),
     });
-
-    const data = await response.json();
 
     if (!data.success) {
       setError(data.message || "Login failed.");
@@ -60,22 +58,14 @@ const handleLogin = async (e: React.FormEvent) => {
 
     const foundUser = data.user;
 
-    localStorage.setItem("currentUser", JSON.stringify(foundUser));
-    localStorage.setItem("registeredUser", JSON.stringify(foundUser));
-    localStorage.setItem("isLoggedIn", "true");
-    localStorage.setItem("name", foundUser.name || foundUser.companyName || "");
-    localStorage.setItem("email", foundUser.email || "");
-    localStorage.setItem("role", foundUser.role || "");
+    login(data.token, foundUser);
 
     if (foundUser.role === "candidate") {
-      localStorage.setItem("isFirstLogin", "false");
       navigate("/candidate-dashboard");
       return;
     }
 
     if (foundUser.role === "company") {
-      localStorage.setItem("currentCompany", JSON.stringify(foundUser));
-      localStorage.setItem("isFirstLogin", "false");
       navigate("/company-dashboard");
       return;
     }
@@ -83,7 +73,7 @@ const handleLogin = async (e: React.FormEvent) => {
     setError("Unknown user role.");
   } catch (error) {
     console.error(error);
-    setError("Server connection failed.");
+    setError(error instanceof ApiError ? error.message : "Server connection failed.");
   }
 };
 

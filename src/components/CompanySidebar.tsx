@@ -1,5 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
+import { useUnreadCount } from "../hooks/useUnreadCount";
 import { translations } from "../translations";
 import {
   LayoutDashboard,
@@ -22,6 +24,8 @@ function CompanySidebar({ isCollapsed, setIsCollapsed }: CompanySidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { language, setLanguage } = useLanguage();
+  const { logout } = useAuth();
+  const unreadCount = useUnreadCount();
   const t = translations[language];
   const isRTL = language === "ar" || language === "he";
 
@@ -35,11 +39,11 @@ function CompanySidebar({ isCollapsed, setIsCollapsed }: CompanySidebarProps) {
   ];
 
   const handleLogout = () => {
-    const keys = [
-      "currentUser","currentCompany","registeredUser","isLoggedIn","name","email",
-      "role","phone","location","industry","companySize","website","description","isFirstLogin",
+    const nonAuthKeys = [
+      "phone", "location", "industry", "companySize", "website", "description",
     ];
-    keys.forEach((k) => localStorage.removeItem(k));
+    nonAuthKeys.forEach((k) => localStorage.removeItem(k));
+    logout();
     navigate("/login");
   };
 
@@ -101,7 +105,14 @@ function CompanySidebar({ isCollapsed, setIsCollapsed }: CompanySidebarProps) {
                   } ${active ? "bg-[rgba(99,102,241,0.28)] text-white" : "bg-transparent text-[#9ca3c5] hover:bg-white/[0.04] hover:text-white"}`}
                 >
                   <div className={`flex items-center ${isCollapsed ? "justify-center" : `gap-4`}`}>
-                    <Icon size={22} strokeWidth={2.1} />
+                    <span className="relative inline-flex">
+                      <Icon size={22} strokeWidth={2.1} />
+                      {item.path === "/company-notifications" && unreadCount > 0 && (
+                        <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
+                          {unreadCount > 9 ? "9+" : unreadCount}
+                        </span>
+                      )}
+                    </span>
                     {!isCollapsed && <span className="text-[17px] font-semibold">{item.label}</span>}
                   </div>
                   {!isCollapsed && active && <span className="h-2.5 w-2.5 rounded-full bg-[#8ea2ff]" />}

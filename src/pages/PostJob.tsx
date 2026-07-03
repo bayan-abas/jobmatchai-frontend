@@ -7,11 +7,14 @@ import {
   Save,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
+import { apiFetch, ApiError } from "../utils/api";
 
 function PostJob() {
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const { user } = useAuth();
   const t = translations[language];
   const p = t.postJobPage;
   const isRTL = language === "ar" || language === "he";
@@ -56,10 +59,10 @@ function PostJob() {
       return;
     }
 
-    const companyEmail = localStorage.getItem("email");
+    const companyEmail = user?.email;
     const companyName =
       localStorage.getItem("companyName") ||
-      localStorage.getItem("name") ||
+      user?.name ||
       "Company";
 
     if (!companyEmail) {
@@ -70,11 +73,8 @@ function PostJob() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("http://localhost:8080/api/jobs/add", {
+      const data = await apiFetch("/api/jobs/add", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           title: jobTitle,
           companyName,
@@ -100,8 +100,6 @@ function PostJob() {
         }),
       });
 
-      const data = await response.json();
-
       if (!data.success) {
         alert(data.message || p.failedToPostJob);
         return;
@@ -114,7 +112,7 @@ function PostJob() {
       }, 1800);
     } catch (error) {
       console.error(error);
-      alert(p.serverConnectionFailed);
+      alert(error instanceof ApiError ? error.message : p.serverConnectionFailed);
     } finally {
       setIsSubmitting(false);
     }

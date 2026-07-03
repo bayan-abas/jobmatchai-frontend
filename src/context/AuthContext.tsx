@@ -1,0 +1,101 @@
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { apiFetch, setAuthTokenGetter, setUnauthorizedHandler } from "../utils/api";
+
+export type Role = "candidate" | "company";
+
+export type AuthUser = {
+  id: number;
+  name: string;
+  email: string;
+  role: Role;
+  cvFileName?: string | null;
+  premium?: boolean;
+};
+
+type AuthContextType = {
+  user: AuthUser | null;
+  token: string | null;
+  isLoading: boolean;
+  login: (token: string, user: AuthUser) => void;
+  logout: () => void;
+};
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const TOKEN_STORAGE_KEY = "jobmatch_token";
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [token, setToken] = useState<string | null>(() => sessionStorage.getItem(TOKEN_STORAGE_KEY));
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const tokenRef = useRef<string | null>(token);
+  tokenRef.current = token;
+
+  const logout = () => {
+    setToken(null);
+    setUser(null);
+    sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+  };
+
+  useEffect(() => {
+    setAuthTokenGetter(() => tokenRef.current);
+    setUnauthorizedHandler(() => logout());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function rehydrate() {
+      if (!tokenRef.current) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const me = await apiFetch("/api/auth/me");
+        if (!cancelled) {
+          setUser(me);
+        }
+      } catch {
+        if (!cancelled) {
+          logout();
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    rehydrate();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const login = (newToken: string, newUser: AuthUser) => {
+    setToken(newToken);
+    setUser(newUser);
+    sessionStorage.setItem(TOKEN_STORAGE_KEY, newToken);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, token, isLoading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+
+  if (!context) {
+    throw new Error("useAuth must be used inside AuthProvider");
+  }
+
+  return context;
+}

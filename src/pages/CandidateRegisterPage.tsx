@@ -13,11 +13,14 @@ import {
   Upload,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
+import { apiFetch, ApiError } from "../utils/api";
 
 function CandidateRegisterPage() {
   const navigate = useNavigate();
   const { language, setLanguage } = useLanguage();
+  const { login } = useAuth();
   const t = translations[language];
   const isRTL = language === "ar" || language === "he";
 
@@ -305,49 +308,39 @@ function CandidateRegisterPage() {
   "Passionate professional looking for great opportunities and continuous growth.";
 
 try {
-  const response = await fetch(
-    "http://localhost:8080/api/users/register",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: cleanFullName,
-        email: cleanEmail,
-        password: cleanPassword,
-        role: "candidate",
-      }),
-    }
-  );
-
-  const data = await response.json();
+  const data = await apiFetch("/api/users/register", {
+    method: "POST",
+    body: JSON.stringify({
+      name: cleanFullName,
+      email: cleanEmail,
+      password: cleanPassword,
+      role: "candidate",
+    }),
+  });
 
   if (!data.success) {
     setError(data.message || "Registration failed.");
     return;
   }
 
-  const newCandidate = {
-    ...data.user,
-    fullName: cleanFullName,
-    name: cleanFullName,
-    role: "candidate",
-    phone: cleanPhone,
-    location: cleanLocation,
-    currentTitle,
-    experience,
-    skills,
-    summary: candidateSummary,
-    resumeName,
-  };
+  const loginData = await apiFetch("/api/users/login", {
+    method: "POST",
+    body: JSON.stringify({
+      email: cleanEmail,
+      password: cleanPassword,
+    }),
+  });
 
-  localStorage.setItem("currentUser", JSON.stringify(newCandidate));
-  localStorage.setItem("registeredUser", JSON.stringify(newCandidate));
-  localStorage.setItem("isLoggedIn", "true");
-  localStorage.setItem("name", cleanFullName);
-  localStorage.setItem("email", cleanEmail);
-  localStorage.setItem("role", "candidate");
+  if (!loginData.success) {
+    setError(
+      loginData.message ||
+        "Registration succeeded, but automatic login failed. Please log in."
+    );
+    return;
+  }
+
+  login(loginData.token, loginData.user);
+
   localStorage.setItem("phone", cleanPhone);
   localStorage.setItem("location", cleanLocation);
   localStorage.setItem("currentTitle", currentTitle);
@@ -355,7 +348,6 @@ try {
   localStorage.setItem("skills", JSON.stringify(skills));
   localStorage.setItem("summary", candidateSummary);
   localStorage.setItem("resumeName", resumeName);
-  localStorage.setItem("isFirstLogin", "false");
 
   setSuccess(
     t?.candidateRegisterPage?.success ||
@@ -368,7 +360,7 @@ try {
 
 } catch (error) {
   console.error(error);
-  setError("Server connection failed.");
+  setError(error instanceof ApiError ? error.message : "Server connection failed.");
 }
 
     setSuccess(

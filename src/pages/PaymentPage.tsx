@@ -9,29 +9,39 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
+import { apiFetch, ApiError } from "../utils/api";
 
 function PaymentPage() {
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const { user } = useAuth();
   const t = translations[language];
   const isRTL = language === "ar" || language === "he";
 
-  const [paid, setPaid] = useState(false);
-  const [cardName, setCardName] = useState("");
-  const [cardNumber, setCardNumber] = useState("");
-  const [expiry, setExpiry] = useState("");
-  const [cvv, setCvv] = useState("");
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [error, setError] = useState("");
 
   const monthlyPrice = 9.99;
 
-  const handlePayment = () => {
-    if (!cardName || !cardNumber || !expiry || !cvv) {
-      alert(t.paymentPage.fillAllFields);
-      return;
-    }
+  const handleSubscribe = async () => {
+    setError("");
+    setIsRedirecting(true);
 
-    setPaid(true);
+    try {
+      const data = await apiFetch("/api/payments/create-checkout-session", {
+        method: "POST",
+      });
+      window.location.href = data.url;
+    } catch (err) {
+      setIsRedirecting(false);
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not start checkout. Please try again."
+      );
+    }
   };
 
   return (
@@ -51,7 +61,29 @@ function PaymentPage() {
           {t.common.back}
         </button>
 
-        {!paid ? (
+        {user?.premium ? (
+          <div className="mx-auto max-w-[760px] rounded-[32px] border border-white/10 bg-[rgba(44,45,95,0.94)] p-10 text-center shadow-[0_20px_60px_rgba(0,0,0,0.28)]">
+            <div className="mx-auto mb-6 flex h-[88px] w-[88px] items-center justify-center rounded-[28px] bg-gradient-to-br from-[#22c55e] to-[#14b8a6] text-white shadow-[0_18px_40px_rgba(34,197,94,0.28)]">
+              <Crown size={38} />
+            </div>
+
+            <h1 className="text-[36px] font-extrabold text-white">
+              {t.paymentPage.activatedPlan}
+            </h1>
+
+            <p className="mx-auto mt-3 max-w-[520px] text-[17px] leading-8 text-[#b9c0ea]">
+              {t.paymentPage.premiumMonthly}
+            </p>
+
+            <button
+              type="button"
+              onClick={() => navigate("/candidate-dashboard")}
+              className="mt-8 rounded-[18px] bg-gradient-to-r from-[#8b5cf6] to-[#d946ef] px-8 py-4 text-[16px] font-bold text-white shadow-[0_16px_35px_rgba(168,85,247,0.35)] transition hover:scale-[1.01]"
+            >
+              {t.paymentPage.goToDashboard}
+            </button>
+          </div>
+        ) : (
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.08fr_0.92fr]">
             <section className="rounded-[32px] border border-white/10 bg-[rgba(44,45,95,0.94)] p-8 shadow-[0_20px_60px_rgba(0,0,0,0.28)]">
               <div className="mb-8 flex items-start gap-4">
@@ -108,44 +140,25 @@ function PaymentPage() {
                   </h2>
                 </div>
 
-                <div className="grid gap-4">
-                  <input
-                    value={cardName}
-                    onChange={(e) => setCardName(e.target.value)}
-                    placeholder={t.paymentPage.cardholderName}
-                    className="rounded-[16px] border border-white/10 bg-white/[0.05] px-5 py-4 text-white outline-none placeholder:text-[#8ea2c7]"
-                  />
+                <p className="mb-6 text-[15px] leading-7 text-[#b9c0ea]">
+                  {t.paymentPage.secureText}
+                </p>
 
-                  <input
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(e.target.value)}
-                    placeholder={t.paymentPage.cardNumber}
-                    className="rounded-[16px] border border-white/10 bg-white/[0.05] px-5 py-4 text-white outline-none placeholder:text-[#8ea2c7]"
-                  />
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <input
-                      value={expiry}
-                      onChange={(e) => setExpiry(e.target.value)}
-                      placeholder={t.paymentPage.expiry}
-                      className="rounded-[16px] border border-white/10 bg-white/[0.05] px-5 py-4 text-white outline-none placeholder:text-[#8ea2c7]"
-                    />
-
-                    <input
-                      value={cvv}
-                      onChange={(e) => setCvv(e.target.value)}
-                      placeholder={t.paymentPage.cvv}
-                      className="rounded-[16px] border border-white/10 bg-white/[0.05] px-5 py-4 text-white outline-none placeholder:text-[#8ea2c7]"
-                    />
+                {error && (
+                  <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                    {error}
                   </div>
-                </div>
+                )}
 
                 <button
                   type="button"
-                  onClick={handlePayment}
-                  className="mt-6 w-full rounded-[18px] bg-gradient-to-r from-[#8b5cf6] to-[#d946ef] px-6 py-4 text-[17px] font-bold text-white shadow-[0_16px_35px_rgba(168,85,247,0.35)] transition hover:scale-[1.01]"
+                  onClick={handleSubscribe}
+                  disabled={isRedirecting}
+                  className="mt-2 w-full rounded-[18px] bg-gradient-to-r from-[#8b5cf6] to-[#d946ef] px-6 py-4 text-[17px] font-bold text-white shadow-[0_16px_35px_rgba(168,85,247,0.35)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {t.paymentPage.pay} ${monthlyPrice}
+                  {isRedirecting
+                    ? t.paymentPage.redirecting || "Redirecting to Stripe..."
+                    : `${t.paymentPage.pay} $${monthlyPrice}`}
                 </button>
 
                 <div className="mt-4 flex items-center justify-center gap-2 text-[#9ca8d8]">
@@ -272,44 +285,6 @@ function PaymentPage() {
                 </div>
               </div>
             </aside>
-          </div>
-        ) : (
-          <div className="mx-auto max-w-[760px] rounded-[32px] border border-white/10 bg-[rgba(44,45,95,0.94)] p-10 text-center shadow-[0_20px_60px_rgba(0,0,0,0.28)]">
-            <div className="mx-auto mb-6 flex h-[88px] w-[88px] items-center justify-center rounded-[28px] bg-gradient-to-br from-[#22c55e] to-[#14b8a6] text-white shadow-[0_18px_40px_rgba(34,197,94,0.28)]">
-              <CheckCircle2 size={38} />
-            </div>
-
-            <h1 className="text-[36px] font-extrabold text-white">
-              {t.paymentPage.successTitle}
-            </h1>
-
-            <p className="mx-auto mt-3 max-w-[520px] text-[17px] leading-8 text-[#b9c0ea]">
-              {t.paymentPage.successText}
-            </p>
-
-            <div
-              className={`mx-auto mt-8 max-w-[420px] rounded-[24px] border border-[#22c55e]/20 bg-[#22c55e]/10 p-5 ${
-                isRTL ? "text-right" : "text-left"
-              }`}
-            >
-              <p className="text-[14px] text-[#b9c0ea]">
-                {t.paymentPage.activatedPlan}
-              </p>
-              <h2 className="mt-1 text-[24px] font-extrabold text-white">
-                {t.paymentPage.premiumMonthly}
-              </h2>
-              <p className="mt-2 text-[15px] text-[#d8ddf6]">
-                {t.paymentPage.totalPaid} ${monthlyPrice}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => navigate("/candidate-dashboard")}
-              className="mt-8 rounded-[18px] bg-gradient-to-r from-[#8b5cf6] to-[#d946ef] px-8 py-4 text-[16px] font-bold text-white shadow-[0_16px_35px_rgba(168,85,247,0.35)] transition hover:scale-[1.01]"
-            >
-              {t.paymentPage.goToDashboard}
-            </button>
           </div>
         )}
       </div>

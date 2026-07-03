@@ -14,7 +14,9 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
+import { apiFetch, ApiError, API_BASE_URL } from "../utils/api";
 
 type AnalysisResult = {
   score: number;
@@ -36,6 +38,7 @@ type Toast = {
 function ResumeManager() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { language } = useLanguage();
+  const { user } = useAuth();
   const t = translations[language];
   const r = t.resumeManagerPage;
   const isRTL = language === "ar" || language === "he";
@@ -86,63 +89,33 @@ function ResumeManager() {
     };
   };
 
-  const getCandidateEmail = () => {
-    const readObject = (key: string) => {
-      try {
-        const value = localStorage.getItem(key);
-        return value ? JSON.parse(value) : null;
-      } catch {
-        return null;
-      }
-    };
-
-    const user =
-      readObject("currentUser") ||
-      readObject("loggedInUser") ||
-      readObject("user") ||
-      readObject("candidateProfile") ||
-      readObject("userProfile") ||
-      {};
-
-    return (
-      user.email ||
-      localStorage.getItem("email") ||
-      localStorage.getItem("userEmail") ||
-      localStorage.getItem("candidateEmail") ||
-      ""
-    );
-  };
-
   useEffect(() => {
     const fetchCurrentCV = async () => {
       try {
-        const email = getCandidateEmail();
+        if (!user) return;
 
-        if (!email) return;
-
-        const response = await fetch(
-          `http://localhost:8080/api/cv/current?email=${encodeURIComponent(email)}`
-        );
-
-        if (!response.ok) {
-          setFileName("");
-          setAnalysis(null);
-          localStorage.removeItem("resumeFileName");
-          return;
+        let currentFileName = "";
+        try {
+          currentFileName = (await apiFetch(`/api/cv/current`)).trim();
+        } catch (err) {
+          if (err instanceof ApiError) {
+            setFileName("");
+            setAnalysis(null);
+            localStorage.removeItem("resumeFileName");
+            return;
+          }
+          throw err;
         }
-
-        const currentFileName = (await response.text()).trim();
 
         if (currentFileName) {
           setFileName(currentFileName);
           localStorage.setItem("resumeFileName", currentFileName);
 
-          const analysisResponse = await fetch(
-            `http://localhost:8080/api/cv/analysis?email=${encodeURIComponent(email)}`
-          );
-          if (analysisResponse.ok) {
-            const data = await analysisResponse.json();
+          try {
+            const data = await apiFetch(`/api/cv/analysis`);
             setAnalysis(buildAnalysis(data));
+          } catch {
+            // no analysis available yet; keep previous behavior of silently skipping
           }
         } else {
           setFileName("");
@@ -176,30 +149,19 @@ function ResumeManager() {
     try {
       setIsUploading(true);
 
-      const email = getCandidateEmail();
-
-      if (!email) {
+      if (!user) {
         showToast("error", r.errorEmailNotFound);
         return;
       }
 
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("email", email);
       formData.append("language", language);
 
-      const response = await fetch("http://localhost:8080/api/cv/upload", {
+      const savedFileName = await apiFetch("/api/cv/upload", {
         method: "POST",
         body: formData,
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        showToast("error", getSafeErrorMessage(errorText, r.errorUploadFailed));
-        return;
-      }
-
-      const savedFileName = await response.text();
 
       setFileName(savedFileName);
       resetAnalysis();
@@ -208,7 +170,11 @@ function ResumeManager() {
       showToast("success", r.uploadSuccess);
     } catch (error) {
       console.error("CV upload error:", error);
-      showToast("error", r.errorUploadGeneric);
+      if (error instanceof ApiError) {
+        showToast("error", getSafeErrorMessage(error.message, r.errorUploadFailed));
+      } else {
+        showToast("error", r.errorUploadGeneric);
+      }
     } finally {
       setIsUploading(false);
 
@@ -222,15 +188,13 @@ function ResumeManager() {
     if (!fileName) return;
 
     window.open(
-      `http://localhost:8080/api/cv/download/${encodeURIComponent(fileName)}`,
+      `${API_BASE_URL}/api/cv/download/${encodeURIComponent(fileName)}`,
       "_blank"
     );
   };
 
   const handleDelete = async () => {
-    const email = getCandidateEmail();
-
-    if (!email) {
+    if (!user) {
       showToast("error", r.errorEmailNotFound);
       return;
     }
@@ -238,16 +202,9 @@ function ResumeManager() {
     try {
       setIsDeleting(true);
 
-      const response = await fetch(
-        `http://localhost:8080/api/cv/delete?email=${encodeURIComponent(email)}`,
-        { method: "DELETE" }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        showToast("error", getSafeErrorMessage(errorText, r.errorDeleteFailed));
-        return;
-      }
+      await apiFetch(`/api/cv/delete`, {
+        method: "DELETE",
+      });
 
       setFileName("");
       resetAnalysis();
@@ -256,7 +213,11 @@ function ResumeManager() {
       showToast("success", r.deleteSuccess);
     } catch (error) {
       console.error("Delete CV error:", error);
-      showToast("error", r.errorDeleteGeneric);
+      if (error instanceof ApiError) {
+        showToast("error", getSafeErrorMessage(error.message, r.errorDeleteFailed));
+      } else {
+        showToast("error", r.errorDeleteGeneric);
+      }
     } finally {
       setIsDeleting(false);
     }
@@ -265,9 +226,7 @@ function ResumeManager() {
   const handleAnalyze = async () => {
     if (!fileName || isAnalyzing) return;
 
-    const email = getCandidateEmail();
-
-    if (!email) {
+    if (!user) {
       showToast("error", r.errorEmailNotFound);
       return;
     }
@@ -278,21 +237,13 @@ function ResumeManager() {
       setProgress(20);
       setAnalysisStep(r.analysisStep1);
 
-      const analyzeResponse = await fetch(
-        `http://localhost:8080/api/cv/analyze?email=${encodeURIComponent(email)}&language=${language}`,
+      const data = await apiFetch(
+        `/api/cv/analyze?language=${language}`,
         { method: "POST" }
       );
 
-      if (!analyzeResponse.ok) {
-        const errorText = await analyzeResponse.text();
-        showToast("error", getSafeErrorMessage(errorText, r.errorAnalyzeFailed));
-        return;
-      }
-
       setProgress(75);
       setAnalysisStep(r.analysisStep5);
-
-      const data = await analyzeResponse.json();
 
       setProgress(100);
       setAnalysisStep(r.analysisComplete);
@@ -301,7 +252,11 @@ function ResumeManager() {
       showToast("success", r.analyzeSuccess);
     } catch (error) {
       console.error(error);
-      showToast("error", r.errorAnalyzeGeneric);
+      if (error instanceof ApiError) {
+        showToast("error", getSafeErrorMessage(error.message, r.errorAnalyzeFailed));
+      } else {
+        showToast("error", r.errorAnalyzeGeneric);
+      }
     } finally {
       setIsAnalyzing(false);
     }

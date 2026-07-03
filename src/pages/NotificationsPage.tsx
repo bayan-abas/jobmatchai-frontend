@@ -1,15 +1,59 @@
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Bell,
   Briefcase,
   CheckCircle2,
   TrendingUp,
+  MessageSquare,
+  Crown,
   Trash2,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
+import { apiFetch } from "../utils/api";
+
+type BackendNotification = {
+  id: number;
+  title: string;
+  message: string;
+  type: string;
+  createdAt: string;
+  read: boolean;
+};
+
+const JOB_TYPES = new Set(["JOB_MATCH_HIGH", "SAVED_JOB_UPDATED"]);
+const APPLICATION_TYPES = new Set([
+  "APPLICATION_SUBMITTED",
+  "APPLICATION_REMOVED",
+  "APPLICATION_ACCEPTED",
+  "APPLICATION_REJECTED",
+  "INTERVIEW_SCHEDULED",
+  "INTERVIEW_UPDATED",
+]);
+
+function getPresentation(type: string) {
+  if (JOB_TYPES.has(type)) {
+    return { icon: <Briefcase size={22} />, iconBg: "from-[#7f4cff] to-[#a855f7]", kind: "job" as const };
+  }
+  if (APPLICATION_TYPES.has(type)) {
+    return { icon: <CheckCircle2 size={22} />, iconBg: "from-emerald-500 to-teal-500", kind: "application" as const };
+  }
+  if (type === "COMPANY_MESSAGE") {
+    return { icon: <MessageSquare size={22} />, iconBg: "from-cyan-500 to-blue-500", kind: "message" as const };
+  }
+  if (type === "PREMIUM_ACTIVATED") {
+    return { icon: <Crown size={22} />, iconBg: "from-[#8b5cf6] to-[#d946ef]", kind: "premium" as const };
+  }
+  return { icon: <TrendingUp size={22} />, iconBg: "from-[#f6c453] to-[#f59e0b]", kind: "tip" as const };
+}
+
+function formatDate(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`;
+}
 
 function NotificationsPage() {
   const navigate = useNavigate();
@@ -17,87 +61,65 @@ function NotificationsPage() {
   const t = translations[language];
   const isRTL = language === "ar" || language === "he";
 
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: "job",
-      title: t.notificationsPage.jobMatchTitle1 || "New Job Match!",
-      message:
-        t.notificationsPage.jobMatchMessage1 ||
-        "Senior Frontend Developer at TechCorp matches 92% with your profile",
-      date: "26.3.2026",
-      unread: true,
-      icon: <Briefcase size={22} />,
-      iconBg: "from-[#7f4cff] to-[#a855f7]",
-      badge: t.notificationsPage.jobMatch,
-    },
-    {
-      id: 2,
-      type: "application",
-      title: t.notificationsPage.applicationTitle1 || "Application Status Updated",
-      message:
-        t.notificationsPage.applicationMessage1 ||
-        'Your application for Full Stack Engineer at StartupXYZ moved to "Under Review"',
-      date: "26.3.2026",
-      unread: true,
-      icon: <CheckCircle2 size={22} />,
-      iconBg: "from-emerald-500 to-teal-500",
-      badge: t.notificationsPage.application,
-    },
-    {
-      id: 3,
-      type: "tip",
-      title: t.notificationsPage.tipTitle1 || "Profile Tip",
-      message:
-        t.notificationsPage.tipMessage1 ||
-        "Add your certifications to improve your match score by up to 15%",
-      date: "25.3.2026",
-      unread: false,
-      icon: <TrendingUp size={22} />,
-      iconBg: "from-[#f6c453] to-[#f59e0b]",
-      badge: t.notificationsPage.tip,
-    },
-    {
-      id: 4,
-      type: "job",
-      title: t.notificationsPage.jobMatchTitle2 || "High Match Alert",
-      message:
-        t.notificationsPage.jobMatchMessage2 ||
-        "React Developer at InnovateLab - 85% match. Apply now!",
-      date: "24.3.2026",
-      unread: false,
-      icon: <Briefcase size={22} />,
-      iconBg: "from-[#7f4cff] to-[#6366f1]",
-      badge: t.notificationsPage.jobMatch,
-    },
-    {
-      id: 5,
-      type: "application",
-      title: t.notificationsPage.interviewTitle1 || "Interview Request",
-      message:
-        t.notificationsPage.interviewMessage1 ||
-        "Congratulations! DesignCo wants to schedule an interview",
-      date: "23.3.2026",
-      unread: true,
-      icon: <CheckCircle2 size={22} />,
-      iconBg: "from-emerald-500 to-cyan-500",
-      badge: t.notificationsPage.interview,
-    },
-  ]);
+  const [notifications, setNotifications] = useState<BackendNotification[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const unreadCount = notifications.filter((item) => item.unread).length;
+  useEffect(() => {
+    let cancelled = false;
 
-  const handleMarkAllAsRead = () => {
-    setNotifications((prev) =>
-      prev.map((item) => ({
-        ...item,
-        unread: false,
-      }))
+    async function load() {
+      try {
+        const data = await apiFetch("/api/notifications");
+        if (!cancelled) {
+          setNotifications(data);
+        }
+      } catch {
+        if (!cancelled) {
+          setNotifications([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const unreadCount = notifications.filter((item) => !item.read).length;
+
+  const handleMarkAllAsRead = async () => {
+    const unread = notifications.filter((item) => !item.read);
+    setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
+
+    await Promise.all(
+      unread.map((item) =>
+        apiFetch(`/api/notifications/${item.id}/read`, { method: "POST" }).catch(() => null)
+      )
     );
   };
 
-  const handleClearAll = () => {
+  const handleClearAll = async () => {
+    const all = notifications;
     setNotifications([]);
+
+    await Promise.all(
+      all.map((item) => apiFetch(`/api/notifications/${item.id}`, { method: "DELETE" }).catch(() => null))
+    );
+  };
+
+  const handleDismiss = async (id: number) => {
+    setNotifications((prev) => prev.filter((item) => item.id !== id));
+    try {
+      await apiFetch(`/api/notifications/${id}`, { method: "DELETE" });
+    } catch {
+      // already removed from view; nothing else to reconcile
+    }
   };
 
   return (
@@ -191,7 +213,7 @@ function NotificationsPage() {
           </div>
         </section>
 
-        {notifications.length === 0 ? (
+        {!isLoading && notifications.length === 0 ? (
           <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-7 py-12 text-center shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
             <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 text-white/60">
               <Bell size={26} />
@@ -206,67 +228,77 @@ function NotificationsPage() {
           </div>
         ) : (
           <section className="space-y-5">
-            {notifications.map((item) => (
-              <article
-                key={item.id}
-                className={`rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)] transition hover:border-white/20 hover:bg-[rgba(50,52,108,0.96)] ${
-                  item.unread ? "ring-1 ring-[#5e66ff33]" : ""
-                }`}
-              >
-                <div
-                  className={`flex flex-col gap-5 md:flex-row md:items-start ${
-                    isRTL ? "" : ""
+            {notifications.map((item) => {
+              const presentation = getPresentation(item.type);
+
+              return (
+                <article
+                  key={item.id}
+                  className={`rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)] transition hover:border-white/20 hover:bg-[rgba(50,52,108,0.96)] ${
+                    !item.read ? "ring-1 ring-[#5e66ff33]" : ""
                   }`}
                 >
                   <div
-                    className={`flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-[20px] bg-gradient-to-br ${item.iconBg} text-white shadow-[0_10px_30px_rgba(0,0,0,0.18)]`}
+                    className={`flex flex-col gap-5 md:flex-row md:items-start ${
+                      isRTL ? "" : ""
+                    }`}
                   >
-                    {item.icon}
-                  </div>
-
-                  <div className={`flex-1 ${isRTL ? "text-right" : "text-left"}`}>
                     <div
-                      className={`mb-3 flex flex-wrap items-center gap-3 ${
-                        isRTL ? "" : ""
-                      }`}
+                      className={`flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-[20px] bg-gradient-to-br ${presentation.iconBg} text-white shadow-[0_10px_30px_rgba(0,0,0,0.18)]`}
                     >
-                      <h2 className="text-[22px] font-extrabold text-white">
-                        {item.title}
-                      </h2>
-
-                      <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm font-semibold text-[#d6dcff]">
-                        {item.badge}
-                      </span>
-
-                      {item.unread && (
-                        <span className="rounded-full border border-[#7c88ff33] bg-[#5e66ff14] px-3 py-1 text-sm font-semibold text-[#cfd5ff]">
-                          {t.notificationsPage.new}
-                        </span>
-                      )}
+                      {presentation.icon}
                     </div>
 
-                    <p className="mb-4 text-[16px] leading-7 text-[#c4cae9]">
-                      {item.message}
-                    </p>
+                    <div className={`flex-1 ${isRTL ? "text-right" : "text-left"}`}>
+                      <div
+                        className={`mb-3 flex flex-wrap items-center gap-3 ${
+                          isRTL ? "" : ""
+                        }`}
+                      >
+                        <h2 className="text-[22px] font-extrabold text-white">
+                          {item.title}
+                        </h2>
 
-                    <div
-                      className={`flex items-center gap-2 text-[#8f98c6] ${
-                        isRTL ? "justify-end md:justify-start" : ""
-                      }`}
-                    >
-                      <Bell size={14} />
-                      <span className="text-[14px]">{item.date}</span>
+                        {!item.read && (
+                          <span className="rounded-full border border-[#7c88ff33] bg-[#5e66ff14] px-3 py-1 text-sm font-semibold text-[#cfd5ff]">
+                            {t.notificationsPage.new}
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="mb-4 text-[16px] leading-7 text-[#c4cae9]">
+                        {item.message}
+                      </p>
+
+                      <div
+                        className={`flex items-center justify-between gap-2 ${
+                          isRTL ? "flex-row-reverse" : ""
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 text-[#8f98c6]">
+                          <Bell size={14} />
+                          <span className="text-[14px]">{formatDate(item.createdAt)}</span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDismiss(item.id)}
+                          className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-[#c4cae9] transition hover:bg-white/10 hover:text-white"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </div>
+
+                    {!item.read && (
+                      <div className="flex justify-end md:justify-start">
+                        <span className="mt-1 h-[10px] w-[10px] rounded-full bg-[#7c88ff] shadow-[0_0_0_6px_rgba(124,136,255,0.16)]" />
+                      </div>
+                    )}
                   </div>
-
-                  {item.unread && (
-                    <div className="flex justify-end md:justify-start">
-                      <span className="mt-1 h-[10px] w-[10px] rounded-full bg-[#7c88ff] shadow-[0_0_0_6px_rgba(124,136,255,0.16)]" />
-                    </div>
-                  )}
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </section>
         )}
       </div>

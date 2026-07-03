@@ -1,25 +1,69 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   Bell,
   BriefcaseBusiness,
   CheckCircle2,
+  MessageSquare,
   Trash2,
   TrendingUp,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
+import { apiFetch } from "../utils/api";
 
-type NotificationType = "job" | "status" | "tip";
-
-type NotificationItem = {
+type BackendNotification = {
   id: number;
-  titleKey: string;
-  messageKey: string;
-  date: string;
-  type: NotificationType;
-  unread: boolean;
+  title: string;
+  message: string;
+  type: string;
+  createdAt: string;
+  read: boolean;
 };
+
+const JOB_TYPES = new Set(["JOB_POSTED", "JOB_UPDATED", "JOB_DELETED"]);
+const STATUS_TYPES = new Set([
+  "APPLICATION_SUBMITTED",
+  "APPLICATION_REMOVED",
+  "APPLICATION_ACCEPTED",
+  "APPLICATION_REJECTED",
+  "INTERVIEW_SCHEDULED",
+  "INTERVIEW_UPDATED",
+]);
+
+function getIcon(type: string) {
+  if (JOB_TYPES.has(type)) {
+    return {
+      icon: BriefcaseBusiness,
+      wrapper: "bg-gradient-to-br from-violet-500 to-purple-600 text-white",
+    };
+  }
+
+  if (STATUS_TYPES.has(type)) {
+    return {
+      icon: CheckCircle2,
+      wrapper: "bg-gradient-to-br from-emerald-500 to-teal-500 text-white",
+    };
+  }
+
+  if (type === "COMPANY_MESSAGE") {
+    return {
+      icon: MessageSquare,
+      wrapper: "bg-gradient-to-br from-cyan-500 to-blue-500 text-white",
+    };
+  }
+
+  return {
+    icon: TrendingUp,
+    wrapper: "bg-gradient-to-br from-amber-400 to-orange-500 text-white",
+  };
+}
+
+function formatDate(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`;
+}
 
 function CompanyNotifications() {
   const { language } = useLanguage();
@@ -27,95 +71,71 @@ function CompanyNotifications() {
   const n = t.companyNotificationsPage;
   const isRTL = language === "ar" || language === "he";
 
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    {
-      id: 1,
-      titleKey: "notification1Title",
-      messageKey: "notification1Message",
-      date: "4.4.2026",
-      type: "job",
-      unread: true,
-    },
-    {
-      id: 2,
-      titleKey: "notification2Title",
-      messageKey: "notification2Message",
-      date: "4.4.2026",
-      type: "status",
-      unread: true,
-    },
-    {
-      id: 3,
-      titleKey: "notification3Title",
-      messageKey: "notification3Message",
-      date: "3.4.2026",
-      type: "tip",
-      unread: false,
-    },
-    {
-      id: 4,
-      titleKey: "notification4Title",
-      messageKey: "notification4Message",
-      date: "2.4.2026",
-      type: "job",
-      unread: false,
-    },
-    {
-      id: 5,
-      titleKey: "notification5Title",
-      messageKey: "notification5Message",
-      date: "1.4.2026",
-      type: "status",
-      unread: true,
-    },
-  ]);
+  const [notifications, setNotifications] = useState<BackendNotification[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const data = await apiFetch("/api/notifications");
+        if (!cancelled) {
+          setNotifications(data);
+        }
+      } catch {
+        if (!cancelled) {
+          setNotifications([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const unreadCount = useMemo(
-    () => notifications.filter((item) => item.unread).length,
+    () => notifications.filter((item) => !item.read).length,
     [notifications]
   );
 
-  const markAllAsRead = () => {
-    setNotifications((prev) =>
-      prev.map((item) => ({
-        ...item,
-        unread: false,
-      }))
-    );
-  };
+  const markAllAsRead = async () => {
+    const unread = notifications.filter((item) => !item.read);
+    setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
 
-  const clearAll = () => {
-    setNotifications([]);
-  };
-
-  const markOneAsRead = (id: number) => {
-    setNotifications((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, unread: false } : item
+    await Promise.all(
+      unread.map((item) =>
+        apiFetch(`/api/notifications/${item.id}/read`, { method: "POST" }).catch(() => null)
       )
     );
   };
 
-  const getIcon = (type: NotificationType) => {
-    if (type === "job") {
-      return {
-        icon: BriefcaseBusiness,
-        wrapper:
-          "bg-gradient-to-br from-violet-500 to-purple-600 text-white",
-      };
-    }
+  const clearAll = async () => {
+    const all = notifications;
+    setNotifications([]);
 
-    if (type === "status") {
-      return {
-        icon: CheckCircle2,
-        wrapper: "bg-gradient-to-br from-emerald-500 to-teal-500 text-white",
-      };
-    }
+    await Promise.all(
+      all.map((item) => apiFetch(`/api/notifications/${item.id}`, { method: "DELETE" }).catch(() => null))
+    );
+  };
 
-    return {
-      icon: TrendingUp,
-      wrapper: "bg-gradient-to-br from-amber-400 to-orange-500 text-white",
-    };
+  const markOneAsRead = async (id: number) => {
+    setNotifications((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, read: true } : item))
+    );
+
+    try {
+      await apiFetch(`/api/notifications/${id}/read`, { method: "POST" });
+    } catch {
+      // local state already reflects the intent; nothing else to reconcile
+    }
   };
 
   return (
@@ -176,7 +196,7 @@ function CompanyNotifications() {
         </div>
 
         <div className="space-y-4">
-          {notifications.length === 0 ? (
+          {!isLoading && notifications.length === 0 ? (
             <div className="rounded-[28px] border border-white/10 bg-white/5 p-10 text-center shadow-2xl backdrop-blur-xl">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10">
                 <Bell size={28} className="text-white/70" />
@@ -209,17 +229,17 @@ function CompanyNotifications() {
                       >
                         <div>
                           <h3 className="text-xl font-bold text-white">
-                            {n[item.titleKey]}
+                            {item.title}
                           </h3>
                           <p className="mt-2 text-[15px] leading-7 text-white/70">
-                            {n[item.messageKey]}
+                            {item.message}
                           </p>
                           <p className="mt-3 text-sm text-white/45">
-                            {item.date}
+                            {formatDate(item.createdAt)}
                           </p>
                         </div>
 
-                        {item.unread && (
+                        {!item.read && (
                           <span className="mt-1 block h-2.5 w-2.5 shrink-0 rounded-full bg-indigo-400 shadow-[0_0_12px_rgba(129,140,248,0.9)]" />
                         )}
                       </div>

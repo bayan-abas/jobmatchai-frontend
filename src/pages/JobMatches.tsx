@@ -25,8 +25,10 @@ import {
   Crown,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { getRingColor as getSharedRingColor } from "../utils/jobInference";
+import { apiFetch } from "../utils/api";
 
 type BackendJob = {
   id?: number;
@@ -109,43 +111,14 @@ function JobMatches() {
   const seniorityRef = useRef<HTMLDivElement>(null);
 
   const { language } = useLanguage();
+  const { user } = useAuth();
   const t = translations[language];
   const isRTL = language === "ar" || language === "he";
 
-  const readCandidateIdentity = () => {
-    const readObject = (key: string) => {
-      try {
-        const value = localStorage.getItem(key);
-        return value ? JSON.parse(value) : null;
-      } catch {
-        return null;
-      }
-    };
-
-    const user =
-      readObject("currentUser") ||
-      readObject("loggedInUser") ||
-      readObject("user") ||
-      readObject("candidateProfile") ||
-      readObject("userProfile") ||
-      {};
-
-    return {
-      email:
-        user.email ||
-        localStorage.getItem("email") ||
-        localStorage.getItem("userEmail") ||
-        localStorage.getItem("candidateEmail") ||
-        "",
-      name:
-        user.fullName ||
-        user.name ||
-        localStorage.getItem("fullName") ||
-        localStorage.getItem("userName") ||
-        localStorage.getItem("candidateName") ||
-        "Candidate",
-    };
-  };
+  const readCandidateIdentity = () => ({
+    email: user?.email || "",
+    name: user?.name || "Candidate",
+  });
 
   const normalize = (value?: string) =>
     String(value || "")
@@ -497,13 +470,7 @@ function JobMatches() {
   };
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/jobs/all")
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to load jobs");
-        }
-        return res.json();
-      })
+    apiFetch(`/api/jobs/all`)
       .then((data: BackendJob[]) => {
         const formattedJobs = data.map((job) => buildJobFromBackend(job));
 
@@ -512,8 +479,7 @@ function JobMatches() {
 
         const identity = readCandidateIdentity();
         if (identity.email) {
-          fetch(`http://localhost:8080/api/applications/candidate/${encodeURIComponent(identity.email)}`)
-            .then((res) => (res.ok ? res.json() : []))
+          apiFetch(`/api/applications/candidate/${encodeURIComponent(identity.email)}`)
             .then((applications) => {
               const ids = Array.isArray(applications)
                 ? applications
@@ -557,23 +523,14 @@ function JobMatches() {
     let cancelled = false;
     setMatchScoresLoading(true);
 
-    fetch("http://localhost:8080/api/jobs/match-scores", {
+    apiFetch(`/api/jobs/match-scores`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({
         email: identity.email,
         jobIds,
         language,
       }),
     })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to load match scores");
-        }
-        return res.json();
-      })
       .then((data: {
         hasAnalysis: boolean;
         matches: {
@@ -808,8 +765,7 @@ const industryOptions = [
     if (!identity.email) return;
 
     const loadSavedJobs = () => {
-      fetch(`http://localhost:8080/api/saved-jobs/candidate/${encodeURIComponent(identity.email)}`)
-        .then((res) => (res.ok ? res.json() : []))
+      apiFetch(`/api/saved-jobs/candidate/${encodeURIComponent(identity.email)}`)
         .then((rows: { jobId: number; jobType: string }[]) => {
           const ids = Array.isArray(rows)
             ? rows.filter((row) => row.jobType === "internal").map((row) => row.jobId)
@@ -831,9 +787,8 @@ const industryOptions = [
       const migratable = legacyJobs.filter((job) => typeof job.id === "number");
       Promise.all(
         migratable.map((job) =>
-          fetch("http://localhost:8080/api/saved-jobs/save", {
+          apiFetch(`/api/saved-jobs/save`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               candidateEmail: identity.email,
               jobId: job.id,
@@ -988,9 +943,8 @@ const industryOptions = [
     const identity = readCandidateIdentity();
     if (!identity.email) return;
 
-    fetch("http://localhost:8080/api/saved-jobs/save", {
+    apiFetch(`/api/saved-jobs/save`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         candidateEmail: identity.email,
         jobId,
@@ -1022,8 +976,8 @@ const industryOptions = [
     const identity = readCandidateIdentity();
     if (!identity.email) return;
 
-    fetch(
-      `http://localhost:8080/api/saved-jobs/candidate/${encodeURIComponent(identity.email)}/internal/${jobId}`,
+    apiFetch(
+      `/api/saved-jobs/candidate/${encodeURIComponent(identity.email)}/internal/${jobId}`,
       { method: "DELETE" }
     ).catch(() => {
       setSavedJobIds((prev) => new Set(prev).add(jobId));
@@ -1064,11 +1018,8 @@ const industryOptions = [
     setApplyingJobId(job.id);
     setApplyMessage("");
 
-    fetch("http://localhost:8080/api/applications/apply", {
+    apiFetch(`/api/applications/apply`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({
         jobId: job.id,
         jobTitle: job.title,
@@ -1077,7 +1028,6 @@ const industryOptions = [
         candidateName: identity.name,
       }),
     })
-      .then((res) => res.json())
       .then((data) => {
         if (data.success) {
           setAppliedJobIds((prev) => [...new Set([...prev, job.id as number])]);

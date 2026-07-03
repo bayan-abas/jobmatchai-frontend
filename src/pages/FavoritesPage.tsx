@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bookmark, Building2, MapPin, Wallet, Trash2, ArrowLeft } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
-
-const API_BASE_URL = "http://localhost:8080";
+import { apiFetch } from "../utils/api";
 
 type SavedJobRow = {
   id: number;
@@ -16,37 +16,10 @@ type SavedJobRow = {
   salary?: string;
 };
 
-function readCandidateIdentity() {
-  const readObject = (key: string) => {
-    try {
-      const value = localStorage.getItem(key);
-      return value ? JSON.parse(value) : null;
-    } catch {
-      return null;
-    }
-  };
-
-  const user =
-    readObject("currentUser") ||
-    readObject("loggedInUser") ||
-    readObject("user") ||
-    readObject("candidateProfile") ||
-    readObject("userProfile") ||
-    {};
-
-  return {
-    email:
-      user.email ||
-      localStorage.getItem("email") ||
-      localStorage.getItem("userEmail") ||
-      localStorage.getItem("candidateEmail") ||
-      "",
-  };
-}
-
 function FavoritesPage() {
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const { user } = useAuth();
   const t = translations[language] || translations.en;
   const f = t.favoritesPage;
   const isRTL = language === "ar" || language === "he";
@@ -56,7 +29,7 @@ function FavoritesPage() {
   const [email, setEmail] = useState("");
 
   useEffect(() => {
-    const identity = readCandidateIdentity();
+    const identity = { email: user?.email || "" };
     setEmail(identity.email);
 
     if (!identity.email) {
@@ -64,8 +37,7 @@ function FavoritesPage() {
       return;
     }
 
-    fetch(`${API_BASE_URL}/api/saved-jobs/candidate/${encodeURIComponent(identity.email)}`)
-      .then((res) => (res.ok ? res.json() : []))
+    apiFetch(`/api/saved-jobs/candidate/${encodeURIComponent(identity.email)}`)
       .then((data: SavedJobRow[]) => setRows(Array.isArray(data) ? data : []))
       .catch(() => setRows([]))
       .finally(() => setLoading(false));
@@ -74,8 +46,8 @@ function FavoritesPage() {
   const handleUnsave = (row: SavedJobRow) => {
     setRows((prev) => prev.filter((r) => r.id !== row.id));
 
-    fetch(
-      `${API_BASE_URL}/api/saved-jobs/candidate/${encodeURIComponent(email)}/${row.jobType}/${row.jobId}`,
+    apiFetch(
+      `/api/saved-jobs/candidate/${encodeURIComponent(email)}/${row.jobType}/${row.jobId}`,
       { method: "DELETE" }
     ).catch(() => {
       setRows((prev) => [...prev, row]);

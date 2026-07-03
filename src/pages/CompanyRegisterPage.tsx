@@ -12,11 +12,14 @@ import {
   FileText,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
+import { apiFetch, ApiError } from "../utils/api";
 
 function CompanyRegisterPage() {
   const navigate = useNavigate();
   const { language, setLanguage } = useLanguage();
+  const { login } = useAuth();
 
   const t = translations[language];
   const tr = t.companyRegisterPage;
@@ -138,11 +141,8 @@ function CompanyRegisterPage() {
     }
 
 try {
-  const response = await fetch("http://localhost:8080/api/users/register", {
+  const data = await apiFetch("/api/users/register", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
     body: JSON.stringify({
       name: cleanCompanyName,
       email: cleanEmail,
@@ -151,39 +151,35 @@ try {
     }),
   });
 
-  const data = await response.json();
-
   if (!data.success) {
     setError(data.message || "Registration failed.");
     return;
   }
 
-  const newCompany = {
-    ...data.user,
-    companyName: cleanCompanyName,
-    phone: cleanPhone,
-    location: cleanLocation,
-    industry,
-    companySize,
-    website: cleanWebsite,
-    description: cleanDescription,
-    role: "company",
-  };
+  const loginData = await apiFetch("/api/users/login", {
+    method: "POST",
+    body: JSON.stringify({
+      email: cleanEmail,
+      password: cleanPassword,
+    }),
+  });
 
-  localStorage.setItem("currentUser", JSON.stringify(newCompany));
-  localStorage.setItem("currentCompany", JSON.stringify(newCompany));
-  localStorage.setItem("registeredUser", JSON.stringify(newCompany));
-  localStorage.setItem("isLoggedIn", "true");
-  localStorage.setItem("role", "company");
-  localStorage.setItem("name", newCompany.companyName);
-  localStorage.setItem("email", newCompany.email);
-  localStorage.setItem("phone", newCompany.phone);
-  localStorage.setItem("location", newCompany.location);
-  localStorage.setItem("industry", newCompany.industry);
-  localStorage.setItem("companySize", newCompany.companySize);
-  localStorage.setItem("website", newCompany.website);
-  localStorage.setItem("description", newCompany.description);
-  localStorage.setItem("isFirstLogin", "false");
+  if (!loginData.success) {
+    setError(
+      loginData.message ||
+        "Registration succeeded, but automatic login failed. Please log in."
+    );
+    return;
+  }
+
+  login(loginData.token, loginData.user);
+
+  localStorage.setItem("phone", cleanPhone);
+  localStorage.setItem("location", cleanLocation);
+  localStorage.setItem("industry", industry);
+  localStorage.setItem("companySize", companySize);
+  localStorage.setItem("website", cleanWebsite);
+  localStorage.setItem("description", cleanDescription);
 
   setSuccess(tr.success);
 
@@ -192,7 +188,7 @@ try {
   }, 900);
 } catch (error) {
   console.error(error);
-  setError("Server connection failed.");
+  setError(error instanceof ApiError ? error.message : "Server connection failed.");
 }
   };
 

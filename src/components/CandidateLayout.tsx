@@ -5,6 +5,7 @@ import CandidateSidebar from "./CandidateSidebar";
 import AIChatButton from "./AIChatButton";
 import MobileNav from "./MobileNav";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { ArrowLeft, Search, Bell } from "lucide-react";
 
@@ -13,14 +14,15 @@ type CandidateLayoutProps = { children: ReactNode };
 function CandidateLayout({ children }: CandidateLayoutProps) {
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const { user } = useAuth();
   const t = translations[language];
   const isRTL = language === "ar" || language === "he";
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const sidebarWidth = isCollapsed ? 96 : 320;
 
-  const userName = localStorage.getItem("name") || "User";
-  const savedRole = localStorage.getItem("role") || "candidate";
+  const userName = user?.name || "User";
+  const savedRole = user?.role || "candidate";
   const userRole = savedRole === "company" ? t.dashboard.roles.company : t.dashboard.roles.candidate;
 
   return (

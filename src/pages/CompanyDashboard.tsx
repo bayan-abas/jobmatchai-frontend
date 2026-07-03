@@ -18,8 +18,7 @@ import {
 
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
-
-const API_BASE_URL = "http://localhost:8080";
+import { apiFetch } from "../utils/api";
 
 function CompanyDashboard() {
   const navigate = useNavigate();
@@ -30,8 +29,7 @@ function CompanyDashboard() {
   const [jobStats, setJobStats] = useState({ internal: 0, external: 0, total: 0 });
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/dashboard/stats`)
-      .then((res) => (res.ok ? res.json() : null))
+    apiFetch(`/api/dashboard/stats`)
       .then((data) => {
         if (data) {
           setJobStats({

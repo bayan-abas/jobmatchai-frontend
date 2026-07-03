@@ -17,11 +17,11 @@ import {
   ThumbsDown,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { getRingColor } from "../utils/jobInference";
 import SkillExplanationModal from "../components/SkillExplanationModal";
-
-const API_BASE_URL = "http://localhost:8080";
+import { apiFetch } from "../utils/api";
 
 type JobType = "internal" | "external";
 
@@ -60,41 +60,6 @@ type MatchDetail = {
   languageMatchPercent: number | null;
 };
 
-function readCandidateIdentity() {
-  const readObject = (key: string) => {
-    try {
-      const value = localStorage.getItem(key);
-      return value ? JSON.parse(value) : null;
-    } catch {
-      return null;
-    }
-  };
-
-  const user =
-    readObject("currentUser") ||
-    readObject("loggedInUser") ||
-    readObject("user") ||
-    readObject("candidateProfile") ||
-    readObject("userProfile") ||
-    {};
-
-  return {
-    email:
-      user.email ||
-      localStorage.getItem("email") ||
-      localStorage.getItem("userEmail") ||
-      localStorage.getItem("candidateEmail") ||
-      "",
-    name:
-      user.fullName ||
-      user.name ||
-      localStorage.getItem("fullName") ||
-      localStorage.getItem("userName") ||
-      localStorage.getItem("candidateName") ||
-      "Candidate",
-  };
-}
-
 function splitSkills(value?: string): string[] {
   return (value || "")
     .split(/[,;|\n]/)
@@ -109,9 +74,15 @@ function JobDetailsPage() {
   const jobId = params.jobId;
 
   const { language } = useLanguage();
+  const { user } = useAuth();
   const t = translations[language] || translations.en;
   const d = t.jobDetails;
   const isRTL = language === "ar" || language === "he";
+
+  const readCandidateIdentity = () => ({
+    email: user?.email || "",
+    name: user?.name || "Candidate",
+  });
 
   const [job, setJob] = useState<JobData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -134,14 +105,10 @@ function JobDetailsPage() {
 
     const url =
       jobType === "external"
-        ? `${API_BASE_URL}/api/external-jobs/${jobId}`
-        : `${API_BASE_URL}/api/jobs/${jobId}`;
+        ? `/api/external-jobs/${jobId}`
+        : `/api/jobs/${jobId}`;
 
-    fetch(url)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to load job");
-        return res.json();
-      })
+    apiFetch(url)
       .then((data: { success: boolean; job?: JobData }) => {
         if (data.success && data.job) {
           setJob(data.job);
@@ -164,9 +131,8 @@ function JobDetailsPage() {
     const identity = readCandidateIdentity();
     if (!identity.email) return;
 
-    fetch(`${API_BASE_URL}/api/recently-viewed/track`, {
+    apiFetch(`/api/recently-viewed/track`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         candidateEmail: identity.email,
         jobId: job.id,
@@ -185,8 +151,7 @@ function JobDetailsPage() {
     const identity = readCandidateIdentity();
     if (!identity.email) return;
 
-    fetch(`${API_BASE_URL}/api/applications/candidate/${encodeURIComponent(identity.email)}`)
-      .then((res) => (res.ok ? res.json() : []))
+    apiFetch(`/api/applications/candidate/${encodeURIComponent(identity.email)}`)
       .then((applications) => {
         const ids = Array.isArray(applications)
           ? applications.map((application: any) => Number(application.jobId)).filter((id: number) => !Number.isNaN(id))
@@ -213,23 +178,18 @@ function JobDetailsPage() {
 
     const url =
       jobType === "external"
-        ? `${API_BASE_URL}/api/external-jobs/match-detail`
-        : `${API_BASE_URL}/api/jobs/match-detail`;
+        ? `/api/external-jobs/match-detail`
+        : `/api/jobs/match-detail`;
 
     const body =
       jobType === "external"
         ? { email: identity.email, externalJobId: Number(jobId), language }
         : { email: identity.email, jobId: Number(jobId), language };
 
-    fetch(url, {
+    apiFetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to load match detail");
-        return res.json();
-      })
       .then((data: MatchDetail) => {
         if (cancelled) return;
 
@@ -280,9 +240,8 @@ function JobDetailsPage() {
     setApplying(true);
     setApplyMessage("");
 
-    fetch(`${API_BASE_URL}/api/applications/apply`, {
+    apiFetch(`/api/applications/apply`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         jobId: job.id,
         jobTitle: job.title,
@@ -291,7 +250,6 @@ function JobDetailsPage() {
         candidateName: identity.name,
       }),
     })
-      .then((res) => res.json())
       .then((data) => {
         if (data.success) {
           setAppliedJobIds((prev) => [...new Set([...prev, job.id])]);
@@ -476,6 +434,110 @@ function JobDetailsPage() {
                   </div>
                 </div>
               )}
+
+              {matchStatus === "scored" && matchDetail && (
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                  <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-6">
+                    <h2 className="mb-4 flex items-center gap-2 text-[18px] font-extrabold text-white">
+                      <CheckCircle2 size={18} className="text-emerald-300" />
+                      {d.whyGoodMatch}
+                    </h2>
+                    <ul className="space-y-3 text-sm text-[#c4cae9]">
+                      {matchDetail.whyGoodMatch.map((item) => (
+                        <li key={item} className="flex gap-2">
+                          <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-emerald-300" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {matchDetail.matchedSkills.length > 0 && (
+                      <div className="mt-5 flex flex-wrap gap-2">
+                        {matchDetail.matchedSkills.map((skill) => (
+                          <span
+                            key={skill}
+                            className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-300"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-6">
+                    <h2 className="mb-4 flex items-center gap-2 text-[18px] font-extrabold text-white">
+                      <AlertTriangle size={18} className="text-orange-300" />
+                      {d.whyNotPerfectMatch}
+                    </h2>
+                    <ul className="space-y-3 text-sm text-[#c4cae9]">
+                      {matchDetail.whyNotPerfectMatch.map((item) => (
+                        <li key={item} className="flex gap-2">
+                          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-orange-300" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {matchDetail.missingSkills.length > 0 && (
+                      <div className="mt-5 flex flex-wrap gap-2">
+                        {matchDetail.missingSkills.map((skill) => (
+                          <button
+                            key={skill}
+                            type="button"
+                            onClick={() => setSelectedSkill(skill)}
+                            className="rounded-full border border-orange-400/20 bg-orange-400/10 px-3 py-1.5 text-xs font-semibold text-orange-300 transition hover:border-orange-400/40 hover:bg-orange-400/20"
+                          >
+                            {skill}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-6">
+                    <h2 className="mb-4 flex items-center gap-2 text-[18px] font-extrabold text-white">
+                      <Target size={18} className="text-cyan-300" />
+                      {d.improvementSuggestions}
+                    </h2>
+                    <ul className="space-y-3 text-sm text-[#c4cae9]">
+                      {matchDetail.improvementSuggestions.map((item) => (
+                        <li key={item} className="flex gap-2">
+                          <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-cyan-300" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {matchDetail.recommendation && (
+                    <div
+                      className={`rounded-[30px] border p-6 ${
+                        matchDetail.shouldApply
+                          ? "border-[#a855f7]/25 bg-gradient-to-br from-[#7f4cff]/15 to-[#a855f7]/15"
+                          : "border-amber-400/25 bg-amber-400/10"
+                      }`}
+                    >
+                      <h2
+                        className={`mb-3 flex items-center gap-2 text-[18px] font-extrabold ${
+                          matchDetail.shouldApply ? "text-[#e9d5ff]" : "text-amber-200"
+                        }`}
+                      >
+                        {matchDetail.shouldApply ? <ThumbsUp size={18} /> : <ThumbsDown size={18} />}
+                        {d.recommendation}
+                      </h2>
+                      <p className="text-sm leading-6 text-[#e5e7ff]">{matchDetail.recommendation}</p>
+                      <p
+                        className={`mt-4 text-sm font-bold ${
+                          matchDetail.shouldApply ? "text-[#c4b5fd]" : "text-amber-200"
+                        }`}
+                      >
+                        {matchDetail.shouldApply ? d.shouldApplyYes : d.shouldApplyNo}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Right column */}
@@ -604,109 +666,6 @@ function JobDetailsPage() {
                 </div>
               )}
 
-              {matchStatus === "scored" && matchDetail && (
-                <>
-                  <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-6">
-                    <h2 className="mb-4 flex items-center gap-2 text-[18px] font-extrabold text-white">
-                      <CheckCircle2 size={18} className="text-emerald-300" />
-                      {d.whyGoodMatch}
-                    </h2>
-                    <ul className="space-y-3 text-sm text-[#c4cae9]">
-                      {matchDetail.whyGoodMatch.map((item) => (
-                        <li key={item} className="flex gap-2">
-                          <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-emerald-300" />
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-
-                    {matchDetail.matchedSkills.length > 0 && (
-                      <div className="mt-5 flex flex-wrap gap-2">
-                        {matchDetail.matchedSkills.map((skill) => (
-                          <span
-                            key={skill}
-                            className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-300"
-                          >
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-6">
-                    <h2 className="mb-4 flex items-center gap-2 text-[18px] font-extrabold text-white">
-                      <AlertTriangle size={18} className="text-orange-300" />
-                      {d.whyNotPerfectMatch}
-                    </h2>
-                    <ul className="space-y-3 text-sm text-[#c4cae9]">
-                      {matchDetail.whyNotPerfectMatch.map((item) => (
-                        <li key={item} className="flex gap-2">
-                          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-orange-300" />
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-
-                    {matchDetail.missingSkills.length > 0 && (
-                      <div className="mt-5 flex flex-wrap gap-2">
-                        {matchDetail.missingSkills.map((skill) => (
-                          <button
-                            key={skill}
-                            type="button"
-                            onClick={() => setSelectedSkill(skill)}
-                            className="rounded-full border border-orange-400/20 bg-orange-400/10 px-3 py-1.5 text-xs font-semibold text-orange-300 transition hover:border-orange-400/40 hover:bg-orange-400/20"
-                          >
-                            {skill}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-6">
-                    <h2 className="mb-4 flex items-center gap-2 text-[18px] font-extrabold text-white">
-                      <Target size={18} className="text-cyan-300" />
-                      {d.improvementSuggestions}
-                    </h2>
-                    <ul className="space-y-3 text-sm text-[#c4cae9]">
-                      {matchDetail.improvementSuggestions.map((item) => (
-                        <li key={item} className="flex gap-2">
-                          <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-cyan-300" />
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {matchDetail.recommendation && (
-                    <div
-                      className={`rounded-[30px] border p-6 ${
-                        matchDetail.shouldApply
-                          ? "border-[#a855f7]/25 bg-gradient-to-br from-[#7f4cff]/15 to-[#a855f7]/15"
-                          : "border-amber-400/25 bg-amber-400/10"
-                      }`}
-                    >
-                      <h2
-                        className={`mb-3 flex items-center gap-2 text-[18px] font-extrabold ${
-                          matchDetail.shouldApply ? "text-[#e9d5ff]" : "text-amber-200"
-                        }`}
-                      >
-                        {matchDetail.shouldApply ? <ThumbsUp size={18} /> : <ThumbsDown size={18} />}
-                        {d.recommendation}
-                      </h2>
-                      <p className="text-sm leading-6 text-[#e5e7ff]">{matchDetail.recommendation}</p>
-                      <p
-                        className={`mt-4 text-sm font-bold ${
-                          matchDetail.shouldApply ? "text-[#c4b5fd]" : "text-amber-200"
-                        }`}
-                      >
-                        {matchDetail.shouldApply ? d.shouldApplyYes : d.shouldApplyNo}
-                      </p>
-                    </div>
-                  )}
-                </>
-              )}
             </div>
           </div>
         )}
