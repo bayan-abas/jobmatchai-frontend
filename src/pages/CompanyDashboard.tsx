@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BriefcaseBusiness,
@@ -12,21 +12,67 @@ import {
   Plus,
   TrendingUp,
   Zap,
-  Clock3,
   ChevronRight,
 } from "lucide-react";
 
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { apiFetch } from "../utils/api";
+import { getMatchTier, getMatchLabel } from "../utils/matchScore";
+
+type CompanyApplicant = {
+  id: number;
+  jobId: number;
+  jobTitle: string | null;
+  candidateName: string | null;
+  candidateEmail: string | null;
+  status: string | null;
+  appliedDate: string | null;
+  matchPercent: number | null;
+  matchLabel: string | null;
+};
+
+const AVATAR_GRADIENTS = [
+  "from-violet-500 to-purple-500",
+  "from-indigo-400 to-fuchsia-500",
+  "from-blue-400 to-purple-500",
+  "from-emerald-400 to-cyan-500",
+  "from-amber-400 to-rose-500",
+];
+
+function getInitial(name: string | null) {
+  return (name || "?").charAt(0).toUpperCase();
+}
+
+function getStatusClass(status: string | null) {
+  const normalized = (status || "").toLowerCase();
+  if (normalized === "shortlisted") return "bg-cyan-500/12 text-cyan-300 border-cyan-400/25";
+  if (normalized === "accepted") return "bg-emerald-500/12 text-emerald-300 border-emerald-400/25";
+  if (normalized === "rejected") return "bg-rose-500/12 text-rose-300 border-rose-400/25";
+  return "bg-amber-500/12 text-amber-300 border-amber-400/25";
+}
+
+function isWithinLastDays(dateStr: string | null, days: number) {
+  if (!dateStr) return false;
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return false;
+  const diffMs = Date.now() - date.getTime();
+  return diffMs >= 0 && diffMs <= days * 24 * 60 * 60 * 1000;
+}
 
 function CompanyDashboard() {
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const { user } = useAuth();
   const t = translations[language] || translations.en;
+  const page = t.companyDashboard;
   const isRTL = language === "ar" || language === "he";
 
   const [jobStats, setJobStats] = useState({ internal: 0, external: 0, total: 0 });
+  const [jobPostsCount, setJobPostsCount] = useState(0);
+  const [applications, setApplications] = useState<CompanyApplicant[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     apiFetch(`/api/dashboard/stats`)
@@ -42,34 +88,75 @@ function CompanyDashboard() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    const companyEmail = user?.email;
+
+    if (!companyEmail) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+
+    Promise.all([
+      apiFetch(`/api/jobs/company/${companyEmail}`).catch(() => []),
+      apiFetch("/api/applications/company").catch(() => []),
+    ]).then(([jobs, apps]) => {
+      if (cancelled) return;
+      setJobPostsCount(Array.isArray(jobs) ? jobs.length : 0);
+      setApplications(Array.isArray(apps) ? apps : []);
+      setLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.email]);
+
+  const candidatesCount = useMemo(() => {
+    return new Set(applications.map((a) => a.candidateEmail).filter(Boolean)).size;
+  }, [applications]);
+
+  const scoredApplications = useMemo(
+    () => applications.filter((a): a is CompanyApplicant & { matchPercent: number } => typeof a.matchPercent === "number"),
+    [applications]
+  );
+
+  const avgMatchScore = useMemo(() => {
+    if (scoredApplications.length === 0) return null;
+    const total = scoredApplications.reduce((sum, a) => sum + a.matchPercent, 0);
+    return Math.round(total / scoredApplications.length);
+  }, [scoredApplications]);
+
   const stats = [
     {
-      title: t.companyDashboard.stats.jobPosts,
-      value: "12",
+      title: page.stats.jobPosts,
+      value: String(jobPostsCount),
       icon: BriefcaseBusiness,
       iconBg: "bg-indigo-500/15",
       iconColor: "text-indigo-300",
       route: "/company-job-postings",
     },
     {
-      title: t.companyDashboard.stats.candidates,
-      value: "156",
+      title: page.stats.candidates,
+      value: String(candidatesCount),
       icon: Users,
       iconBg: "bg-cyan-500/15",
       iconColor: "text-cyan-300",
       route: "/company-candidates",
     },
     {
-      title: t.companyDashboard.stats.applications,
-      value: "23",
+      title: page.stats.applications,
+      value: String(applications.length),
       icon: FileText,
       iconBg: "bg-amber-500/15",
       iconColor: "text-amber-300",
       route: "/company-applications",
     },
     {
-      title: t.companyDashboard.stats.companyScore,
-      value: "4",
+      title: page.stats.avgMatchScore || "Avg Match Score",
+      value: avgMatchScore !== null ? `${avgMatchScore}%` : "—",
       icon: Star,
       iconBg: "bg-emerald-500/15",
       iconColor: "text-emerald-300",
@@ -77,71 +164,36 @@ function CompanyDashboard() {
     },
   ];
 
-  const topCandidates = [
-    {
-      name: "Sarah Johnson",
-      role: "Senior Frontend Developer",
-      fit: t.companyDashboard.fitLabels.high,
-      fitColor: "text-emerald-300",
-      fitBg: "bg-emerald-500/10",
-      score: 95,
-      avatar: "S",
-      avatarBg: "from-violet-500 to-purple-500",
-    },
-    {
-      name: "Michael Chen",
-      role: "Full Stack Engineer",
-      fit: t.companyDashboard.fitLabels.high,
-      fitColor: "text-emerald-300",
-      fitBg: "bg-emerald-500/10",
-      score: 91,
-      avatar: "M",
-      avatarBg: "from-indigo-400 to-fuchsia-500",
-    },
-    {
-      name: "Emily Davis",
-      role: "React Specialist",
-      fit: t.companyDashboard.fitLabels.medium,
-      fitColor: "text-amber-300",
-      fitBg: "bg-amber-500/10",
-      score: 88,
-      avatar: "E",
-      avatarBg: "from-blue-400 to-purple-500",
-    },
-  ];
+  const topCandidates = useMemo(() => {
+    const seen = new Set<string>();
+    const unique: (CompanyApplicant & { matchPercent: number })[] = [];
 
-  const recentApplications = [
-    {
-      name: "Sarah Johnson",
-      role: "Senior Frontend Developer",
-      time: t.companyDashboard.time.hoursAgo2,
-      status: t.companyDashboard.statuses.shortlisted,
-      statusClass:
-        "bg-cyan-500/12 text-cyan-300 border-cyan-400/25",
-    },
-    {
-      name: "Michael Chen",
-      role: "Full Stack Engineer",
-      time: t.companyDashboard.time.hoursAgo5,
-      status: t.companyDashboard.statuses.underReview,
-      statusClass:
-        "bg-amber-500/12 text-amber-300 border-amber-400/25",
-    },
-    {
-      name: "Emily Davis",
-      role: "Frontend Developer",
-      time: t.companyDashboard.time.dayAgo1,
-      status: t.companyDashboard.statuses.aiScreening,
-      statusClass:
-        "bg-fuchsia-500/12 text-fuchsia-300 border-fuchsia-400/25",
-    },
-  ];
+    for (const app of [...scoredApplications].sort((a, b) => b.matchPercent - a.matchPercent)) {
+      const key = app.candidateEmail || String(app.id);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      unique.push(app);
+      if (unique.length >= 3) break;
+    }
 
-  const scoreColor = (score: number) => {
-    if (score >= 90) return "text-emerald-300 border-emerald-400/30";
-    if (score >= 85) return "text-cyan-300 border-cyan-400/30";
-    return "text-amber-300 border-amber-400/30";
-  };
+    return unique;
+  }, [scoredApplications]);
+
+  const recentApplications = useMemo(() => {
+    return [...applications]
+      .sort((a, b) => (b.appliedDate || "").localeCompare(a.appliedDate || ""))
+      .slice(0, 3);
+  }, [applications]);
+
+  const highMatchAwaitingReview = applications.filter(
+    (a) => typeof a.matchPercent === "number" && a.matchPercent >= 70 && (a.status || "").toLowerCase() === "under review"
+  ).length;
+
+  const applicationsThisWeek = applications.filter((a) => isWithinLastDays(a.appliedDate, 7)).length;
+
+  const shortlistedAwaitingDecision = applications.filter(
+    (a) => (a.status || "").toLowerCase() === "shortlisted"
+  ).length;
 
   return (
     <div
@@ -164,10 +216,10 @@ function CompanyDashboard() {
             >
               <div className={isRTL ? "text-right" : "text-left"}>
                 <h1 className="text-3xl font-extrabold tracking-tight text-white md:text-4xl">
-                  {t.companyDashboard.title}
+                  {page.title}
                 </h1>
                 <p className="mt-2 text-[15px] text-white/65 md:text-base">
-                  {t.companyDashboard.subtitle}
+                  {page.subtitle}
                 </p>
               </div>
 
@@ -176,7 +228,7 @@ function CompanyDashboard() {
                 className="inline-flex items-center gap-2 self-start rounded-2xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-5 py-3.5 text-sm font-bold text-white shadow-[0_14px_35px_rgba(99,102,241,0.35)] transition hover:scale-[1.02]"
               >
                 <Plus size={18} />
-                {t.companyDashboard.quickActions.postJob}
+                {page.quickActions.postJob}
               </button>
             </div>
 
@@ -254,10 +306,10 @@ function CompanyDashboard() {
 
                     <div className={isRTL ? "text-right" : "text-left"}>
                       <h2 className="text-2xl font-bold text-white">
-                        {t.companyDashboard.candidates.title}
+                        {page.candidates.title}
                       </h2>
                       <p className="mt-1 text-sm text-white/55">
-                        {t.companyDashboard.candidateHints.recommended}
+                        {page.candidateHints.recommended}
                       </p>
                     </div>
                   </div>
@@ -275,51 +327,59 @@ function CompanyDashboard() {
                 </div>
 
                 <div className="space-y-4">
-                  {topCandidates.map((candidate) => (
-                    <button
-                      key={candidate.name}
-                      onClick={() => navigate("/company-candidates")}
-                      className="flex w-full items-center justify-between gap-4 rounded-[24px] border border-white/10 bg-white/[0.045] px-4 py-4 text-left transition hover:bg-white/[0.07]"
-                    >
-                      <div className="flex min-w-0 items-center gap-4">
-                        <div
-                          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${candidate.avatarBg} text-xl font-bold text-white`}
-                        >
-                          {candidate.avatar}
-                        </div>
+                  {!loading && topCandidates.length === 0 && (
+                    <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-6 text-center text-sm text-white/50">
+                      {page.candidateHints.none ||
+                        "No scored candidates yet. Open \"AI Summary\" on an application to generate one."}
+                    </div>
+                  )}
 
-                        <div className={`min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="truncate text-lg font-bold text-white">
-                              {candidate.name}
-                            </h3>
-                            <span
-                              className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${candidate.fitBg} ${candidate.fitColor} border-current/20`}
-                            >
-                              {candidate.fit}
-                            </span>
+                  {topCandidates.map((candidate, index) => {
+                    const tier = getMatchTier(candidate.matchPercent);
+                    return (
+                      <button
+                        key={candidate.id}
+                        onClick={() => navigate("/company-candidates")}
+                        className="flex w-full items-center justify-between gap-4 rounded-[24px] border border-white/10 bg-white/[0.045] px-4 py-4 text-left transition hover:bg-white/[0.07]"
+                      >
+                        <div className="flex min-w-0 items-center gap-4">
+                          <div
+                            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${AVATAR_GRADIENTS[index % AVATAR_GRADIENTS.length]} text-xl font-bold text-white`}
+                          >
+                            {getInitial(candidate.candidateName)}
                           </div>
-                          <p className="truncate text-[15px] text-white/55">
-                            {candidate.role}
-                          </p>
-                        </div>
-                      </div>
 
-                      <div className="flex shrink-0 items-center gap-4">
-                        <div
-                          className={`flex h-14 w-14 items-center justify-center rounded-full border bg-white/[0.05] text-xl font-extrabold ${scoreColor(
-                            candidate.score
-                          )}`}
-                        >
-                          {candidate.score}%
+                          <div className={`min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="truncate text-lg font-bold text-white">
+                                {candidate.candidateName || "Unknown Candidate"}
+                              </h3>
+                              <span
+                                className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${tier.bg} ${tier.text} ${tier.border}`}
+                              >
+                                {candidate.matchLabel || getMatchLabel(candidate.matchPercent)}
+                              </span>
+                            </div>
+                            <p className="truncate text-[15px] text-white/55">
+                              {candidate.jobTitle || "Untitled Role"}
+                            </p>
+                          </div>
                         </div>
-                        <ChevronRight
-                          className={`text-white/22 ${isRTL ? "rotate-180" : ""}`}
-                          size={20}
-                        />
-                      </div>
-                    </button>
-                  ))}
+
+                        <div className="flex shrink-0 items-center gap-4">
+                          <div
+                            className={`flex h-14 w-14 items-center justify-center rounded-full border bg-white/[0.05] text-xl font-extrabold ${tier.text} ${tier.border}`}
+                          >
+                            {candidate.matchPercent}%
+                          </div>
+                          <ChevronRight
+                            className={`text-white/22 ${isRTL ? "rotate-180" : ""}`}
+                            size={20}
+                          />
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -331,40 +391,45 @@ function CompanyDashboard() {
 
                   <div className={isRTL ? "text-right" : "text-left"}>
                     <h2 className="text-2xl font-bold text-white">
-                      {t.companyDashboard.recentActivity.title}
+                      {page.recentActivity.title}
                     </h2>
                     <p className="mt-1 text-sm text-white/55">
-                      {t.companyDashboard.recentActivity.subtitle}
+                      {page.recentActivity.subtitle}
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-4">
+                  {!loading && recentApplications.length === 0 && (
+                    <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-6 text-center text-sm text-white/50">
+                      {page.recentActivity.none || "No applications yet."}
+                    </div>
+                  )}
+
                   {recentApplications.map((app) => (
                     <div
-                      key={`${app.name}-${app.time}`}
+                      key={app.id}
                       className="rounded-[22px] border border-white/10 bg-white/[0.045] p-4 transition hover:bg-white/[0.065]"
                     >
                       <div className="mb-3 flex items-start justify-between gap-3">
                         <div className={isRTL ? "text-right" : "text-left"}>
                           <h3 className="text-lg font-bold text-white">
-                            {app.name}
+                            {app.candidateName || "Unknown Candidate"}
                           </h3>
                           <p className="mt-1 text-[15px] text-white/55">
-                            {app.role}
+                            {app.jobTitle || "Untitled Role"}
                           </p>
                         </div>
 
                         <div className="inline-flex items-center gap-1 text-xs text-white/40">
-                          <Clock3 size={14} />
-                          {app.time}
+                          {app.appliedDate || ""}
                         </div>
                       </div>
 
                       <span
-                        className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${app.statusClass}`}
+                        className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClass(app.status)}`}
                       >
-                        {app.status}
+                        {app.status || "Under Review"}
                       </span>
                     </div>
                   ))}
@@ -374,7 +439,7 @@ function CompanyDashboard() {
                   onClick={() => navigate("/company-applications")}
                   className="mt-6 w-full rounded-2xl border border-white/10 bg-white/[0.03] py-3.5 text-sm font-bold text-white/70 transition hover:bg-white/[0.07] hover:text-white"
                 >
-                  {t.companyDashboard.recentActivity.viewAll}
+                  {page.recentActivity.viewAll}
                 </button>
               </div>
             </div>
@@ -387,10 +452,10 @@ function CompanyDashboard() {
 
                 <div className={isRTL ? "text-right" : "text-left"}>
                   <h2 className="text-2xl font-bold text-white">
-                    {t.companyDashboard.insights.title}
+                    {page.insights.title}
                   </h2>
                   <p className="mt-1 text-sm text-white/55">
-                    {t.companyDashboard.insights.subtitle}
+                    {page.insights.subtitle}
                   </p>
                 </div>
               </div>
@@ -400,12 +465,13 @@ function CompanyDashboard() {
                   <div className="mb-3 flex items-center gap-2 text-white/75">
                     <span className="text-base">💡</span>
                     <h3 className="text-lg font-semibold text-white/85">
-                      {t.companyDashboard.insights.tip}
+                      {page.insights.tip}
                     </h3>
                   </div>
                   <p className="text-[15px] leading-7 text-white/58">
-                    3 candidates are highly matched but haven’t been reviewed in
-                    5+ days.
+                    {highMatchAwaitingReview > 0
+                      ? `${highMatchAwaitingReview} candidate${highMatchAwaitingReview === 1 ? " is" : "s are"} highly matched and still under review.`
+                      : "No highly matched candidates are currently awaiting review."}
                   </p>
                 </div>
 
@@ -413,12 +479,13 @@ function CompanyDashboard() {
                   <div className="mb-3 flex items-center gap-2 text-white/75">
                     <span className="text-base">📈</span>
                     <h3 className="text-lg font-semibold text-white/85">
-                      {t.companyDashboard.insights.trend}
+                      {page.insights.trend}
                     </h3>
                   </div>
                   <p className="text-[15px] leading-7 text-white/58">
-                    Application rate increased 25% this week for your Frontend
-                    role.
+                    {applicationsThisWeek > 0
+                      ? `${applicationsThisWeek} new application${applicationsThisWeek === 1 ? "" : "s"} received in the last 7 days.`
+                      : "No new applications received in the last 7 days."}
                   </p>
                 </div>
 
@@ -426,11 +493,13 @@ function CompanyDashboard() {
                   <div className="mb-3 flex items-center gap-2 text-white/75">
                     <span className="text-base">⚡</span>
                     <h3 className="text-lg font-semibold text-white/85">
-                      {t.companyDashboard.insights.action}
+                      {page.insights.action}
                     </h3>
                   </div>
                   <p className="text-[15px] leading-7 text-white/58">
-                    2 shortlisted candidates are awaiting final decision.
+                    {shortlistedAwaitingDecision > 0
+                      ? `${shortlistedAwaitingDecision} shortlisted candidate${shortlistedAwaitingDecision === 1 ? " is" : "s are"} awaiting a final decision.`
+                      : "No shortlisted candidates are awaiting a final decision."}
                   </p>
                 </div>
               </div>
@@ -442,7 +511,7 @@ function CompanyDashboard() {
                   <Zap size={20} />
                 </div>
                 <h3 className="text-lg font-bold text-white">
-                  {t.companyDashboard.cards.fasterHiring}
+                  {page.cards.fasterHiring}
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-white/60">
                   Keep candidates moving through the pipeline with AI-assisted
@@ -455,7 +524,7 @@ function CompanyDashboard() {
                   <Users size={20} />
                 </div>
                 <h3 className="text-lg font-bold text-white">
-                  {t.companyDashboard.cards.betterCandidates}
+                  {page.cards.betterCandidates}
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-white/60">
                   Discover stronger profiles with clearer fit scores, skill
@@ -468,7 +537,7 @@ function CompanyDashboard() {
                   <BriefcaseBusiness size={20} />
                 </div>
                 <h3 className="text-lg font-bold text-white">
-                  {t.companyDashboard.cards.smarterJobs}
+                  {page.cards.smarterJobs}
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-white/60">
                   Track all your openings, applications, and recommendations in

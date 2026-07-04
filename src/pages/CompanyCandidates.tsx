@@ -1,59 +1,80 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
+import { apiFetch, ApiError } from "../utils/api";
+import { getMatchTier, getMatchLabel } from "../utils/matchScore";
+import CandidateAiSummaryModal from "../components/CandidateAiSummaryModal";
 import {
   ArrowLeft,
   Users,
-  Filter,
-  MapPin,
-  BriefcaseBusiness,
-  GraduationCap,
-  ChevronRight,
-  ChevronDown,
-  TrendingUp,
-  DollarSign,
-  Target,
-  Award,
-  SlidersHorizontal,
+  Search,
   Mail,
-  Phone,
   Send,
   Calendar,
-  Download,
-  Brain,
-  FileText,
-  MessageSquare,
-  CheckCircle2,
+  Sparkles,
+  X,
 } from "lucide-react";
 
-type Candidate = {
+type BackendApplicant = {
   id: number;
-  name: string;
-  title: string;
-  location: string;
-  email: string;
-  phone: string;
-  experience: string;
-  experienceYears: number;
-  education: string;
-  university: string;
-  skills: string[];
-  industry: string;
-  seniority: "Junior" | "Mid-Level" | "Senior" | "Lead";
-  expectedSalary: number;
-  match: number;
-  resumeScore: number;
-  preInterview: number;
-  technical: number;
-  communication: number;
-  overall: number;
-  fit: "High Fit" | "Medium Fit" | "Low Fit";
-  summary: string;
-  recommendationTitle: string;
-  recommendationText: string;
-  preInterviewSummary: string;
+  jobId: number;
+  jobTitle: string | null;
+  candidateName: string | null;
+  candidateEmail: string | null;
+  status: string | null;
+  appliedDate: string | null;
+  matchPercent: number | null;
+  matchLabel: string | null;
 };
+
+type CandidateGroup = {
+  candidateEmail: string;
+  candidateName: string;
+  applications: BackendApplicant[];
+  bestMatch: number | null;
+  bestMatchLabel: string | null;
+};
+
+function groupByCandidate(apps: BackendApplicant[]): CandidateGroup[] {
+  const map = new Map<string, CandidateGroup>();
+
+  for (const app of apps) {
+    const key = app.candidateEmail || `unknown-${app.id}`;
+
+    if (!map.has(key)) {
+      map.set(key, {
+        candidateEmail: app.candidateEmail || "",
+        candidateName: app.candidateName || "Unknown Candidate",
+        applications: [],
+        bestMatch: null,
+        bestMatchLabel: null,
+      });
+    }
+
+    const group = map.get(key)!;
+    group.applications.push(app);
+
+    if (typeof app.matchPercent === "number" && (group.bestMatch === null || app.matchPercent > group.bestMatch)) {
+      group.bestMatch = app.matchPercent;
+      group.bestMatchLabel = app.matchLabel;
+    }
+  }
+
+  return Array.from(map.values());
+}
+
+function getInitial(name: string) {
+  return (name || "?").charAt(0).toUpperCase();
+}
+
+function getStatusClass(status: string | null) {
+  const normalized = (status || "").toLowerCase();
+  if (normalized === "shortlisted") return "bg-cyan-500/12 text-cyan-300 border-cyan-400/25";
+  if (normalized === "accepted") return "bg-emerald-500/12 text-emerald-300 border-emerald-400/25";
+  if (normalized === "rejected") return "bg-rose-500/12 text-rose-300 border-rose-400/25";
+  return "bg-amber-500/12 text-amber-300 border-amber-400/25";
+}
 
 function CompanyCandidates() {
   const navigate = useNavigate();
@@ -63,19 +84,16 @@ function CompanyCandidates() {
 
   const common = t.common || {};
   const page = t.companyCandidatesPage || {};
-  const companyDashboard = t.companyDashboard || {};
-  const fitLabels = companyDashboard.fitLabels || {};
+  const applicationsPage = t.companyApplicationsPage || {};
 
-  const [showFilters, setShowFilters] = useState(true);
-  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
-  const [savedScrollY, setSavedScrollY] = useState(0);
+  const [candidates, setCandidates] = useState<CandidateGroup[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [search, setSearch] = useState("");
 
-  const [industry, setIndustry] = useState(page.all || "All");
-  const [seniority, setSeniority] = useState(page.all || "All");
-  const [recommendation, setRecommendation] = useState(page.all || "All");
-  const [minSalary, setMinSalary] = useState(0);
-  const [minMatch, setMinMatch] = useState(0);
-  const [minPreInterview, setMinPreInterview] = useState(0);
+  const [selectedCandidate, setSelectedCandidate] = useState<CandidateGroup | null>(null);
+  const [aiSummaryApplication, setAiSummaryApplication] = useState<BackendApplicant | null>(null);
+
   const [showContactModal, setShowContactModal] = useState(false);
   const [messageText, setMessageText] = useState("");
 
@@ -85,217 +103,115 @@ function CompanyCandidates() {
   const [interviewType, setInterviewType] = useState(page.online || "Online");
   const [interviewNotes, setInterviewNotes] = useState("");
 
-  const allLabel = page.all || "All";
-  const juniorLabel = page.junior || "Junior";
-  const midLabel = page.midLevel || "Mid-Level";
-  const seniorLabel = page.senior || "Senior";
-  const leadLabel = page.lead || "Lead";
-  const highFitLabel = fitLabels.high || "High Fit";
-  const mediumFitLabel = fitLabels.medium || "Medium Fit";
-  const lowFitLabel = page.lowFit || "Low Fit";
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setLoadError("");
 
-  const candidates: Candidate[] = [
-    {
-      id: 1,
-      name: "Sarah Johnson",
-      title: "Senior Frontend Developer",
-      location: "Tel Aviv",
-      email: "sarah.johnson@email.com",
-      phone: "+1 (555) 234-5678",
-      experience: "7 years experience",
-      experienceYears: 7,
-      education: "Master's in Computer Science",
-      university: "Stanford University",
-      skills: ["React", "TypeScript", "Node.js", "GraphQL", "AWS", "Python", "Docker"],
-      industry: "Software",
-      seniority: "Senior",
-      expectedSalary: 150,
-      match: 95,
-      resumeScore: 85,
-      preInterview: 88,
-      technical: 90,
-      communication: 85,
-      overall: 88,
-      fit: "High Fit",
-      summary:
-        "Passionate frontend developer with 7+ years of experience building scalable web applications. Led multiple teams and delivered enterprise-level products.",
-      recommendationTitle: page.highlyRecommended || "Highly Recommended",
-      recommendationText:
-        "This candidate shows strong alignment with job requirements and performed well in the pre-interview assessment.",
-      preInterviewSummary:
-        "Strong candidate with excellent technical skills and clear communication. Highly recommended for senior positions.",
-    },
-    {
-      id: 2,
-      name: "Jessica Martinez",
-      title: "Frontend Lead",
-      location: "Haifa",
-      email: "jessica.martinez@email.com",
-      phone: "+1 (555) 678-1122",
-      experience: "8 years experience",
-      experienceYears: 8,
-      education: "Master's in Software Engineering",
-      university: "MIT",
-      skills: ["React", "Vue", "TypeScript", "Team Leadership", "Architecture", "AWS"],
-      industry: "Software",
-      seniority: "Lead",
-      expectedSalary: 170,
-      match: 94,
-      resumeScore: 89,
-      preInterview: 92,
-      technical: 95,
-      communication: 90,
-      overall: 92,
-      fit: "High Fit",
-      summary:
-        "Experienced frontend lead with a strong background in architecture and mentoring teams to deliver modern products.",
-      recommendationTitle: page.highlyRecommended || "Highly Recommended",
-      recommendationText:
-        "Excellent fit for leadership-oriented frontend roles with strong architecture and communication skills.",
-      preInterviewSummary:
-        "Outstanding leadership potential with excellent technical depth and team communication.",
-    },
-    {
-      id: 3,
-      name: "Michael Chen",
-      title: "Full Stack Engineer",
-      location: "Herzliya",
-      email: "michael.chen@email.com",
-      phone: "+1 (555) 456-8899",
-      experience: "5 years experience",
-      experienceYears: 5,
-      education: "Bachelor's in Software Engineering",
-      university: "UC Berkeley",
-      skills: ["React", "Python", "PostgreSQL", "Docker", "Kubernetes"],
-      industry: "Cloud",
-      seniority: "Mid-Level",
-      expectedSalary: 130,
-      match: 91,
-      resumeScore: 84,
-      preInterview: 82,
-      technical: 85,
-      communication: 80,
-      overall: 82,
-      fit: "High Fit",
-      summary:
-        "Full stack engineer with strong backend and deployment skills, experienced in cloud-native environments.",
-      recommendationTitle: page.recommended || "Recommended",
-      recommendationText:
-        "Very good technical fit with strong backend and infrastructure knowledge.",
-      preInterviewSummary:
-        "Solid candidate with strong full stack capabilities and good problem-solving approach.",
-    },
-    {
-      id: 4,
-      name: "Emily Davis",
-      title: "React Specialist",
-      location: "Nazareth",
-      email: "emily.davis@email.com",
-      phone: "+1 (555) 992-1144",
-      experience: "4 years experience",
-      experienceYears: 4,
-      education: "Bachelor's in Computer Science",
-      university: "University of Texas",
-      skills: ["React", "JavaScript", "CSS", "Testing", "Agile"],
-      industry: "Frontend",
-      seniority: "Mid-Level",
-      expectedSalary: 95,
-      match: 88,
-      resumeScore: 80,
-      preInterview: 75,
-      technical: 78,
-      communication: 75,
-      overall: 75,
-      fit: "Medium Fit",
-      summary:
-        "Frontend-focused developer with good React experience and solid understanding of testing and UI delivery.",
-      recommendationTitle: page.considerForInterview || "Consider for Interview",
-      recommendationText:
-        "Good frontend fit, though more suitable for mid-level roles than senior positions.",
-      preInterviewSummary:
-        "Good candidate overall, with room for growth in advanced technical discussions.",
-    },
-    {
-      id: 5,
-      name: "David Wilson",
-      title: "Software Engineer",
-      location: "Acre",
-      email: "david.wilson@email.com",
-      phone: "+1 (555) 301-7788",
-      experience: "3 years experience",
-      experienceYears: 3,
-      education: "Bachelor's in Information Technology",
-      university: "University of Washington",
-      skills: ["JavaScript", "React", "Node.js", "MongoDB"],
-      industry: "Software",
-      seniority: "Junior",
-      expectedSalary: 80,
-      match: 82,
-      resumeScore: 74,
-      preInterview: 70,
-      technical: 74,
-      communication: 72,
-      overall: 72,
-      fit: "Medium Fit",
-      summary:
-        "Junior software engineer with solid fundamentals and a strong willingness to learn and improve.",
-      recommendationTitle: page.potentialFit || "Potential Fit",
-      recommendationText:
-        "May fit junior roles well, especially with mentorship and structured onboarding.",
-      preInterviewSummary:
-        "Promising candidate for entry-level roles with room to improve depth and confidence.",
-    },
-  ];
+    apiFetch("/api/applications/company")
+      .then((data: BackendApplicant[]) => {
+        if (cancelled) return;
+        setCandidates(groupByCandidate(Array.isArray(data) ? data : []));
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setLoadError(
+          error instanceof ApiError
+            ? error.message
+            : "Could not load candidates. Make sure the backend is running."
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filteredCandidates = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return candidates;
+
     return candidates.filter((candidate) => {
-      const industryMatch =
-        industry === allLabel || candidate.industry === industry;
+      const haystack = [
+        candidate.candidateName,
+        candidate.candidateEmail,
+        ...candidate.applications.map((a) => a.jobTitle || ""),
+      ]
+        .join(" ")
+        .toLowerCase();
 
-      const seniorityMatch =
-        seniority === allLabel || candidate.seniority === seniority;
-
-      const recommendationMatch =
-        recommendation === allLabel ||
-        mapFitLabel(candidate.fit, fitLabels, lowFitLabel) === recommendation;
-
-      const salaryMatch = candidate.expectedSalary >= minSalary;
-      const matchScore = candidate.match >= minMatch;
-      const preInterviewScore = candidate.preInterview >= minPreInterview;
-
-      return (
-        industryMatch &&
-        seniorityMatch &&
-        recommendationMatch &&
-        salaryMatch &&
-        matchScore &&
-        preInterviewScore
-      );
+      return haystack.includes(query);
     });
-  }, [
-    candidates,
-    industry,
-    seniority,
-    recommendation,
-    minSalary,
-    minMatch,
-    minPreInterview,
-    fitLabels,
-    allLabel,
-    lowFitLabel,
-  ]);
+  }, [candidates, search]);
 
-  const getFitStyles = (fit: Candidate["fit"]) => {
-    if (fit === "High Fit") {
-      return "bg-emerald-500/15 text-emerald-300 border border-emerald-400/20";
+  const applyStatusUpdate = async (id: number, status: "Accepted" | "Rejected") => {
+    try {
+      const data = await apiFetch(`/api/applications/${id}/status`, {
+        method: "PUT",
+        body: JSON.stringify({ status }),
+      });
+
+      if (!data.success) return;
+
+      setCandidates((prev) =>
+        prev.map((candidate) => ({
+          ...candidate,
+          applications: candidate.applications.map((app) =>
+            app.id === id ? { ...app, status } : app
+          ),
+        }))
+      );
+
+      setSelectedCandidate((prev) =>
+        prev
+          ? {
+              ...prev,
+              applications: prev.applications.map((app) =>
+                app.id === id ? { ...app, status } : app
+              ),
+            }
+          : prev
+      );
+    } catch {
+      // Leave state untouched on failure so the UI reflects the real backend state.
     }
-    if (fit === "Medium Fit") {
-      return "bg-amber-500/15 text-amber-300 border border-amber-400/20";
-    }
-    return "bg-red-500/15 text-red-300 border border-red-400/20";
   };
 
-  const getInitial = (name: string) => name.charAt(0).toUpperCase();
+  const applyAiMatchScore = (applicationId: number, matchScore: number, matchLabel: string) => {
+    const label = matchLabel || getMatchLabel(matchScore);
+
+    const patchApp = (app: BackendApplicant) =>
+      app.id === applicationId ? { ...app, matchPercent: matchScore, matchLabel: label } : app;
+
+    const patchGroup = (group: CandidateGroup): CandidateGroup => {
+      const applications = group.applications.map(patchApp);
+      const bestMatch = applications.reduce<number | null>(
+        (best, app) => (typeof app.matchPercent === "number" && (best === null || app.matchPercent > best) ? app.matchPercent : best),
+        null
+      );
+      const bestApp = applications.find((app) => app.matchPercent === bestMatch);
+      return { ...group, applications, bestMatch, bestMatchLabel: bestApp?.matchLabel ?? null };
+    };
+
+    setCandidates((prev) => prev.map(patchGroup));
+    setSelectedCandidate((prev) => (prev ? patchGroup(prev) : prev));
+  };
+
+  const openContactModal = (candidate: CandidateGroup) => {
+    setMessageText(`Hi ${candidate.candidateName}, we would like to contact you regarding your profile.`);
+    setShowContactModal(true);
+  };
+
+  const openInterviewModal = () => {
+    setInterviewDate("");
+    setInterviewTime("");
+    setInterviewType(page.online || "Online");
+    setInterviewNotes("");
+    setShowInterviewModal(true);
+  };
 
   return (
     <div
@@ -323,224 +239,106 @@ function CompanyCandidates() {
                   {page.title || "Candidates"}
                 </h1>
                 <p className="mt-2 text-[18px] text-white/60">
-                  {page.subtitle || "Explore and review matched candidates"}
+                  {page.subtitle || "Everyone who has applied to your job postings"}
                 </p>
               </div>
             </div>
 
-            <div className="mb-7 rounded-[24px] border border-white/10 bg-white/[0.04] px-6 py-5">
-              <button
-                type="button"
-                onClick={() => setShowFilters((prev) => !prev)}
-                className="flex w-full items-center justify-between text-left"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-300">
-                    <Filter size={22} />
-                  </div>
-
-                  <div className={isRTL ? "text-right" : "text-left"}>
-                    <p className="text-[22px] font-bold text-white">
-                      {page.smartFilters || "Smart Filters"}
-                    </p>
-                    <p className="text-sm text-white/50">
-                      {page.refineSearch || "Refine your search"}
-                    </p>
-                  </div>
-                </div>
-
-                {showFilters ? (
-                  <ChevronDown
-                    size={22}
-                    className="rotate-180 text-white/40"
-                  />
-                ) : (
-                  <ChevronDown size={22} className="text-white/40" />
-                )}
-              </button>
-
-              {showFilters && (
-                <div className="mt-5 border-t border-white/10 pt-5">
-                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <FilterSelect
-                      icon={<BriefcaseBusiness size={16} />}
-                      label={page.filterByIndustry || "Filter by Industry"}
-                      value={industry}
-                      onChange={setIndustry}
-                      options={[
-                        allLabel,
-                        page.software || "Software",
-                        page.cloud || "Cloud",
-                        page.frontend || "Frontend",
-                      ]}
-                    />
-
-                    <FilterSelect
-                      icon={<TrendingUp size={16} />}
-                      label={page.filterByLevel || "Filter by Level"}
-                      value={seniority}
-                      onChange={setSeniority}
-                      options={[allLabel, juniorLabel, midLabel, seniorLabel, leadLabel]}
-                    />
-
-                    <RangeFilter
-                      icon={<DollarSign size={16} />}
-                      label={`${page.minSalary || "Min Salary"}: $${minSalary}k`}
-                      value={minSalary}
-                      onChange={setMinSalary}
-                      min={0}
-                      max={200}
-                    />
-
-                    <RangeFilter
-                      icon={<Target size={16} />}
-                      label={`${page.minMatch || "Min Match"}: ${minMatch}%`}
-                      value={minMatch}
-                      onChange={setMinMatch}
-                      min={0}
-                      max={100}
-                    />
-
-                    <RangeFilter
-                      icon={<SlidersHorizontal size={16} />}
-                      label={`${page.minPreInterviewScore || "Min Pre-Interview Score"}: ${minPreInterview}%`}
-                      value={minPreInterview}
-                      onChange={setMinPreInterview}
-                      min={0}
-                      max={100}
-                    />
-
-                    <FilterSelect
-                      icon={<Award size={16} />}
-                      label={page.recommendation || "Recommendation"}
-                      value={recommendation}
-                      onChange={setRecommendation}
-                      options={[allLabel, highFitLabel, mediumFitLabel, lowFitLabel]}
-                    />
-                  </div>
-                </div>
-              )}
+            <div className="mb-6 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3.5">
+              <Search size={18} className="text-white/40" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={page.searchPlaceholder || "Search by name, email, or job title..."}
+                className="w-full bg-transparent text-white outline-none placeholder:text-white/35"
+              />
             </div>
 
-            <p className="mb-5 text-lg text-white/55">
-              {filteredCandidates.length}{" "}
-              {page.candidatesMatchCriteria || "candidates match your criteria"}
-            </p>
+            {loadError && (
+              <div className="mb-6 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-5 py-4 text-sm text-rose-200">
+                {loadError}
+              </div>
+            )}
 
-            <div className="space-y-5">
-              {filteredCandidates.map((candidate) => (
-                <div
-                  key={candidate.id}
-                  onClick={() => {
-                    setSavedScrollY(window.scrollY);
-                    setSelectedCandidate(candidate);
-                    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-                  }}
-                  className="cursor-pointer rounded-[30px] border border-white/10 bg-white/[0.045] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-sm transition hover:bg-white/[0.055]"
-                >
-                  <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-                    <div className="flex flex-1 gap-5">
-                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[18px] bg-gradient-to-br from-[#7b61ff] to-[#a855f7] text-3xl font-extrabold text-white shadow-[0_12px_28px_rgba(124,77,255,0.28)]">
-                        {getInitial(candidate.name)}
-                      </div>
+            {loading && (
+              <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-10 text-center text-white/65">
+                {common.loading || "Loading..."}
+              </div>
+            )}
 
-                      <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
-                        <div className="mb-1 flex flex-wrap items-center gap-3">
-                          <h2 className="text-[30px] font-extrabold leading-tight text-white">
-                            {candidate.name}
-                          </h2>
+            {!loading && (
+              <>
+                <p className="mb-5 text-lg text-white/55">
+                  {filteredCandidates.length}{" "}
+                  {page.candidatesMatchCriteria || "candidates"}
+                </p>
 
-                          <span
-                            className={`rounded-full px-4 py-2 text-sm font-bold ${getFitStyles(
-                              candidate.fit
-                            )}`}
-                          >
-                            {mapFitLabel(candidate.fit, fitLabels, lowFitLabel)}
-                          </span>
-                        </div>
+                <div className="space-y-5">
+                  {filteredCandidates.map((candidate) => {
+                    const tier = candidate.bestMatch !== null ? getMatchTier(candidate.bestMatch) : null;
 
-                        <p className="text-[22px] text-white/70">{candidate.title}</p>
+                    return (
+                      <div
+                        key={candidate.candidateEmail}
+                        onClick={() => setSelectedCandidate(candidate)}
+                        className="cursor-pointer rounded-[30px] border border-white/10 bg-white/[0.045] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-sm transition hover:bg-white/[0.055]"
+                      >
+                        <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+                          <div className="flex flex-1 gap-5">
+                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[18px] bg-gradient-to-br from-[#7b61ff] to-[#a855f7] text-3xl font-extrabold text-white shadow-[0_12px_28px_rgba(124,77,255,0.28)]">
+                              {getInitial(candidate.candidateName)}
+                            </div>
 
-                        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[15px] text-white/55">
-                          <div className="flex items-center gap-2">
-                            <MapPin size={16} />
-                            <span>{candidate.location}</span>
+                            <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
+                              <h2 className="text-[24px] font-extrabold leading-tight text-white">
+                                {candidate.candidateName}
+                              </h2>
+                              <p className="text-[16px] text-white/60">{candidate.candidateEmail}</p>
+
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {candidate.applications.map((app) => (
+                                  <span
+                                    key={app.id}
+                                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${getStatusClass(app.status)}`}
+                                  >
+                                    {app.jobTitle || "Untitled Role"} · {app.status || "Under Review"}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
                           </div>
 
-                          <div className="flex items-center gap-2">
-                            <BriefcaseBusiness size={16} />
-                            <span>{candidate.experience}</span>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <GraduationCap size={16} />
-                            <span>{candidate.education}</span>
+                          <div className="flex shrink-0 items-center gap-3">
+                            {tier && candidate.bestMatch !== null ? (
+                              <div className={`flex h-16 w-16 items-center justify-center rounded-full border bg-white/[0.05] text-lg font-extrabold ${tier.text} ${tier.border}`}>
+                                {candidate.bestMatch}%
+                              </div>
+                            ) : (
+                              <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-white/5 text-center text-xs font-semibold text-white/35">
+                                {applicationsPage.notScoredYet || "Not scored yet"}
+                              </div>
+                            )}
                           </div>
                         </div>
-
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {candidate.skills.map((skill) => (
-                            <span
-                              key={skill}
-                              className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-medium text-white/75"
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
                       </div>
+                    );
+                  })}
+
+                  {filteredCandidates.length === 0 && (
+                    <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-10 text-center text-white/65">
+                      {candidates.length === 0
+                        ? page.noCandidatesYet || "No candidates yet. They'll appear here once someone applies to one of your jobs."
+                        : page.noCandidatesForFilters || "No candidates match your search."}
                     </div>
-
-                    <button className="self-start rounded-full p-2 text-white/35 transition hover:bg-white/10 hover:text-white">
-                      <ChevronRight size={22} className={isRTL ? "rotate-180" : ""} />
-                    </button>
-                  </div>
-
-                  <div className="mt-6 grid gap-4 lg:grid-cols-[160px_1fr]">
-                    <div className="flex flex-col items-center justify-center rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-5 text-center">
-                      <MatchRing value={candidate.match} label={page.match || companyDashboard.match || "Match"} />
-                    </div>
-
-                    <div className="rounded-[22px] border border-white/10 bg-white/[0.04] px-5 py-5">
-                      <div className="mb-5">
-                        <p className="text-sm text-white/45">
-                          {page.preInterviewScore || "Pre-Interview Score"}
-                        </p>
-                        <p className="mt-1 text-[18px] font-bold text-white">
-                          {candidate.preInterview}%
-                        </p>
-                      </div>
-
-                      <div className="space-y-4">
-                        <ScoreBar label={page.technical || "Technical"} value={candidate.technical} />
-                        <ScoreBar label={page.communication || "Communication"} value={candidate.communication} />
-                        <ScoreBar label={page.overallFit || "Overall Fit"} value={candidate.overall} />
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </div>
-              ))}
-
-              {filteredCandidates.length === 0 && (
-                <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-10 text-center text-white/65">
-                  {page.noCandidatesForFilters || page.noCandidatesText || "No candidates match the selected filters."}
-                </div>
-              )}
-            </div>
+              </>
+            )}
           </>
         ) : (
           <>
             <button
-              onClick={() => {
-                setSelectedCandidate(null);
-                setTimeout(() => {
-                  window.scrollTo({
-                    top: savedScrollY,
-                    left: 0,
-                    behavior: "auto",
-                  });
-                }, 0);
-              }}
+              onClick={() => setSelectedCandidate(null)}
               className="mb-6 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-[15px] font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
             >
               <ArrowLeft size={18} className={isRTL ? "rotate-180" : ""} />
@@ -551,63 +349,24 @@ function CompanyCandidates() {
               <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
                 <div className="flex flex-1 gap-5">
                   <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-[22px] bg-gradient-to-br from-[#7b61ff] to-[#a855f7] text-5xl font-extrabold text-white shadow-[0_12px_28px_rgba(124,77,255,0.28)]">
-                    {getInitial(selectedCandidate.name)}
+                    {getInitial(selectedCandidate.candidateName)}
                   </div>
 
                   <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
-                    <div className="mb-2 flex flex-wrap items-center gap-3">
-                      <h1 className="text-[26px] font-extrabold text-white md:text-[40px]">
-                        {selectedCandidate.name}
-                      </h1>
-                      <span
-                        className={`rounded-full px-4 py-2 text-sm font-bold ${getFitStyles(
-                          selectedCandidate.fit
-                        )}`}
-                      >
-                        {mapFitLabel(selectedCandidate.fit, fitLabels, lowFitLabel)}
-                      </span>
-                    </div>
+                    <h1 className="text-[26px] font-extrabold text-white md:text-[40px]">
+                      {selectedCandidate.candidateName}
+                    </h1>
 
-                    <p className="mb-4 text-[18px] text-white/70 md:text-[28px]">
-                      {selectedCandidate.title}
-                    </p>
-
-                    <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-[15px] text-white/60">
-                      <div className="flex items-center gap-2">
-                        <MapPin size={16} />
-                        <span>{selectedCandidate.location}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Mail size={16} />
-                        <span>{selectedCandidate.email}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Phone size={16} />
-                        <span>{selectedCandidate.phone}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <BriefcaseBusiness size={16} />
-                        <span>{selectedCandidate.experience}</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 flex items-center gap-2 text-[15px] text-white/60">
-                      <GraduationCap size={16} />
-                      <span>
-                        {selectedCandidate.education}, {selectedCandidate.university}
-                      </span>
+                    <div className="mt-2 flex items-center gap-2 text-[15px] text-white/60">
+                      <Mail size={16} />
+                      <span>{selectedCandidate.candidateEmail}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex w-full flex-col gap-3 xl:w-[260px]">
                   <button
-                    onClick={() => {
-                      setMessageText(
-                        `Hi ${selectedCandidate.name}, we would like to contact you regarding your profile.`
-                      );
-                      setShowContactModal(true);
-                    }}
+                    onClick={() => openContactModal(selectedCandidate)}
                     className="flex items-center justify-center gap-2 rounded-[14px] bg-[linear-gradient(135deg,#7f6bff,#9b3ff5)] px-5 py-3.5 text-[15px] font-bold text-white transition hover:opacity-95"
                   >
                     <Send size={17} />
@@ -615,126 +374,76 @@ function CompanyCandidates() {
                   </button>
 
                   <button
-                    onClick={() => {
-                      setInterviewDate("");
-                      setInterviewTime("");
-                      setInterviewType(page.online || "Online");
-                      setInterviewNotes("");
-                      setShowInterviewModal(true);
-                    }}
+                    onClick={openInterviewModal}
                     className="flex items-center justify-center gap-2 rounded-[14px] border border-white/15 bg-white/[0.03] px-5 py-3.5 text-[15px] font-semibold text-[#b8c4ff] transition hover:bg-white/[0.06]"
                   >
                     <Calendar size={17} />
                     {page.scheduleInterview || "Schedule Interview"}
                   </button>
-
-                  <button
-                    onClick={() => {
-                      const link = document.createElement("a");
-                      link.href = "/resume.pdf";
-                      link.download = "Resume.pdf";
-                      link.click();
-                    }}
-                    className="flex items-center justify-center gap-2 rounded-[14px] border border-cyan-400/30 bg-cyan-400/10 px-5 py-3.5 text-[15px] font-semibold text-cyan-300 transition hover:bg-cyan-400/20"
-                  >
-                    <Download size={17} />
-                    {page.downloadResume || "Download Resume"}
-                  </button>
                 </div>
               </div>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
-              {/* LEFT COLUMN: Candidate Data */}
-              <div className="space-y-6">
-                <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
-                  <h2 className="mb-4 text-[20px] font-extrabold">
-                    {page.summary || "Summary"}
-                  </h2>
-                  <p className="text-[16px] leading-8 text-white/75">
-                    {selectedCandidate.summary}
-                  </p>
-                </div>
+            <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
+              <h2 className="mb-5 text-[20px] font-extrabold">
+                {page.applications || "Applications"}
+              </h2>
 
-                <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
-                  <h2 className="mb-5 text-[20px] font-extrabold">
-                    {page.skills || "Skills"}
-                  </h2>
-                  <div className="flex flex-wrap gap-3">
-                    {selectedCandidate.skills.map((skill) => (
-                      <span
-                        key={skill}
-                        className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/75"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+              <div className="space-y-4">
+                {selectedCandidate.applications.map((app) => {
+                  const tier = typeof app.matchPercent === "number" ? getMatchTier(app.matchPercent) : null;
 
-                <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
-                  <h2 className="mb-4 text-[20px] font-extrabold">
-                    {page.preInterviewSummary || "Pre-Interview Summary"}
-                  </h2>
-                  <p className="text-[16px] leading-8 text-white/75">
-                    {selectedCandidate.preInterviewSummary}
-                  </p>
-                </div>
-              </div>
-
-              {/* RIGHT COLUMN: AI Decision Panel & Actions */}
-              <div className="space-y-6">
-                <div className="sticky top-6 rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
-                  <div className="mb-5 flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-500/15 text-violet-300">
-                      <Brain size={20} />
-                    </div>
-                    <div className={isRTL ? "text-right" : "text-left"}>
-                      <h2 className="text-[20px] font-extrabold">
-                        {page.aiDecisionPanel || "AI Decision Panel"}
-                      </h2>
-                    </div>
-                  </div>
-
-                  <div className="mb-6 grid grid-cols-3 gap-2">
-                    <StatCard icon={<Target size={18} />} value={`${selectedCandidate.match}%`} label="Match" />
-                    <StatCard icon={<FileText size={18} />} value={`${selectedCandidate.resumeScore}%`} label="Resume" />
-                    <StatCard icon={<MessageSquare size={18} />} value={`${selectedCandidate.preInterview}%`} label="Pre-Int" />
-                  </div>
-
-                  <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-5">
-                    <h3 className="mb-4 text-[18px] font-bold">
-                      {page.confidenceMeter || "Confidence Meter"}
-                    </h3>
-                    <div className="space-y-4">
-                      <ScoreBar label={page.technical || "Technical"} value={selectedCandidate.technical} gradient="from-violet-400 to-fuchsia-500" />
-                      <ScoreBar label={page.communication || "Communication"} value={selectedCandidate.communication} gradient="from-cyan-400 to-blue-500" />
-                      <ScoreBar label={page.overallFit || "Overall Fit"} value={selectedCandidate.overall} gradient="from-emerald-400 to-cyan-400" />
-                    </div>
-                  </div>
-
-                  <div className="mt-6 rounded-[22px] border border-emerald-400/20 bg-emerald-400/10 p-5">
-                    <h3 className="text-[18px] font-extrabold text-emerald-300">
-                      {selectedCandidate.recommendationTitle}
-                    </h3>
-                    <p className="mt-2 text-[14px] leading-6 text-white/70">
-                      {selectedCandidate.recommendationText}
-                    </p>
-                    <button
-                      onClick={() => {
-                        setInterviewDate("");
-                        setInterviewTime("");
-                        setInterviewType(page.online || "Online");
-                        setInterviewNotes("");
-                        setShowInterviewModal(true);
-                      }}
-                      className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500/20 px-4 py-3.5 text-sm font-bold text-emerald-300 transition hover:bg-emerald-500/30"
+                  return (
+                    <div
+                      key={app.id}
+                      className="rounded-[22px] border border-white/10 bg-white/[0.04] p-5"
                     >
-                      <CheckCircle2 size={16} />
-                      {page.proceedToInterview || "Proceed to Interview"}
-                    </button>
-                  </div>
-                </div>
+                      <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div className={isRTL ? "text-right" : "text-left"}>
+                          <h3 className="text-lg font-bold text-white">{app.jobTitle || "Untitled Role"}</h3>
+                          <p className="mt-1 text-sm text-white/50">{app.appliedDate}</p>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-3">
+                          <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClass(app.status)}`}>
+                            {app.status || "Under Review"}
+                          </span>
+
+                          {tier && typeof app.matchPercent === "number" && (
+                            <span className={`rounded-full border px-3 py-1 text-xs font-bold ${tier.bg} ${tier.text} ${tier.border}`}>
+                              {app.matchPercent}% {app.matchLabel || getMatchLabel(app.matchPercent)}
+                            </span>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => setAiSummaryApplication(app)}
+                            className="inline-flex items-center gap-2 rounded-[12px] border border-violet-400/30 bg-violet-500/10 px-3 py-1.5 text-xs font-semibold text-violet-200 transition hover:bg-violet-500/20"
+                          >
+                            <Sparkles size={14} />
+                            {applicationsPage.aiSummary || "AI Summary"}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => applyStatusUpdate(app.id, "Accepted")}
+                            className="rounded-[12px] bg-emerald-500/20 px-3 py-1.5 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/30"
+                          >
+                            {applicationsPage.accept || "Accept"}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => applyStatusUpdate(app.id, "Rejected")}
+                            className="rounded-[12px] bg-rose-500/20 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/30"
+                          >
+                            {applicationsPage.reject || "Reject"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </>
@@ -748,18 +457,13 @@ function CompanyCandidates() {
                   <h2 className="text-[24px] font-extrabold">
                     {(page.contactCandidateWith || page.contactCandidate || "Contact") +
                       " " +
-                      selectedCandidate.name}
+                      selectedCandidate.candidateName}
                   </h2>
-                  <p className="text-sm text-white/55">
-                    {selectedCandidate.email}
-                  </p>
+                  <p className="text-sm text-white/55">{selectedCandidate.candidateEmail}</p>
                 </div>
 
-                <button
-                  onClick={() => setShowContactModal(false)}
-                  className="text-white/60 hover:text-white"
-                >
-                  ✕
+                <button onClick={() => setShowContactModal(false)} className="text-white/60 hover:text-white">
+                  <X size={20} />
                 </button>
               </div>
 
@@ -771,15 +475,20 @@ function CompanyCandidates() {
               />
 
               <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setShowContactModal(false)}
-                  className="rounded bg-white/10 px-4 py-2"
-                >
+                <button onClick={() => setShowContactModal(false)} className="rounded bg-white/10 px-4 py-2">
                   {common.cancel || "Cancel"}
                 </button>
 
                 <button
                   onClick={() => {
+                    const applicationId = selectedCandidate.applications[0]?.id;
+                    if (applicationId) {
+                      apiFetch("/api/messages", {
+                        method: "POST",
+                        body: JSON.stringify({ applicationId, content: messageText }),
+                      }).catch(() => null);
+                    }
+
                     alert(page.messageSent || "Message sent!");
                     setShowContactModal(false);
                   }}
@@ -801,23 +510,18 @@ function CompanyCandidates() {
                     {page.scheduleInterview || "Schedule Interview"}
                   </h2>
                   <p className="text-sm text-white/55">
-                    {page.withCandidate || "With"} {selectedCandidate.name}
+                    {page.withCandidate || "With"} {selectedCandidate.candidateName}
                   </p>
                 </div>
 
-                <button
-                  onClick={() => setShowInterviewModal(false)}
-                  className="text-white/60 hover:text-white"
-                >
-                  ✕
+                <button onClick={() => setShowInterviewModal(false)} className="text-white/60 hover:text-white">
+                  <X size={20} />
                 </button>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm text-white/70">
-                    {page.date || "Date"}
-                  </label>
+                  <label className="mb-2 block text-sm text-white/70">{page.date || "Date"}</label>
                   <input
                     type="date"
                     value={interviewDate}
@@ -827,9 +531,7 @@ function CompanyCandidates() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm text-white/70">
-                    {page.time || "Time"}
-                  </label>
+                  <label className="mb-2 block text-sm text-white/70">{page.time || "Time"}</label>
                   <input
                     type="time"
                     value={interviewTime}
@@ -840,9 +542,7 @@ function CompanyCandidates() {
               </div>
 
               <div className="mt-4">
-                <label className="mb-2 block text-sm text-white/70">
-                  {page.interviewType || "Interview Type"}
-                </label>
+                <label className="mb-2 block text-sm text-white/70">{page.interviewType || "Interview Type"}</label>
                 <select
                   value={interviewType}
                   onChange={(e) => setInterviewType(e.target.value)}
@@ -858,9 +558,7 @@ function CompanyCandidates() {
               </div>
 
               <div className="mt-4">
-                <label className="mb-2 block text-sm text-white/70">
-                  {page.notes || "Notes"}
-                </label>
+                <label className="mb-2 block text-sm text-white/70">{page.notes || "Notes"}</label>
                 <textarea
                   value={interviewNotes}
                   onChange={(e) => setInterviewNotes(e.target.value)}
@@ -871,18 +569,26 @@ function CompanyCandidates() {
               </div>
 
               <div className="mt-6 flex justify-end gap-3">
-                <button
-                  onClick={() => setShowInterviewModal(false)}
-                  className="rounded bg-white/10 px-4 py-2"
-                >
+                <button onClick={() => setShowInterviewModal(false)} className="rounded bg-white/10 px-4 py-2">
                   {common.cancel || "Cancel"}
                 </button>
 
                 <button
                   onClick={() => {
-                    alert(
-                      `${page.interviewScheduledWith || "Interview scheduled with"} ${selectedCandidate.name}`
-                    );
+                    const applicationId = selectedCandidate.applications[0]?.id;
+                    if (applicationId && interviewDate && interviewTime) {
+                      apiFetch("/api/interviews", {
+                        method: "POST",
+                        body: JSON.stringify({
+                          applicationId,
+                          scheduledAt: `${interviewDate}T${interviewTime}`,
+                          type: interviewType,
+                          notes: interviewNotes,
+                        }),
+                      }).catch(() => null);
+                    }
+
+                    alert(`${page.interviewScheduledWith || "Interview scheduled with"} ${selectedCandidate.candidateName}`);
                     setShowInterviewModal(false);
                   }}
                   className="flex items-center gap-2 rounded bg-purple-500 px-4 py-2 text-white"
@@ -894,173 +600,19 @@ function CompanyCandidates() {
             </div>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
 
-function MatchRing({ value, label }: { value: number; label: string }) {
-  const radius = 34;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - value / 100);
-
-  return (
-    <div className="flex flex-col items-center justify-center">
-      <div className="relative mb-3 h-[78px] w-[78px]">
-        <svg className="h-full w-full -rotate-90" viewBox="0 0 78 78">
-          <circle
-            cx="39"
-            cy="39"
-            r={radius}
-            stroke="rgba(255,255,255,0.1)"
-            strokeWidth="6"
-            fill="none"
+        {aiSummaryApplication && (
+          <CandidateAiSummaryModal
+            applicationId={aiSummaryApplication.id}
+            candidateName={aiSummaryApplication.candidateName || "Unknown Candidate"}
+            jobTitle={aiSummaryApplication.jobTitle || "Untitled Role"}
+            language={language}
+            t={t}
+            isRTL={isRTL}
+            onClose={() => setAiSummaryApplication(null)}
+            onScoreReady={(matchScore, matchLabel) => applyAiMatchScore(aiSummaryApplication.id, matchScore, matchLabel)}
           />
-          <circle
-            cx="39"
-            cy="39"
-            r={radius}
-            stroke="#34d399"
-            strokeWidth="6"
-            fill="none"
-            strokeDasharray={circumference}
-            strokeDashoffset={offset}
-            strokeLinecap="round"
-          />
-        </svg>
-
-        <div className="absolute inset-0 flex items-center justify-center text-[18px] font-extrabold text-white">
-          {value}%
-        </div>
-      </div>
-
-      <span className="text-xs font-medium text-white/60">{label}</span>
-    </div>
-  );
-}
-
-function mapFitLabel(
-  fit: Candidate["fit"],
-  fitLabels: { high?: string; medium?: string },
-  lowFitLabel: string
-) {
-  if (fit === "High Fit") return fitLabels.high || "High Fit";
-  if (fit === "Medium Fit") return fitLabels.medium || "Medium Fit";
-  return lowFitLabel || "Low Fit";
-}
-
-function FilterSelect({
-  icon,
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: string[];
-}) {
-  return (
-    <div>
-      <label className="mb-2 flex items-center gap-2 text-[15px] text-white/70">
-        <span className="text-white/60">{icon}</span>
-        {label}
-      </label>
-
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-[14px] border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition focus:border-cyan-400/40"
-      >
-        {options.map((option) => (
-          <option key={option} value={option} className="bg-[#1d2258] text-white">
-            {option}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-function RangeFilter({
-  icon,
-  label,
-  value,
-  onChange,
-  min,
-  max,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-  min: number;
-  max: number;
-}) {
-  return (
-    <div>
-      <label className="mb-3 flex items-center gap-2 text-[15px] text-white/70">
-        <span className="text-white/60">{icon}</span>
-        {label}
-      </label>
-
-      <input
-        type="range"
-        min={min}
-        max={max}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full accent-cyan-400"
-      />
-    </div>
-  );
-}
-
-function StatCard({
-  icon,
-  value,
-  label,
-}: {
-  icon: React.ReactNode;
-  value: string;
-  label: string;
-}) {
-  return (
-    <div className="rounded-[20px] border border-white/10 bg-white/[0.04] p-5 text-center">
-      <div className="mb-3 flex justify-center text-cyan-300">{icon}</div>
-      <div className="text-[20px] font-extrabold text-white">{value}</div>
-      <div className="text-sm text-white/50">{label}</div>
-    </div>
-  );
-}
-
-function ScoreBar({
-  label,
-  value,
-  gradient,
-}: {
-  label: string;
-  value: number;
-  gradient?: string;
-}) {
-  return (
-    <div>
-      <div className="mb-1 flex items-center justify-between text-sm">
-        <span className="text-white/70">{label}</span>
-        <span className="font-semibold text-white/85">{value}%</span>
-      </div>
-
-      <div className="h-3 w-full overflow-hidden rounded-full bg-white/10">
-        <div
-          className={`h-full rounded-full ${
-            gradient
-              ? `bg-gradient-to-r ${gradient}`
-              : "bg-gradient-to-r from-cyan-400 via-blue-500 to-violet-500"
-          }`}
-          style={{ width: `${value}%` }}
-        />
+        )}
       </div>
     </div>
   );

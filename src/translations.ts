@@ -261,7 +261,7 @@ plan: {
         jobPosts: "Job Posts",
         candidates: "Candidates",
         applications: "Applications",
-        companyScore: "Company Score",
+        avgMatchScore: "Avg Match Score",
       },
       recentJobs: {
         title: "Recent Job Posts",
@@ -277,6 +277,7 @@ plan: {
         title: "Recent Activity",
         subtitle: "Applications",
         viewAll: "View All Applications",
+        none: "No applications yet.",
       },
       quickActions: {
         title: "Quick Actions",
@@ -316,6 +317,7 @@ plan: {
       },
       candidateHints: {
         recommended: "AI-recommended for your openings",
+        none: "No scored candidates yet. Open \"AI Summary\" on an application to generate one.",
       },
       match: "Match",
 remote: "Remote",
@@ -925,22 +927,27 @@ plan: {
 
     companyCandidatesPage: {
       title: "Candidates",
-      subtitle: "Explore and review matched candidates",
-      allCandidates: "All Candidates",
-      matchedCandidates: "Matched Candidates",
-      filterByIndustry: "Filter by Industry",
-      filterByLevel: "Filter by Level",
-      viewProfile: "View Profile",
+      subtitle: "Everyone who has applied to your job postings",
+      searchPlaceholder: "Search by name, email, or job title...",
+      candidatesMatchCriteria: "candidates",
+      noCandidatesYet: "No candidates yet. They'll appear here once someone applies to one of your jobs.",
+      noCandidatesForFilters: "No candidates match your search.",
       contactCandidate: "Contact Candidate",
-      noCandidates: "No candidates found",
-      noCandidatesText: "Try adjusting your filters or post a new job.",
-      smartFilters: "Smart Filters",
-refineSearch: "Refine your search",
-minMatch: "Min Match",
-minSalary: "Min Salary",
-recommendation: "Recommendation",
-minPreInterviewScore: "Min Pre-Interview Score",
-all: "All",
+      contactCandidateWith: "Contact",
+      scheduleInterview: "Schedule Interview",
+      withCandidate: "With",
+      applications: "Applications",
+      messageSent: "Message sent!",
+      send: "Send",
+      date: "Date",
+      time: "Time",
+      interviewType: "Interview Type",
+      online: "Online",
+      inPerson: "In Person",
+      notes: "Notes",
+      addInterviewNotes: "Add interview notes...",
+      confirmSchedule: "Confirm Schedule",
+      interviewScheduledWith: "Interview scheduled with",
     },
 
     companyApplicationsPage: {
@@ -978,12 +985,33 @@ all: "All",
   location: "Location",
 
   matchScore: "Match Score",
+  matchLabel: "Match",
+  notScoredYet: "Not scored yet",
   interviewScore: "Interview Score",
   stage: "Stage",
 
   highFitText: "Strong candidate for next stage",
   mediumFitText: "Worth reviewing carefully",
   lowFitText: "Lower priority candidate",
+
+  aiRank: "AI Rank",
+  sortByAiRanking: "Sort by AI Ranking",
+  sortByDate: "Sort by Application Date",
+
+  aiSummary: "AI Summary",
+  aiSummaryModal: {
+    subtitle: "AI-generated candidate briefing",
+    aiMatchScore: "AI Match Score",
+    professionalBackground: "Professional Background",
+    keySkills: "Key Technical Skills",
+    yearsOfExperience: "Years of Experience",
+    strengths: "Main Strengths",
+    weaknesses: "Potential Weaknesses / Missing Skills",
+    overallSuitability: "Overall Suitability",
+    generating: "Generating AI summary...",
+    noAnalysis: "This candidate has not completed a CV analysis yet, so an AI summary is not available.",
+    loadError: "Could not generate the AI summary. Please try again.",
+  },
 },
 
     companyNotificationsPage: {
@@ -995,21 +1023,6 @@ all: "All",
       noNotifications: "No notifications yet",
       noNotificationsText:
         "When new updates arrive, they will appear here.",
-      notification1Title: "New Job Match!",
-      notification1Message:
-        "Senior Frontend Developer at TechCorp matches 92% with your profile",
-      notification2Title: "Application Status Updated",
-      notification2Message:
-        'Your application for Full Stack Engineer at StartupXYZ moved to "Under Review"',
-      notification3Title: "Profile Tip",
-      notification3Message:
-        "Add your certifications to improve your match score by up to 15%",
-      notification4Title: "High Match Alert",
-      notification4Message:
-        "React Developer at InnovateLab - 85% match. Apply now!",
-      notification5Title: "Interview Request",
-      notification5Message:
-        "Congratulations! DesignCo wants to schedule an interview",
     },
 
     forgotPasswordPage: {
@@ -1439,7 +1452,7 @@ all: "All",
         jobPosts: "الوظائف المنشورة",
         candidates: "المرشحون",
         applications: "الطلبات",
-        companyScore: "تقييم الشركة",
+        avgMatchScore: "متوسط نسبة التطابق",
       },
       recentJobs: {
         title: "أحدث الوظائف المنشورة",
@@ -1455,6 +1468,7 @@ all: "All",
         title: "النشاط الأخير",
         subtitle: "الطلبات",
         viewAll: "عرض كل الطلبات",
+        none: "لا توجد طلبات بعد.",
       },
       quickActions: {
         title: "إجراءات سريعة",
@@ -1494,6 +1508,7 @@ all: "All",
       },
       candidateHints: {
         recommended: "مقترحون بالذكاء الاصطناعي لوظائفك",
+        none: "لا يوجد مرشحون تم تقييمهم بعد. افتح \"ملخص الذكاء الاصطناعي\" في أحد الطلبات لإنشاء تقييم.",
       },
       match: "تطابق",
 remote: "عن بعد",
@@ -2089,22 +2104,27 @@ jobMatches: {
 
     companyCandidatesPage: {
       title: "المرشحون",
-      subtitle: "استعرض وراجع المرشحين المطابقين",
-      allCandidates: "كل المرشحين",
-      matchedCandidates: "المرشحون المطابقون",
-      filterByIndustry: "تصفية حسب المجال",
-      filterByLevel: "تصفية حسب المستوى",
-      viewProfile: "عرض الملف",
+      subtitle: "جميع من تقدموا للوظائف التي نشرتها",
+      searchPlaceholder: "ابحث بالاسم أو البريد الإلكتروني أو اسم الوظيفة...",
+      candidatesMatchCriteria: "مرشحون",
+      noCandidatesYet: "لا يوجد مرشحون بعد. سيظهرون هنا بمجرد تقديم أحدهم على إحدى وظائفك.",
+      noCandidatesForFilters: "لا يوجد مرشحون يطابقون بحثك.",
       contactCandidate: "التواصل مع المرشح",
-      noCandidates: "لم يتم العثور على مرشحين",
-      noCandidatesText: "جرّب تعديل الفلاتر أو نشر وظيفة جديدة.",
-      smartFilters: "فلاتر ذكية",
-refineSearch: "خصّصي البحث",
-minMatch: "أقل نسبة تطابق",
-minSalary: "الحد الأدنى للراتب",
-recommendation: "التوصية",
-minPreInterviewScore: "أقل درجة ما قبل المقابلة",
-all: "الكل",
+      contactCandidateWith: "التواصل مع",
+      scheduleInterview: "جدولة مقابلة",
+      withCandidate: "مع",
+      applications: "الطلبات",
+      messageSent: "تم إرسال الرسالة!",
+      send: "إرسال",
+      date: "التاريخ",
+      time: "الوقت",
+      interviewType: "نوع المقابلة",
+      online: "عبر الإنترنت",
+      inPerson: "حضوري",
+      notes: "ملاحظات",
+      addInterviewNotes: "أضف ملاحظات المقابلة...",
+      confirmSchedule: "تأكيد الجدولة",
+      interviewScheduledWith: "تم جدولة مقابلة مع",
     },
 
 companyApplicationsPage: {
@@ -2142,12 +2162,33 @@ companyApplicationsPage: {
   location: "الموقع",
 
   matchScore: "نسبة التطابق",
+  matchLabel: "تطابق",
+  notScoredYet: "لم يتم التقييم بعد",
   interviewScore: "درجة المقابلة",
   stage: "المرحلة",
 
   highFitText: "مرشح قوي للمرحلة القادمة",
   mediumFitText: "يستحق المراجعة",
   lowFitText: "أولوية منخفضة",
+
+  aiRank: "الترتيب بالذكاء الاصطناعي",
+  sortByAiRanking: "الترتيب حسب تقييم الذكاء الاصطناعي",
+  sortByDate: "الترتيب حسب تاريخ التقديم",
+
+  aiSummary: "ملخص الذكاء الاصطناعي",
+  aiSummaryModal: {
+    subtitle: "ملخص المرشح بواسطة الذكاء الاصطناعي",
+    aiMatchScore: "نسبة التطابق بالذكاء الاصطناعي",
+    professionalBackground: "الخلفية المهنية",
+    keySkills: "المهارات التقنية الأساسية",
+    yearsOfExperience: "سنوات الخبرة",
+    strengths: "نقاط القوة الرئيسية",
+    weaknesses: "نقاط الضعف المحتملة / المهارات الناقصة",
+    overallSuitability: "مدى الملاءمة العامة",
+    generating: "جارٍ إنشاء ملخص الذكاء الاصطناعي...",
+    noAnalysis: "لم يكمل هذا المرشح تحليل السيرة الذاتية بعد، لذا لا يمكن إنشاء ملخص ذكاء اصطناعي.",
+    loadError: "تعذّر إنشاء ملخص الذكاء الاصطناعي. يرجى المحاولة مرة أخرى.",
+  },
 },
 
     companyNotificationsPage: {
@@ -2159,21 +2200,6 @@ companyApplicationsPage: {
       noNotifications: "لا توجد إشعارات بعد",
       noNotificationsText:
         "أنت على اطلاع كامل. ستظهر التحديثات الجديدة هنا.",
-      notification1Title: "تطابق وظيفي جديد!",
-      notification1Message:
-        "وظيفة مطوّر واجهات أمامية أول في TechCorp تتطابق بنسبة 92% مع ملفك الشخصي",
-      notification2Title: "تحديث حالة الطلب",
-      notification2Message:
-        'تم نقل طلبك لوظيفة مهندس Full Stack في StartupXYZ إلى "قيد المراجعة"',
-      notification3Title: "نصيحة للملف الشخصي",
-      notification3Message:
-        "أضف شهاداتك لتحسين نسبة التطابق حتى 15%",
-      notification4Title: "تنبيه تطابق عالٍ",
-      notification4Message:
-        "وظيفة مطوّر React في InnovateLab - تطابق 85%. قدّم الآن!",
-      notification5Title: "طلب مقابلة",
-      notification5Message:
-        "تهانينا! ترغب شركة DesignCo في تحديد موعد لمقابلة معك",
     },
 
     forgotPasswordPage: {
@@ -2601,7 +2627,7 @@ companyApplicationsPage: {
         jobPosts: "משרות שפורסמו",
         candidates: "מועמדים",
         applications: "הגשות",
-        companyScore: "ציון חברה",
+        avgMatchScore: "ציון התאמה ממוצע",
       },
       recentJobs: {
         title: "משרות אחרונות",
@@ -2617,6 +2643,7 @@ companyApplicationsPage: {
         title: "פעילות אחרונה",
         subtitle: "הגשות",
         viewAll: "צפה בכל ההגשות",
+        none: "אין עדיין הגשות.",
       },
       quickActions: {
         title: "פעולות מהירות",
@@ -2656,6 +2683,7 @@ companyApplicationsPage: {
       },
       candidateHints: {
         recommended: "מומלצים על ידי AI עבור המשרות שלך",
+        none: "עדיין אין מועמדים מדורגים. פתח \"סיכום AI\" בהגשה כלשהי כדי ליצור דירוג.",
       },
       match: "התאמה",
 remote: "מרחוק",
@@ -3251,22 +3279,27 @@ plan: {
 
     companyCandidatesPage: {
       title: "מועמדים",
-      subtitle: "סקור מועמדים תואמים",
-      allCandidates: "כל המועמדים",
-      matchedCandidates: "מועמדים תואמים",
-      filterByIndustry: "סנן לפי תחום",
-      filterByLevel: "סנן לפי רמה",
-      viewProfile: "צפה בפרופיל",
+      subtitle: "כל מי שהגיש מועמדות למשרות שפרסמת",
+      searchPlaceholder: "חפש לפי שם, אימייל או שם משרה...",
+      candidatesMatchCriteria: "מועמדים",
+      noCandidatesYet: "עדיין אין מועמדים. הם יופיעו כאן ברגע שמישהו יגיש מועמדות לאחת המשרות שלך.",
+      noCandidatesForFilters: "אין מועמדים התואמים לחיפוש שלך.",
       contactCandidate: "צור קשר עם מועמד",
-      noCandidates: "לא נמצאו מועמדים",
-      noCandidatesText: "נסה לשנות את המסננים או לפרסם משרה חדשה.",
-      smartFilters: "סינון חכם",
-refineSearch: "התאימי את החיפוש",
-minMatch: "התאמה מינימלית",
-minSalary: "שכר מינימלי",
-recommendation: "המלצה",
-minPreInterviewScore: "ציון מינימלי לקדם ראיון",
-all: "הכול",
+      contactCandidateWith: "צור קשר עם",
+      scheduleInterview: "קבע ראיון",
+      withCandidate: "עם",
+      applications: "הגשות",
+      messageSent: "ההודעה נשלחה!",
+      send: "שלח",
+      date: "תאריך",
+      time: "שעה",
+      interviewType: "סוג הראיון",
+      online: "מקוון",
+      inPerson: "פרונטלי",
+      notes: "הערות",
+      addInterviewNotes: "הוסף הערות לראיון...",
+      confirmSchedule: "אשר קביעה",
+      interviewScheduledWith: "נקבע ראיון עם",
     },
 companyApplicationsPage: {
   title: "מועמדויות",
@@ -3303,12 +3336,33 @@ companyApplicationsPage: {
   location: "מיקום",
 
   matchScore: "ציון התאמה",
+  matchLabel: "התאמה",
+  notScoredYet: "עדיין לא דורג",
   interviewScore: "ציון ריאיון",
   stage: "שלב",
 
   highFitText: "מועמד חזק לשלב הבא",
   mediumFitText: "כדאי לבדוק",
   lowFitText: "עדיפות נמוכה",
+
+  aiRank: "דירוג AI",
+  sortByAiRanking: "מיין לפי דירוג AI",
+  sortByDate: "מיין לפי תאריך הגשה",
+
+  aiSummary: "סיכום AI",
+  aiSummaryModal: {
+    subtitle: "תדריך מועמד שנוצר על ידי AI",
+    aiMatchScore: "ציון התאמה AI",
+    professionalBackground: "רקע מקצועי",
+    keySkills: "כישורים טכניים עיקריים",
+    yearsOfExperience: "שנות ניסיון",
+    strengths: "חוזקות עיקריות",
+    weaknesses: "חולשות אפשריות / כישורים חסרים",
+    overallSuitability: "התאמה כללית",
+    generating: "יוצר סיכום AI...",
+    noAnalysis: "המועמד עדיין לא השלים ניתוח קורות חיים, לכן לא ניתן ליצור סיכום AI.",
+    loadError: "לא ניתן היה ליצור את סיכום ה-AI. אנא נסה שוב.",
+  },
 },
 
     companyNotificationsPage: {
@@ -3320,21 +3374,6 @@ companyApplicationsPage: {
       noNotifications: "אין התראות עדיין",
       noNotificationsText:
         "אתה מעודכן. עדכונים חדשים יופיעו כאן.",
-      notification1Title: "התאמת עבודה חדשה!",
-      notification1Message:
-        "מפתח/ת Frontend בכיר/ה בחברת TechCorp מתאים ב-92% לפרופיל שלך",
-      notification2Title: "עדכון סטטוס מועמדות",
-      notification2Message:
-        'המועמדות שלך למשרת Full Stack Engineer בחברת StartupXYZ עברה ל"בבדיקה"',
-      notification3Title: "טיפ לשיפור הפרופיל",
-      notification3Message:
-        "הוסף/י את ההסמכות שלך כדי לשפר את ציון ההתאמה בעד 15%",
-      notification4Title: "התראת התאמה גבוהה",
-      notification4Message:
-        "מפתח/ת React בחברת InnovateLab - התאמה של 85%. הגש/י מועמדות עכשיו!",
-      notification5Title: "בקשה לראיון",
-      notification5Message:
-        "מזל טוב! חברת DesignCo מעוניינת לקבוע איתך ראיון",
     },
 
     forgotPasswordPage: {

@@ -459,7 +459,7 @@ function JobMatches() {
       location: backendJob.location || "Not specified",
       remote: normalize(backendJob.type).includes("remote"),
       experience: inferExperience(backendJob),
-      salary: backendJob.salary || "$50k - $80k",
+      salary: backendJob.salary || "Not specified",
       level: inferLevel(backendJob),
       status: "Active",
       industry: inferIndustry(backendJob),

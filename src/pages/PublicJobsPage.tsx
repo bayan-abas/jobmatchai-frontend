@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
@@ -12,6 +12,17 @@ import {
 import AIChatButton from "../components/AIChatButton";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
+import { apiFetch } from "../utils/api";
+
+type BackendJob = {
+  id: number;
+  title: string | null;
+  companyName: string | null;
+  location: string | null;
+  type: string | null;
+  description: string | null;
+  skills: string | null;
+};
 
 type Job = {
   id: number;
@@ -19,10 +30,24 @@ type Job = {
   company: string;
   location: string;
   type: string;
-  level: string;
   description: string;
   skills: string[];
 };
+
+function mapJob(job: BackendJob): Job {
+  return {
+    id: job.id,
+    title: job.title || "Untitled Role",
+    company: job.companyName || "Unknown Company",
+    location: job.location || "Not specified",
+    type: job.type || "Not specified",
+    description: job.description || "",
+    skills: (job.skills || "")
+      .split(/[,;\n]/)
+      .map((s) => s.trim())
+      .filter(Boolean),
+  };
+}
 
 function PublicJobsPage() {
   const navigate = useNavigate();
@@ -31,82 +56,45 @@ function PublicJobsPage() {
   const p = t.publicJobsPage;
   const isRTL = language === "ar" || language === "he";
 
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [locationFilter, setLocationFilter] = useState("All Locations");
   const [typeFilter, setTypeFilter] = useState("All Types");
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  const publicJobs: Job[] = [
-    {
-      id: 1,
-      title: "Frontend Developer",
-      company: "TechNova",
-      location: "Tel Aviv",
-      type: "Full-time",
-      level: "Mid-Level",
-      description:
-        "Build modern user interfaces using React and TypeScript in a fast-growing product team.",
-      skills: ["React", "TypeScript", "CSS"],
-    },
-    {
-      id: 2,
-      title: "UI/UX Designer",
-      company: "PixelCore",
-      location: "Haifa",
-      type: "Full-time",
-      level: "Junior",
-      description:
-        "Design intuitive and engaging user experiences for web and mobile platforms.",
-      skills: ["Figma", "UI Design", "UX Research"],
-    },
-    {
-      id: 3,
-      title: "Full Stack Developer",
-      company: "CloudEdge",
-      location: "Remote",
-      type: "Remote",
-      level: "Senior",
-      description:
-        "Work across frontend and backend to deliver scalable web solutions.",
-      skills: ["React", "Node.js", "MongoDB"],
-    },
-    {
-      id: 4,
-      title: "Product Designer",
-      company: "VisionSoft",
-      location: "Jerusalem",
-      type: "Part-time",
-      level: "Mid-Level",
-      description:
-        "Create product experiences that balance user needs and business goals.",
-      skills: ["Product Design", "Wireframing", "Prototyping"],
-    },
-    {
-      id: 5,
-      title: "Backend Developer",
-      company: "DataNova",
-      location: "Tel Aviv",
-      type: "Full-time",
-      level: "Senior",
-      description:
-        "Develop scalable APIs and backend services for high-performance applications.",
-      skills: ["Node.js", "Express", "PostgreSQL"],
-    },
-    {
-      id: 6,
-      title: "QA Engineer",
-      company: "BrightSoft",
-      location: "Haifa",
-      type: "Part-time",
-      level: "Junior",
-      description:
-        "Support product quality through manual and automated testing processes.",
-      skills: ["Testing", "Automation", "Cypress"],
-    },
-  ];
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+
+    apiFetch("/api/jobs/all")
+      .then((data: BackendJob[]) => {
+        if (cancelled) return;
+        setJobs(Array.isArray(data) ? data.map(mapJob) : []);
+      })
+      .catch(() => {
+        if (!cancelled) setJobs([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const locationOptions = useMemo(() => {
+    return Array.from(new Set(jobs.map((job) => job.location))).sort();
+  }, [jobs]);
+
+  const typeOptions = useMemo(() => {
+    return Array.from(new Set(jobs.map((job) => job.type))).sort();
+  }, [jobs]);
 
   const filteredJobs = useMemo(() => {
-    return publicJobs.filter((job) => {
+    return jobs.filter((job) => {
       const matchesSearch =
         job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -120,7 +108,7 @@ function PublicJobsPage() {
 
       return matchesSearch && matchesLocation && matchesType;
     });
-  }, [searchTerm, locationFilter, typeFilter]);
+  }, [jobs, searchTerm, locationFilter, typeFilter]);
 
   const handleProtectedAction = () => {
     setShowAuthModal(true);
@@ -234,10 +222,11 @@ function PublicJobsPage() {
               className="rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none"
             >
               <option className="text-black" value="All Locations">{p.allLocations}</option>
-              <option className="text-black" value="Tel Aviv">Tel Aviv</option>
-              <option className="text-black" value="Haifa">Haifa</option>
-              <option className="text-black" value="Jerusalem">Jerusalem</option>
-              <option className="text-black" value="Remote">Remote</option>
+              {locationOptions.map((location) => (
+                <option className="text-black" key={location} value={location}>
+                  {location}
+                </option>
+              ))}
             </select>
 
             <select
@@ -246,13 +235,22 @@ function PublicJobsPage() {
               className="rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none"
             >
               <option className="text-black" value="All Types">{p.allTypes}</option>
-              <option className="text-black" value="Full-time">Full-time</option>
-              <option className="text-black" value="Part-time">Part-time</option>
-              <option className="text-black" value="Remote">Remote</option>
+              {typeOptions.map((type) => (
+                <option className="text-black" key={type} value={type}>
+                  {type}
+                </option>
+              ))}
             </select>
           </div>
         </section>
 
+        {loading && (
+          <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-6 py-12 text-center text-white/65">
+            {t.common.loading || "Loading..."}
+          </div>
+        )}
+
+        {!loading && (
         <section className="grid gap-5">
           {filteredJobs.map((job) => (
             <div
@@ -262,9 +260,6 @@ function PublicJobsPage() {
               <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0 flex-1">
                   <div className="mb-3 flex flex-wrap items-center gap-3">
-                    <span className="rounded-full bg-violet-500/15 px-3 py-1 text-xs font-semibold text-violet-300">
-                      {job.level}
-                    </span>
                     <span className="rounded-full bg-cyan-500/15 px-3 py-1 text-xs font-semibold text-cyan-300">
                       {p.aiOpportunity}
                     </span>
@@ -336,6 +331,7 @@ function PublicJobsPage() {
             </div>
           )}
         </section>
+        )}
       </main>
 
       {showAuthModal && (

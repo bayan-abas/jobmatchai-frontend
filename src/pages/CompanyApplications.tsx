@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
 import { apiFetch, ApiError } from "../utils/api";
+import { getMatchTier, getMatchLabel, getRecommendation } from "../utils/matchScore";
+import CandidateAiSummaryModal from "../components/CandidateAiSummaryModal";
 import {
   ArrowLeft,
   FileText,
@@ -18,6 +20,9 @@ import {
   Clock3,
   X,
   Download,
+  Sparkles,
+  Trophy,
+  ArrowUpDown,
 } from "lucide-react";
 
 type ApplicationStage =
@@ -35,6 +40,7 @@ type ApplicationItem = {
   jobTitle: string;
   date: string;
   match: number | null;
+  matchLabel: string | null;
   fit: FitLevel | null;
   stage: ApplicationStage;
   currentStep: number;
@@ -50,6 +56,7 @@ type BackendApplicant = {
   status: string | null;
   appliedDate: string | null;
   matchPercent: number | null;
+  matchLabel: string | null;
 };
 
 function deriveFit(match: number | null): FitLevel | null {
@@ -65,6 +72,24 @@ function deriveStage(status: string | null): ApplicationStage {
   if (normalized === "shortlisted") return "Shortlisted";
   if (normalized === "screening") return "Screening";
   return "New";
+}
+
+// Highest match score first; ties broken by earliest application date, then by
+// application id — both stable, real values, so the order never changes between
+// page loads or repeated clicks. Unscored applicants (match === null) sort last,
+// since -1 is always lower than any real 0-100 score.
+function compareByAiRank(a: ApplicationItem, b: ApplicationItem) {
+  const scoreDiff = (b.match ?? -1) - (a.match ?? -1);
+  if (scoreDiff !== 0) return scoreDiff;
+  const dateDiff = (a.date || "").localeCompare(b.date || "");
+  if (dateDiff !== 0) return dateDiff;
+  return a.id - b.id;
+}
+
+function compareByDateDesc(a: ApplicationItem, b: ApplicationItem) {
+  const dateDiff = (b.date || "").localeCompare(a.date || "");
+  if (dateDiff !== 0) return dateDiff;
+  return a.id - b.id;
 }
 
 function deriveStep(stage: ApplicationStage): number {
@@ -85,6 +110,7 @@ function mapApplicant(item: BackendApplicant): ApplicationItem {
     jobTitle: item.jobTitle || "Untitled Role",
     date: item.appliedDate || "",
     match,
+    matchLabel: item.matchLabel ?? (match !== null ? getMatchLabel(match) : null),
     fit: deriveFit(match),
     stage,
     currentStep: deriveStep(stage),
@@ -101,14 +127,17 @@ function CompanyApplications() {
   const t = translations[language] || translations.en;
   const page = t.companyApplicationsPage || {};
   const common = t.common || {};
-  const companyDashboard = t.companyDashboard || {};
-  const fitLabels = companyDashboard.fitLabels || {};
   const isRTL = language === "ar" || language === "he";
 
   const [activeTab, setActiveTab] = useState<
     "All" | "New" | "Screening" | "Shortlisted" | "Decided"
   >("All");
+  // AI Ranking only makes sense within a single job posting's candidate pool,
+  // so it's the default sort whenever the list is scoped to one job.
+  const [sortMode, setSortMode] = useState<"aiRank" | "date">(filterJobId ? "aiRank" : "date");
   const [selectedApplication, setSelectedApplication] =
+    useState<ApplicationItem | null>(null);
+  const [aiSummaryApplication, setAiSummaryApplication] =
     useState<ApplicationItem | null>(null);
 
   const [showContactModal, setShowContactModal] = useState(false);
@@ -171,26 +200,43 @@ function CompanyApplications() {
     return applications.filter((app) => app.stage === activeTab);
   }, [activeTab, applications]);
 
+  // AI Rank (#1, #2, ...) is computed once from the full job-scoped candidate pool
+  // (not the tab-filtered view), so a candidate's rank stays the same no matter
+  // which stage tab is active. Only scored candidates receive a rank.
+  const rankByApplicationId = useMemo(() => {
+    if (!filterJobId) return new Map<number, number>();
+
+    const ranked = new Map<number, number>();
+    let rank = 0;
+
+    for (const app of [...applications].sort(compareByAiRank)) {
+      if (app.match === null) continue;
+      rank += 1;
+      ranked.set(app.id, rank);
+    }
+
+    return ranked;
+  }, [applications, filterJobId]);
+
+  const sortedApplications = useMemo(() => {
+    const comparator = sortMode === "aiRank" ? compareByAiRank : compareByDateDesc;
+    return [...filteredApplications].sort(comparator);
+  }, [filteredApplications, sortMode]);
+
   const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
-  const getFitStyles = (fit: FitLevel | null) => {
-    if (fit === "High Fit") {
-      return "bg-emerald-500/15 text-emerald-300 border border-emerald-400/20";
-    }
-    if (fit === "Medium Fit") {
-      return "bg-amber-500/15 text-amber-300 border border-amber-400/20";
-    }
-    if (fit === "Low Fit") {
-      return "bg-rose-500/15 text-rose-300 border border-rose-400/20";
-    }
-    return "bg-white/10 text-white/50 border border-white/15";
+  // Single badge styling/label for the AI match score, shared by the card badge, the
+  // detail-page header badge, and the ring caption below it — so the exact same score
+  // never renders two different labels (e.g. "Medium Fit" next to "Strong Match").
+  const getScoreBadgeStyles = (match: number | null) => {
+    if (match === null) return "bg-white/10 text-white/50 border border-white/15";
+    const tier = getMatchTier(match);
+    return `${tier.bg} ${tier.text} border ${tier.border}`;
   };
 
-  const getFitLabel = (fit: FitLevel | null) => {
-    if (fit === "High Fit") return fitLabels.high || "High Fit";
-    if (fit === "Medium Fit") return fitLabels.medium || "Medium Fit";
-    if (fit === "Low Fit") return page.lowFit || "Low Fit";
-    return "Not Scored";
+  const getScoreBadgeLabel = (match: number | null, matchLabel: string | null) => {
+    if (match === null) return page.notScoredYet || "Not scored yet";
+    return matchLabel || getMatchLabel(match);
   };
 
   const getStageLabel = (stage: ApplicationStage) => {
@@ -226,6 +272,18 @@ function CompanyApplications() {
 
   const handleReject = (id: number) => {
     applyStatusUpdate(id, "Rejected");
+  };
+
+  const applyAiMatchScore = (id: number, matchScore: number, matchLabel: string) => {
+    const patch = { match: matchScore, matchLabel: matchLabel || getMatchLabel(matchScore), fit: deriveFit(matchScore) };
+
+    setApplications((prev) =>
+      prev.map((app) => (app.id === id && app.match !== matchScore ? { ...app, ...patch } : app))
+    );
+
+    setSelectedApplication((prev) =>
+      prev && prev.id === id && prev.match !== matchScore ? { ...prev, ...patch } : prev
+    );
   };
 
   const openContactModal = (app: ApplicationItem) => {
@@ -305,21 +363,41 @@ function CompanyApplications() {
               </div>
             )}
 
-            <div className="mb-6 flex w-fit flex-wrap gap-2 rounded-[18px] border border-white/10 bg-white/[0.04] p-2">
-              {tabs.map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setActiveTab(tab)}
-                  className={`rounded-[12px] px-4 py-2 text-sm font-semibold transition ${
-                    activeTab === tab
-                      ? "border border-[#7d86ff]/30 bg-[#5964ff]/30 text-[#cfd5ff]"
-                      : "text-white/60 hover:bg-white/5 hover:text-white"
-                  }`}
-                >
-                  {page.tabs?.[tab] || tab}
-                </button>
-              ))}
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex w-fit flex-wrap gap-2 rounded-[18px] border border-white/10 bg-white/[0.04] p-2">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setActiveTab(tab)}
+                    className={`rounded-[12px] px-4 py-2 text-sm font-semibold transition ${
+                      activeTab === tab
+                        ? "border border-[#7d86ff]/30 bg-[#5964ff]/30 text-[#cfd5ff]"
+                        : "text-white/60 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    {page.tabs?.[tab] || tab}
+                  </button>
+                ))}
+              </div>
+
+              {filterJobId && (
+                <div className="flex items-center gap-2 rounded-[14px] border border-white/10 bg-white/[0.04] px-3 py-2">
+                  <ArrowUpDown size={16} className="text-white/45" />
+                  <select
+                    value={sortMode}
+                    onChange={(e) => setSortMode(e.target.value as "aiRank" | "date")}
+                    className="bg-transparent text-sm font-semibold text-white/80 outline-none"
+                  >
+                    <option value="aiRank" className="bg-[#1d2258] text-white">
+                      {page.sortByAiRanking || "Sort by AI Ranking"}
+                    </option>
+                    <option value="date" className="bg-[#1d2258] text-white">
+                      {page.sortByDate || "Sort by Application Date"}
+                    </option>
+                  </select>
+                </div>
+              )}
             </div>
 
             {loading && (
@@ -330,7 +408,10 @@ function CompanyApplications() {
 
             {!loading && (
             <div className="space-y-5">
-              {filteredApplications.map((app) => (
+              {sortedApplications.map((app) => {
+                const aiRank = rankByApplicationId.get(app.id);
+
+                return (
                 <div
                   key={app.id}
                   className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]"
@@ -347,12 +428,19 @@ function CompanyApplications() {
                             {app.name}
                           </h2>
 
+                          {aiRank !== undefined && (
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/25 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-300">
+                              <Trophy size={12} />
+                              {(page.aiRank || "AI Rank")} #{aiRank}
+                            </span>
+                          )}
+
                           <span
-                            className={`rounded-full px-3 py-1 text-xs font-bold ${getFitStyles(
-                              app.fit
+                            className={`rounded-full px-3 py-1 text-xs font-bold ${getScoreBadgeStyles(
+                              app.match
                             )}`}
                           >
-                            {getFitLabel(app.fit)}
+                            {getScoreBadgeLabel(app.match, app.matchLabel)}
                           </span>
                         </div>
 
@@ -367,11 +455,31 @@ function CompanyApplications() {
 
                     <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
                       <div className="flex items-center gap-6">
-                        {app.match !== null ? (
-                          <ScoreRing value={app.match} />
-                        ) : (
-                          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full border border-white/10 bg-white/5 px-2 text-center text-[11px] font-semibold text-white/40">
-                            {page.matchScore ? "No " + page.matchScore : "No Score"}
+                        {app.match !== null ? (() => {
+                          const tier = getMatchTier(app.match);
+                          return (
+                            <div className="flex flex-col items-center gap-1">
+                              <ScoreRing value={app.match} color={tier.ring} />
+                              <span className={`flex items-center gap-1 text-[12px] font-bold ${tier.text}`}>
+                                <span>{tier.emoji}</span>
+                                {app.match}% {page.matchLabel || "Match"}
+                              </span>
+                              <span className="text-[11px] font-semibold text-white/45">
+                                {app.matchLabel || getMatchLabel(app.match)}
+                              </span>
+                              <span className={`mt-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${tier.bg} ${tier.text} ${tier.border}`}>
+                                {getRecommendation(app.match)}
+                              </span>
+                            </div>
+                          );
+                        })() : (
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full border border-white/10 bg-white/5 text-center text-[13px] font-semibold text-white/30">
+                              —
+                            </div>
+                            <span className="text-[11px] font-semibold text-white/40">
+                              {page.notScoredYet || "Not scored yet"}
+                            </span>
                           </div>
                         )}
                       </div>
@@ -399,6 +507,15 @@ function CompanyApplications() {
 
                         <button
                           type="button"
+                          onClick={() => setAiSummaryApplication(app)}
+                          className="inline-flex items-center gap-2 rounded-[12px] border border-violet-400/30 bg-violet-500/10 px-4 py-2 text-sm font-semibold text-violet-200 transition hover:bg-violet-500/20"
+                        >
+                          <Sparkles size={16} />
+                          {page.aiSummary || "AI Summary"}
+                        </button>
+
+                        <button
+                          type="button"
                           onClick={() => handleAccept(app.id)}
                           className="inline-flex items-center gap-2 rounded-[12px] bg-emerald-500/20 px-4 py-2 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/30"
                         >
@@ -418,9 +535,10 @@ function CompanyApplications() {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
 
-              {filteredApplications.length === 0 && (
+              {sortedApplications.length === 0 && (
                 <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-10 text-center text-white/65">
                   {page.noApplicationsInTab ||
                     "No applications found in this tab."}
@@ -452,11 +570,11 @@ function CompanyApplications() {
                         {selectedApplication.name}
                       </h1>
                       <span
-                        className={`rounded-full px-4 py-2 text-sm font-bold ${getFitStyles(
-                          selectedApplication.fit
+                        className={`rounded-full px-4 py-2 text-sm font-bold ${getScoreBadgeStyles(
+                          selectedApplication.match
                         )}`}
                       >
-                        {getFitLabel(selectedApplication.fit)}
+                        {getScoreBadgeLabel(selectedApplication.match, selectedApplication.matchLabel)}
                       </span>
                     </div>
 
@@ -817,18 +935,31 @@ function CompanyApplications() {
             )}
           </>
         )}
+
+        {aiSummaryApplication && (
+          <CandidateAiSummaryModal
+            applicationId={aiSummaryApplication.id}
+            candidateName={aiSummaryApplication.name}
+            jobTitle={aiSummaryApplication.jobTitle}
+            language={language}
+            t={t}
+            isRTL={isRTL}
+            onClose={() => setAiSummaryApplication(null)}
+            onScoreReady={(matchScore, matchLabel) => applyAiMatchScore(aiSummaryApplication.id, matchScore, matchLabel)}
+          />
+        )}
       </div>
     </div>
   );
 }
 
-function ScoreRing({ value }: { value: number }) {
+function ScoreRing({ value, color = "#8690ff" }: { value: number; color?: string }) {
   return (
     <div className="relative h-[72px] w-[72px]">
       <div
         className="h-full w-full rounded-full"
         style={{
-          background: `conic-gradient(#8690ff ${value * 3.6}deg, rgba(255,255,255,0.12) 0deg)`,
+          background: `conic-gradient(${color} ${value * 3.6}deg, rgba(255,255,255,0.12) 0deg)`,
         }}
       />
       <div className="absolute inset-[6px] flex items-center justify-center rounded-full bg-[#2a2d63] text-[18px] font-extrabold text-white">
