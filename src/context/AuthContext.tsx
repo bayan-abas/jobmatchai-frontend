@@ -10,6 +10,12 @@ export type AuthUser = {
   role: Role;
   cvFileName?: string | null;
   premium?: boolean;
+  phone?: string | null;
+  location?: string | null;
+  currentTitle?: string | null;
+  yearsOfExperience?: string | null;
+  skills?: string | null;
+  professionalSummary?: string | null;
 };
 
 type AuthContextType = {
@@ -18,6 +24,7 @@ type AuthContextType = {
   isLoading: boolean;
   login: (token: string, user: AuthUser) => void;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -83,8 +90,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.setItem(TOKEN_STORAGE_KEY, newToken);
   };
 
+  const refreshUser = async () => {
+    if (!tokenRef.current) {
+      return;
+    }
+
+    try {
+      const me = await apiFetch("/api/auth/me");
+      setUser(me);
+    } catch {
+      // ignore - keep the previously loaded user on a transient failure
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

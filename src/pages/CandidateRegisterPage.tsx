@@ -16,6 +16,9 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { apiFetch, ApiError } from "../utils/api";
+import { ISRAELI_CITIES } from "../utils/israeliCities";
+import { JOB_TITLES, EXPERIENCE_OPTIONS, ALL_SKILLS } from "../utils/candidateOptions";
+import SearchableSelect from "../components/SearchableSelect";
 
 function CandidateRegisterPage() {
   const navigate = useNavigate();
@@ -43,165 +46,6 @@ function CandidateRegisterPage() {
   const [success, setSuccess] = useState("");
 
 
-  const jobTitles = [
-    "Student",
-    "Software Developer",
-    "Frontend Developer",
-    "Backend Developer",
-    "Full Stack Developer",
-    "Mobile Developer",
-    "UI/UX Designer",
-    "Product Designer",
-    "Graphic Designer",
-    "Data Analyst",
-    "Business Analyst",
-    "System Analyst",
-    "Project Manager",
-    "Product Manager",
-    "QA Engineer",
-    "DevOps Engineer",
-    "Cyber Security Analyst",
-    "Cloud Engineer",
-    "Network Engineer",
-    "Database Administrator",
-    "Machine Learning Engineer",
-    "AI Engineer",
-    "HR Specialist",
-    "Recruiter",
-    "Marketing Specialist",
-    "Digital Marketer",
-    "Sales Representative",
-    "Customer Support",
-    "Teacher",
-    "Accountant",
-    "Financial Analyst",
-    "Lawyer",
-    "Doctor",
-    "Nurse",
-    "Pharmacist",
-    "Architect",
-    "Civil Engineer",
-    "Mechanical Engineer",
-    "Electrical Engineer",
-    "Content Creator",
-    "Social Media Manager",
-    "Photographer",
-    "Video Editor",
-    "Translator",
-    "Administrative Assistant",
-    "Operations Manager",
-    "Other",
-  ];
-
-  const experienceOptions = [
-    "No experience",
-    "Less than 1 year",
-    "1 year",
-    "2 years",
-    "3 years",
-    "4 years",
-    "5 years",
-    "6 years",
-    "7 years",
-    "8 years",
-    "9 years",
-    "10+ years",
-  ];
-
-  const allSkills = [
-    "Communication",
-    "Teamwork",
-    "Leadership",
-    "Problem Solving",
-    "Critical Thinking",
-    "Time Management",
-    "Creativity",
-    "Adaptability",
-    "Presentation Skills",
-    "Negotiation",
-    "Sales",
-    "Customer Service",
-    "Project Management",
-    "Marketing",
-    "Digital Marketing",
-    "SEO",
-    "Content Writing",
-    "Copywriting",
-    "Social Media",
-    "Branding",
-    "Recruitment",
-    "HR Management",
-    "Accounting",
-    "Bookkeeping",
-    "Financial Analysis",
-    "Excel",
-    "Word",
-    "PowerPoint",
-    "Data Entry",
-    "Research",
-    "Teaching",
-    "Training",
-    "Coaching",
-    "Public Speaking",
-    "Translation",
-    "Arabic",
-    "Hebrew",
-    "English",
-    "French",
-    "German",
-    "Python",
-    "Java",
-    "JavaScript",
-    "TypeScript",
-    "C",
-    "C++",
-    "C#",
-    "PHP",
-    "Kotlin",
-    "Swift",
-    "Go",
-    "Rust",
-    "SQL",
-    "HTML",
-    "CSS",
-    "React",
-    "Angular",
-    "Vue",
-    "Node.js",
-    "Express.js",
-    "Spring Boot",
-    "Django",
-    "Flask",
-    "Laravel",
-    "REST APIs",
-    "GraphQL",
-    "Git",
-    "GitHub",
-    "Docker",
-    "Kubernetes",
-    "AWS",
-    "Azure",
-    "Google Cloud",
-    "Linux",
-    "Networking",
-    "Cybersecurity",
-    "Penetration Testing",
-    "Machine Learning",
-    "Deep Learning",
-    "Data Analysis",
-    "Data Visualization",
-    "Power BI",
-    "Tableau",
-    "Figma",
-    "Adobe Photoshop",
-    "Illustrator",
-    "Video Editing",
-    "Photography",
-    "AutoCAD",
-    "SAP",
-    "CRM",
-    "ERP",
-  ];
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -341,13 +185,25 @@ try {
 
   login(loginData.token, loginData.user);
 
-  localStorage.setItem("phone", cleanPhone);
-  localStorage.setItem("location", cleanLocation);
-  localStorage.setItem("currentTitle", currentTitle);
-  localStorage.setItem("experience", experience);
-  localStorage.setItem("skills", JSON.stringify(skills));
-  localStorage.setItem("summary", candidateSummary);
-  localStorage.setItem("resumeName", resumeName);
+  try {
+    await apiFetch(`/api/users/${loginData.user.id}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        phone: cleanPhone,
+        location: cleanLocation,
+        currentTitle,
+        yearsOfExperience: experience,
+        skills: skills.join(", "),
+        professionalSummary: candidateSummary,
+      }),
+    });
+  } catch (profileError) {
+    console.error(profileError);
+  }
+
+  if (resumeName) {
+    localStorage.setItem("resumeName", resumeName);
+  }
 
   setSuccess(
     t?.candidateRegisterPage?.success ||
@@ -578,12 +434,13 @@ try {
                     }`}
                     size={18}
                   />
-                  <input
-                    type="text"
-                    name="location"
-                    placeholder={t?.candidateRegisterPage?.location || "Location"}
+                  <SearchableSelect
                     value={formData.location}
-                    onChange={handleChange}
+                    onChange={(value) =>
+                      setFormData((prev) => ({ ...prev, location: value }))
+                    }
+                    options={ISRAELI_CITIES}
+                    placeholder={t?.candidateRegisterPage?.location || "Location"}
                     className={inputClass}
                   />
                 </div>
@@ -595,22 +452,17 @@ try {
                     }`}
                     size={18}
                   />
-                  <select
-                    name="currentTitle"
+                  <SearchableSelect
                     value={formData.currentTitle}
-                    onChange={handleChange}
-                    className={`${inputClass} appearance-none`}
-                  >
-                    <option value="" className="text-black">
-                      {t?.candidateRegisterPage?.selectTitle ||
-                        "Select Current Title"}
-                    </option>
-                    {jobTitles.map((title) => (
-                      <option key={title} value={title} className="text-black">
-                        {title}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(value) =>
+                      setFormData((prev) => ({ ...prev, currentTitle: value }))
+                    }
+                    options={JOB_TITLES}
+                    placeholder={
+                      t?.candidateRegisterPage?.selectTitle || "Select Current Title"
+                    }
+                    className={inputClass}
+                  />
                 </div>
 
                 <div className="relative">
@@ -620,22 +472,17 @@ try {
                     }`}
                     size={18}
                   />
-                  <select
-                    name="experience"
+                  <SearchableSelect
                     value={formData.experience}
-                    onChange={handleChange}
-                    className={`${inputClass} appearance-none`}
-                  >
-                    <option value="" className="text-black">
-                      {t?.candidateRegisterPage?.experience ||
-                        "Years of Experience"}
-                    </option>
-                    {experienceOptions.map((exp) => (
-                      <option key={exp} value={exp} className="text-black">
-                        {exp}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(value) =>
+                      setFormData((prev) => ({ ...prev, experience: value }))
+                    }
+                    options={EXPERIENCE_OPTIONS}
+                    placeholder={
+                      t?.candidateRegisterPage?.experience || "Years of Experience"
+                    }
+                    className={inputClass}
+                  />
                 </div>
 
                 <div className="md:col-span-2">
@@ -644,25 +491,15 @@ try {
                   </label>
 
                   <div className="flex gap-3 max-md:flex-col">
-                    <select
-                      value={selectedSkill}
-                      onChange={(e) => setSelectedSkill(e.target.value)}
-                      className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 text-white outline-none transition focus:border-cyan-400/60 focus:bg-white/10"
-                    >
-                      <option value="" className="text-black">
-                        {t?.candidateRegisterPage?.selectSkill ||
-                          "Select a skill"}
-                      </option>
-                      {allSkills.map((skill) => (
-                        <option
-                          key={skill}
-                          value={skill}
-                          className="text-black"
-                        >
-                          {skill}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="w-full">
+                      <SearchableSelect
+                        value={selectedSkill}
+                        onChange={setSelectedSkill}
+                        options={ALL_SKILLS.filter((skill) => !skills.includes(skill))}
+                        placeholder={t?.candidateRegisterPage?.selectSkill || "Select a skill"}
+                        className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 text-white outline-none transition focus:border-cyan-400/60 focus:bg-white/10"
+                      />
+                    </div>
 
                     <button
                       type="button"

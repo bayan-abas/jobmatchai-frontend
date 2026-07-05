@@ -21,6 +21,7 @@ import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { getRingColor } from "../utils/jobInference";
 import SkillExplanationModal from "../components/SkillExplanationModal";
+import PreInterviewModal from "../components/PreInterviewModal";
 import { apiFetch } from "../utils/api";
 
 type JobType = "internal" | "external";
@@ -96,6 +97,7 @@ function JobDetailsPage() {
   const [applying, setApplying] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
   const [applyMessage, setApplyMessage] = useState("");
+  const [showPreInterviewModal, setShowPreInterviewModal] = useState(false);
 
   useEffect(() => {
     if (!jobId) return;
@@ -237,8 +239,14 @@ function JobDetailsPage() {
       return;
     }
 
-    setApplying(true);
     setApplyMessage("");
+    setShowPreInterviewModal(true);
+  };
+
+  const handleSubmitApplication = (answers: Record<string, string>) => {
+    if (!job) return;
+
+    setApplying(true);
 
     apiFetch(`/api/applications/apply`, {
       method: "POST",
@@ -246,8 +254,7 @@ function JobDetailsPage() {
         jobId: job.id,
         jobTitle: job.title,
         companyName: job.companyName,
-        candidateEmail: identity.email,
-        candidateName: identity.name,
+        preInterviewAnswers: answers,
       }),
     })
       .then((data) => {
@@ -261,7 +268,10 @@ function JobDetailsPage() {
       .catch(() => {
         setApplyMessage("Could not submit application. Make sure the backend is running.");
       })
-      .finally(() => setApplying(false));
+      .finally(() => {
+        setApplying(false);
+        setShowPreInterviewModal(false);
+      });
   };
 
   const requirements = splitSkills(job?.requirements);
@@ -679,6 +689,15 @@ function JobDetailsPage() {
           t={t}
           isRTL={isRTL}
           onClose={() => setSelectedSkill(null)}
+        />
+      )}
+
+      {showPreInterviewModal && (
+        <PreInterviewModal
+          jobTitle={job?.title}
+          isSubmitting={applying}
+          onCancel={() => setShowPreInterviewModal(false)}
+          onSubmit={handleSubmitApplication}
         />
       )}
     </div>

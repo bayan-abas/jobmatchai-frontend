@@ -7,6 +7,7 @@ import { translations } from "../translations";
 import ExternalJobCard, { type ExternalJobData, type MatchInfo } from "../components/ExternalJobCard";
 import { inferIndustry, extractSalaryNumber } from "../utils/jobInference";
 import { apiFetch } from "../utils/api";
+import { ISRAELI_CITIES } from "../utils/israeliCities";
 
 const INDUSTRY_KEYS = [
   "technology", "engineering", "healthcare", "education", "finance", "marketing",
@@ -184,10 +185,24 @@ function ExternalJobsPage() {
     [jobs]
   );
 
-  const cities = useMemo(
-    () => Array.from(new Set(jobs.map((job) => job.city).filter(Boolean))) as string[],
-    [jobs]
-  );
+  const cities = useMemo(() => {
+    const jobCities = Array.from(
+      new Set(
+        jobs
+          .filter((job) => !countryFilter || job.country === countryFilter)
+          .map((job) => job.city)
+          .filter(Boolean)
+      )
+    ) as string[];
+
+    if (countryFilter.toUpperCase() === "IL") {
+      return Array.from(new Set([...ISRAELI_CITIES, ...jobCities])).sort((a, b) =>
+        a.localeCompare(b)
+      );
+    }
+
+    return jobCities;
+  }, [jobs, countryFilter]);
 
   const types = useMemo(
     () => Array.from(new Set(jobs.map((job) => job.type).filter(Boolean))) as string[],
@@ -304,7 +319,10 @@ function ExternalJobsPage() {
 
               <select
                 value={countryFilter}
-                onChange={(e) => setCountryFilter(e.target.value)}
+                onChange={(e) => {
+                  setCountryFilter(e.target.value);
+                  setCityFilter("");
+                }}
                 className="rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none"
               >
                 <option className="text-black" value="">{p.allCountries}</option>

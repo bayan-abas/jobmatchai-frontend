@@ -16,12 +16,14 @@ import { apiFetch, ApiError } from "../utils/api";
 function PaymentPage() {
   const navigate = useNavigate();
   const { language } = useLanguage();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const t = translations[language];
   const isRTL = language === "ar" || language === "he";
 
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [error, setError] = useState("");
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState("");
 
   const monthlyPrice = 9.99;
 
@@ -41,6 +43,29 @@ function PaymentPage() {
           ? err.message
           : "Could not start checkout. Please try again."
       );
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    setCancelError("");
+
+    if (!window.confirm(t.paymentPage.cancelConfirm)) {
+      return;
+    }
+
+    setIsCancelling(true);
+
+    try {
+      await apiFetch("/api/payments/cancel-subscription", { method: "POST" });
+      await refreshUser();
+    } catch (err) {
+      setCancelError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not cancel subscription. Please try again."
+      );
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -75,13 +100,32 @@ function PaymentPage() {
               {t.paymentPage.premiumMonthly}
             </p>
 
-            <button
-              type="button"
-              onClick={() => navigate("/candidate-dashboard")}
-              className="mt-8 rounded-[18px] bg-gradient-to-r from-[#8b5cf6] to-[#d946ef] px-8 py-4 text-[16px] font-bold text-white shadow-[0_16px_35px_rgba(168,85,247,0.35)] transition hover:scale-[1.01]"
-            >
-              {t.paymentPage.goToDashboard}
-            </button>
+            {cancelError && (
+              <div className="mx-auto mt-4 max-w-[480px] rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                {cancelError}
+              </div>
+            )}
+
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+              <button
+                type="button"
+                onClick={() => navigate("/candidate-dashboard")}
+                className="rounded-[18px] bg-gradient-to-r from-[#8b5cf6] to-[#d946ef] px-8 py-4 text-[16px] font-bold text-white shadow-[0_16px_35px_rgba(168,85,247,0.35)] transition hover:scale-[1.01]"
+              >
+                {t.paymentPage.goToDashboard}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCancelSubscription}
+                disabled={isCancelling}
+                className="rounded-[18px] border border-red-400/30 bg-red-500/10 px-8 py-4 text-[16px] font-bold text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isCancelling
+                  ? t.paymentPage.cancelling
+                  : t.paymentPage.cancelSubscription}
+              </button>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.08fr_0.92fr]">

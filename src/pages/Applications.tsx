@@ -17,7 +17,7 @@ import {
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
-import { apiFetch } from "../utils/api";
+import { apiFetch, ApiError } from "../utils/api";
 
 type FilterType = "all" | "active" | "completed";
 type ProgressStep = "applied" | "ai" | "review" | "shortlisted" | "final";
@@ -36,6 +36,7 @@ type BackendApplication = {
   status?: string;
   interviewScore?: number | string;
   score?: number | string;
+  viewedByCompany?: boolean;
 };
 
 type ApplicationItem = {
@@ -57,6 +58,7 @@ type ApplicationItem = {
   preInterviewStrength?: string;
   preInterviewText?: string;
   currentStep: ProgressStep;
+  viewedByCompany: boolean;
 };
 
 function toPercent(value: unknown, fallback = "80%") {
@@ -79,10 +81,12 @@ function normalizeStatus(status?: string) {
   if (clean.toLowerCase() === "applied") return "Applied";
   if (clean.toLowerCase() === "ai screening") return "AI Screening";
   if (clean.toLowerCase() === "under review") return "Under Review";
+  if (clean.toLowerCase() === "viewed") return "Viewed";
   if (clean.toLowerCase() === "shortlisted") return "Shortlisted";
   if (clean.toLowerCase() === "final decision") return "Final Decision";
   if (clean.toLowerCase() === "accepted") return "Final Decision";
   if (clean.toLowerCase() === "completed") return "Final Decision";
+  if (clean.toLowerCase() === "rejected") return "Rejected";
 
   return clean;
 }
@@ -94,10 +98,12 @@ function getProgressFromStatus(status: string) {
     case "AI Screening":
       return 2;
     case "Under Review":
+    case "Viewed":
       return 3;
     case "Shortlisted":
       return 4;
     case "Final Decision":
+    case "Rejected":
       return 5;
     default:
       return 3;
@@ -111,10 +117,12 @@ function getCurrentStepFromStatus(status: string): ProgressStep {
     case "AI Screening":
       return "ai";
     case "Under Review":
+    case "Viewed":
       return "review";
     case "Shortlisted":
       return "shortlisted";
     case "Final Decision":
+    case "Rejected":
       return "final";
     default:
       return "review";
@@ -135,8 +143,9 @@ function mapBackendApplication(app: BackendApplication): ApplicationItem {
     score: scoreValue !== undefined && scoreValue !== null ? toPercent(scoreValue) : undefined,
     pending: scoreValue === undefined || scoreValue === null ? "Pre-interview pending" : undefined,
     progress: getProgressFromStatus(reviewStatus),
-    status: reviewStatus === "Final Decision" ? "completed" : "active",
+    status: reviewStatus === "Final Decision" || reviewStatus === "Rejected" ? "completed" : "active",
     reviewStatus,
+    viewedByCompany: Boolean(app.viewedByCompany),
     about: "Application details are loaded from the backend. More job information can be connected later from the jobs table.",
     requirements: [],
     skills: [],
@@ -196,6 +205,8 @@ function Applications() {
   const [applications, setApplications] = useState<ApplicationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [withdrawError, setWithdrawError] = useState("");
 
   const [filter, setFilter] = useState<FilterType>("all");
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -345,6 +356,33 @@ function Applications() {
   const selectedApplication =
     applications.find((app) => app.id === selectedId) ?? null;
 
+  const handleWithdraw = async () => {
+    if (!selectedApplication) return;
+
+    setWithdrawError("");
+    setWithdrawing(true);
+
+    try {
+      const data = await apiFetch(`/api/applications/${selectedApplication.id}`, {
+        method: "DELETE",
+      });
+
+      if (data.success) {
+        const withdrawnId = selectedApplication.id;
+        setApplications((prev) => prev.filter((app) => app.id !== withdrawnId));
+        setSelectedId(null);
+      } else {
+        setWithdrawError(data.message || t.applicationsPage.withdrawBlocked);
+      }
+    } catch (err) {
+      setWithdrawError(
+        err instanceof ApiError ? err.message : "Could not withdraw application."
+      );
+    } finally {
+      setWithdrawing(false);
+    }
+  };
+
   const selectedMatchInfo: MatchInfo = selectedApplication
     ? getMatchInfo(selectedApplication)
     : { status: "loading" };
@@ -357,10 +395,14 @@ function Applications() {
         return t.applicationsPage.aiScreening;
       case "Under Review":
         return t.applicationsPage.underReview;
+      case "Viewed":
+        return t.applicationsPage.viewed || "Viewed by Company";
       case "Shortlisted":
         return t.applicationsPage.shortlisted;
       case "Final Decision":
         return t.applicationsPage.accepted || "Final Decision";
+      case "Rejected":
+        return t.applicationsPage.rejected || "Rejected";
       default:
         return status;
     }
@@ -381,10 +423,14 @@ function Applications() {
         return "bg-emerald-500/12 text-emerald-300 border border-emerald-400/20";
       case "Under Review":
         return "bg-yellow-500/12 text-yellow-300 border border-yellow-400/20";
+      case "Viewed":
+        return "bg-blue-500/12 text-blue-300 border border-blue-400/20";
       case "Shortlisted":
         return "bg-violet-500/12 text-violet-300 border border-violet-400/20";
       case "Final Decision":
         return "bg-indigo-500/12 text-indigo-300 border border-indigo-400/20";
+      case "Rejected":
+        return "bg-rose-500/12 text-rose-300 border border-rose-400/20";
       default:
         return "bg-white/10 text-white/70 border border-white/10";
     }
@@ -518,6 +564,7 @@ function Applications() {
                     key={`${app.id}-${index}`}
                     onClick={() => {
                       setSavedScrollY(window.scrollY);
+                      setWithdrawError("");
                       setSelectedId(app.id);
                     }}
                     className="group cursor-pointer rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)] transition hover:border-white/20 hover:bg-[rgba(50,52,108,0.96)]"
@@ -751,6 +798,29 @@ function Applications() {
                   </div>
                 </div>
               </div>
+
+              {withdrawError && (
+                <div className="mt-5 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                  {withdrawError}
+                </div>
+              )}
+
+              {!selectedApplication.viewedByCompany ? (
+                <button
+                  type="button"
+                  onClick={handleWithdraw}
+                  disabled={withdrawing}
+                  className="mt-6 rounded-[16px] border border-[rgba(255,88,120,0.45)] bg-transparent px-6 py-3 text-[15px] font-bold text-[#ff7d9d] transition hover:bg-[rgba(255,88,120,0.08)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {withdrawing
+                    ? t.applicationsPage.withdrawing
+                    : t.applicationsPage.withdrawApplication}
+                </button>
+              ) : (
+                <p className="mt-6 text-[14px] text-white/45">
+                  {t.applicationsPage.withdrawBlocked}
+                </p>
+              )}
             </div>
 
             <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-8 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">

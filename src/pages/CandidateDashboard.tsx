@@ -6,6 +6,7 @@ import { translations } from "../translations";
 import { computeProfileCompleteness } from "./ProfilePage";
 import { getRingColor } from "../utils/jobInference";
 import { apiFetch } from "../utils/api";
+import { FREE_PLAN_LIMIT } from "../utils/applicationLimit";
 import {
   BriefcaseBusiness,
   Globe2,
@@ -74,8 +75,6 @@ type RecentlyViewedItem = {
   location?: string;
 };
 
-const FREE_PLAN_LIMIT = 10;
-
 function getStatusClass(status: string) {
   const clean = status.toLowerCase();
 
@@ -138,12 +137,13 @@ function CandidateDashboard() {
   const [applications, setApplications] = useState<RecentApplication[]>([]);
   const [jobsCount, setJobsCount] = useState("0");
   const [applicationsCount, setApplicationsCount] = useState("0");
+  const [applicationsThisMonth, setApplicationsThisMonth] = useState(0);
   const [interviewsCount, setInterviewsCount] = useState("0");
   const [profileScore, setProfileScore] = useState(0);
   const [jobStats, setJobStats] = useState({ internal: 0, external: 0, total: 0 });
   const [recentlyViewed, setRecentlyViewed] = useState<RecentlyViewedItem[]>([]);
 
-  const usedApplications = Number(applicationsCount);
+  const usedApplications = applicationsThisMonth;
   const remainingApplications = Math.max(FREE_PLAN_LIMIT - usedApplications, 0);
   const usagePercent = Math.min(
     Math.round((usedApplications / FREE_PLAN_LIMIT) * 100),
@@ -169,6 +169,14 @@ function CandidateDashboard() {
         setJobsCount(String(jobsData.length));
         setApplicationsCount(String(appsData.length));
 
+        const currentMonthPrefix = new Date().toISOString().slice(0, 7);
+        setApplicationsThisMonth(
+          appsData.filter(
+            (app) =>
+              typeof app.appliedDate === "string" && app.appliedDate.startsWith(currentMonthPrefix)
+          ).length
+        );
+
         const interviewCount = appsData.filter((app) =>
           (app.status || "").toLowerCase().includes("interview")
         ).length;
@@ -176,24 +184,21 @@ function CandidateDashboard() {
 
         const resumeFileName = (cvText || "").trim();
 
-        const rawSkills = localStorage.getItem("skills");
-        let skills: string[] = [];
-        try {
-          skills = rawSkills ? JSON.parse(rawSkills) : [];
-        } catch {
-          skills = [];
-        }
+        const skills = (user?.skills || "")
+          .split(",")
+          .map((skill) => skill.trim())
+          .filter((skill) => skill.length > 0);
 
         setProfileScore(
           computeProfileCompleteness({
             name: user?.name || "",
-            phone: localStorage.getItem("phone") || "",
-            location: localStorage.getItem("location") || "",
-            currentTitle: localStorage.getItem("currentTitle") || "",
-            experience: localStorage.getItem("experience") || "",
-            summary: localStorage.getItem("summary") || "",
+            phone: user?.phone || "",
+            location: user?.location || "",
+            currentTitle: user?.currentTitle || "",
+            experience: user?.yearsOfExperience || "",
+            summary: user?.professionalSummary || "",
             skills,
-            hasResume: Boolean(resumeFileName || localStorage.getItem("resumeFileName")),
+            hasResume: Boolean(resumeFileName),
           })
         );
 
@@ -280,7 +285,7 @@ function CandidateDashboard() {
     };
 
     fetchDashboardData();
-  }, [userEmail, language]);
+  }, [userEmail, language, user]);
 
   useEffect(() => {
     apiFetch(`/api/dashboard/stats`)

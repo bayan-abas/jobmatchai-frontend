@@ -4,6 +4,10 @@ import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { useEffect, useState } from "react";
 import { apiFetch } from "../utils/api";
+import { FREE_PLAN_LIMIT } from "../utils/applicationLimit";
+import { ISRAELI_CITIES } from "../utils/israeliCities";
+import { JOB_TITLES, EXPERIENCE_OPTIONS, ALL_SKILLS } from "../utils/candidateOptions";
+import SearchableSelect from "../components/SearchableSelect";
 import {
   ArrowLeft,
   User,
@@ -19,6 +23,7 @@ import {
   CheckCircle2,
   Zap,
   Save,
+  Plus,
 } from "lucide-react";
 
 export type ProfileCompletenessFields = {
@@ -51,55 +56,77 @@ export function computeProfileCompleteness(fields: ProfileCompletenessFields): n
 function ProfilePage() {
   const navigate = useNavigate();
   const { language } = useLanguage();
-  const { user } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
   const t = translations[language];
   const isRTL = language === "ar" || language === "he";
 
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   const [userName, setUserName] = useState(user?.name || "");
   const [userEmail, setUserEmail] = useState(user?.email || "");
-  const [userPhone, setUserPhone] = useState(localStorage.getItem("phone") || "");
-  const [userLocation, setUserLocation] = useState(
-    localStorage.getItem("location") || ""
-  );
-  const [userTitle, setUserTitle] = useState(
-    localStorage.getItem("currentTitle") || ""
-  );
+  const [userPhone, setUserPhone] = useState(user?.phone || "");
+  const [userLocation, setUserLocation] = useState(user?.location || "");
+  const [userTitle, setUserTitle] = useState(user?.currentTitle || "");
   const [userExperience, setUserExperience] = useState(
-    localStorage.getItem("experience") || ""
+    user?.yearsOfExperience || ""
   );
   const [userSummary, setUserSummary] = useState(
-    localStorage.getItem("summary") || ""
+    user?.professionalSummary || ""
   );
   const [userSkills, setUserSkills] = useState<string[]>(() => {
-    const savedSkills = localStorage.getItem("skills");
-    try {
-      return savedSkills ? JSON.parse(savedSkills) : [];
-    } catch {
-      return [];
-    }
+    if (!user?.skills) return [];
+    return user.skills
+      .split(",")
+      .map((skill) => skill.trim())
+      .filter((skill) => skill.length > 0);
   });
-  const [skillsInput, setSkillsInput] = useState(userSkills.join(", "));
-  const [hasResume, setHasResume] = useState(
-    Boolean(localStorage.getItem("resumeFileName"))
-  );
+  const [skillDraft, setSkillDraft] = useState("");
+  const [hasResume, setHasResume] = useState(false);
   const [applicationsCount, setApplicationsCount] = useState(0);
+
+  useEffect(() => {
+    setUserName(user?.name || "");
+    setUserEmail(user?.email || "");
+    setUserPhone(user?.phone || "");
+    setUserLocation(user?.location || "");
+    setUserTitle(user?.currentTitle || "");
+    setUserExperience(user?.yearsOfExperience || "");
+    setUserSummary(user?.professionalSummary || "");
+
+    const parsedSkills = user?.skills
+      ? user.skills
+          .split(",")
+          .map((skill) => skill.trim())
+          .filter((skill) => skill.length > 0)
+      : [];
+    setUserSkills(parsedSkills);
+  }, [user]);
 
   useEffect(() => {
     if (!userEmail) return;
 
     apiFetch(`/api/applications/candidate/${encodeURIComponent(userEmail)}`)
-      .then((apps) => setApplicationsCount(Array.isArray(apps) ? apps.length : 0))
+      .then((apps) => {
+        const list = Array.isArray(apps) ? apps : [];
+        const currentMonthPrefix = new Date().toISOString().slice(0, 7);
+        const thisMonthCount = list.filter(
+          (app: any) =>
+            typeof app.appliedDate === "string" && app.appliedDate.startsWith(currentMonthPrefix)
+        ).length;
+        setApplicationsCount(thisMonthCount);
+      })
       .catch(() => setApplicationsCount(0));
 
     apiFetch(`/api/cv/current`)
       .then((fileName) => setHasResume(Boolean(fileName && fileName.trim())))
       .catch(() => {});
   }, [userEmail]);
-
-  const FREE_PLAN_LIMIT = 10;
 
   const profileScore = computeProfileCompleteness({
     name: userName,
@@ -112,22 +139,65 @@ function ProfilePage() {
     hasResume,
   });
 
-  const handleSaveChanges = () => {
-    const parsedSkills = skillsInput
-      .split(",")
-      .map((skill) => skill.trim())
-      .filter((skill) => skill.length > 0);
+  const handleAddSkill = (skill: string) => {
+    const cleanSkill = skill.trim();
+    if (!cleanSkill || userSkills.includes(cleanSkill)) return;
+    setUserSkills((prev) => [...prev, cleanSkill]);
+    setSkillDraft("");
+  };
 
-    setUserSkills(parsedSkills);
+  const handleRemoveSkill = (skillToRemove: string) => {
+    setUserSkills((prev) => prev.filter((skill) => skill !== skillToRemove));
+  };
 
-    localStorage.setItem("phone", userPhone);
-    localStorage.setItem("location", userLocation);
-    localStorage.setItem("currentTitle", userTitle);
-    localStorage.setItem("experience", userExperience);
-    localStorage.setItem("summary", userSummary);
-    localStorage.setItem("skills", JSON.stringify(parsedSkills));
+  const handleSaveChanges = async () => {
+    if (!user?.id) return;
 
-    setIsEditing(false);
+    setSaveError("");
+    setIsSaving(true);
+
+    try {
+      await apiFetch(`/api/users/${user.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          name: userName,
+          phone: userPhone,
+          location: userLocation,
+          currentTitle: userTitle,
+          yearsOfExperience: userExperience,
+          skills: userSkills.join(", "),
+          professionalSummary: userSummary,
+        }),
+      });
+
+      await refreshUser();
+      setIsEditing(false);
+    } catch {
+      setSaveError(
+        t.profilePage.saveError || "Could not save your changes. Please try again."
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user?.id) return;
+
+    setDeleteError("");
+    setIsDeleting(true);
+
+    try {
+      await apiFetch(`/api/users/${user.id}`, { method: "DELETE" });
+      logout();
+      navigate("/login");
+    } catch {
+      setDeleteError(
+        t.profilePage.deleteError ||
+          "Could not delete your account. Please try again."
+      );
+      setIsDeleting(false);
+    }
   };
 
   const inputClass =
@@ -170,13 +240,22 @@ function ProfilePage() {
                 <button
                   type="button"
                   onClick={handleSaveChanges}
-                  className={`inline-flex items-center gap-2 rounded-[16px] bg-gradient-to-r from-[#22c55e] to-[#16a34a] px-6 py-3 text-[15px] font-semibold text-white shadow-[0_10px_24px_rgba(34,197,94,0.28)] transition hover:opacity-90`}
+                  disabled={isSaving}
+                  className={`inline-flex items-center gap-2 rounded-[16px] bg-gradient-to-r from-[#22c55e] to-[#16a34a] px-6 py-3 text-[15px] font-semibold text-white shadow-[0_10px_24px_rgba(34,197,94,0.28)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60`}
                 >
                   <Save size={18} />
-                  {t.profilePage.saveChanges}
+                  {isSaving
+                    ? t.profilePage.saving || "Saving..."
+                    : t.profilePage.saveChanges}
                 </button>
               )}
             </div>
+
+            {saveError && (
+              <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                {saveError}
+              </div>
+            )}
 
             <div
               className={`mb-6 flex items-start gap-4`}
@@ -306,17 +385,9 @@ function ProfilePage() {
                     <Mail size={18} />
                     <span className="text-[15px]">{t.common.email}</span>
                   </div>
-                  {isEditing ? (
-                    <input
-                      value={userEmail}
-                      onChange={(e) => setUserEmail(e.target.value)}
-                      className={inputClass}
-                    />
-                  ) : (
-                    <p className="text-[18px] font-semibold text-white">
-                      {userEmail}
-                    </p>
-                  )}
+                  <p className="text-[18px] font-semibold text-white">
+                    {userEmail}
+                  </p>
                 </div>
 
                 <div>
@@ -351,9 +422,11 @@ function ProfilePage() {
                     </span>
                   </div>
                   {isEditing ? (
-                    <input
+                    <SearchableSelect
                       value={userLocation}
-                      onChange={(e) => setUserLocation(e.target.value)}
+                      onChange={setUserLocation}
+                      options={ISRAELI_CITIES}
+                      placeholder={t.candidateRegisterPage.location}
                       className={inputClass}
                     />
                   ) : (
@@ -373,9 +446,11 @@ function ProfilePage() {
                     </span>
                   </div>
                   {isEditing ? (
-                    <input
+                    <SearchableSelect
                       value={userTitle}
-                      onChange={(e) => setUserTitle(e.target.value)}
+                      onChange={setUserTitle}
+                      options={JOB_TITLES}
+                      placeholder={t.profilePage.currentTitle}
                       className={inputClass}
                     />
                   ) : (
@@ -395,9 +470,11 @@ function ProfilePage() {
                     </span>
                   </div>
                   {isEditing ? (
-                    <input
+                    <SearchableSelect
                       value={userExperience}
-                      onChange={(e) => setUserExperience(e.target.value)}
+                      onChange={setUserExperience}
+                      options={EXPERIENCE_OPTIONS}
+                      placeholder={t.profilePage.experience}
                       className={inputClass}
                     />
                   ) : (
@@ -438,31 +515,54 @@ function ProfilePage() {
                 </h2>
               </div>
 
-              {isEditing ? (
-                <textarea
-                  value={skillsInput}
-                  onChange={(e) => setSkillsInput(e.target.value)}
-                  placeholder={t.profilePage.skillsPlaceholder || "Write skills separated by commas"}
-                  className={textareaClass}
-                />
-              ) : (
-                <div className="flex flex-wrap gap-3">
-                  {userSkills.length > 0 ? (
-                    userSkills.map((skill) => (
-                      <span
-                        key={skill}
-                        className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-sm font-semibold text-emerald-300"
-                      >
-                        {skill}
-                      </span>
-                    ))
-                  ) : (
-                    <p className="text-[#b8bfdc]">
-                      {t.profilePage.noSkills || "No skills added yet."}
-                    </p>
-                  )}
+              {isEditing && (
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="flex-1">
+                    <SearchableSelect
+                      value={skillDraft}
+                      onChange={setSkillDraft}
+                      options={ALL_SKILLS.filter((skill) => !userSkills.includes(skill))}
+                      placeholder={
+                        t.profilePage.skillsPlaceholder || "Type a skill and select or press Add"
+                      }
+                      className={inputClass}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleAddSkill(skillDraft)}
+                    className="inline-flex items-center gap-1 rounded-[14px] bg-gradient-to-r from-[#7f4cff] to-[#a855f7] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+                  >
+                    <Plus size={16} />
+                  </button>
                 </div>
               )}
+
+              <div className="flex flex-wrap gap-3">
+                {userSkills.length > 0 ? (
+                  userSkills.map((skill) => (
+                    <span
+                      key={skill}
+                      className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-sm font-semibold text-emerald-300"
+                    >
+                      {skill}
+                      {isEditing && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSkill(skill)}
+                          className="text-emerald-300/70 transition hover:text-emerald-100"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </span>
+                  ))
+                ) : (
+                  <p className="text-[#b8bfdc]">
+                    {t.profilePage.noSkills || "No skills added yet."}
+                  </p>
+                )}
+              </div>
             </div>
           </section>
 
@@ -484,6 +584,10 @@ function ProfilePage() {
 
               <button
                 type="button"
+                onClick={() => {
+                  setDeleteError("");
+                  setShowDeleteModal(true);
+                }}
                 className="rounded-[16px] border border-[rgba(255,88,120,0.45)] bg-transparent px-6 py-3 text-[15px] font-bold text-[#ff7d9d] transition hover:bg-[rgba(255,88,120,0.08)]"
               >
                 {t.profilePage.deleteAccount || "Delete My Account"}
@@ -631,9 +735,80 @@ function ProfilePage() {
 
               <button
                 type="button"
+                onClick={() => {
+                  setShowPremiumModal(false);
+                  navigate("/payment");
+                }}
                 className="rounded-[14px] bg-gradient-to-r from-[#a855f7] to-[#6366f1] px-5 py-3 text-[16px] font-bold text-white transition hover:opacity-90"
               >
                 {t.profilePage.upgradeNow || "Upgrade Now"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteModal && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(1,4,19,0.72)] px-4 backdrop-blur-md"
+          onClick={() => !isDeleting && setShowDeleteModal(false)}
+        >
+          <div
+            className="relative w-full max-w-[480px] rounded-[30px] border border-[rgba(255,88,120,0.3)] bg-[linear-gradient(180deg,#09152f_0%,#0d1730_100%)] p-8 text-white shadow-[0_30px_80px_rgba(0,0,0,0.55)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {!isDeleting && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className={`absolute top-5 text-[#9aa4cf] transition hover:text-white ${
+                  isRTL ? "left-5" : "right-5"
+                }`}
+              >
+                <X size={22} />
+              </button>
+            )}
+
+            <div className="mb-5 flex justify-center">
+              <div className="flex h-[78px] w-[78px] items-center justify-center rounded-[24px] bg-gradient-to-br from-[#ff6a8d] to-[#ff3d68] shadow-[0_18px_40px_rgba(255,88,120,0.35)]">
+                <Trash2 size={34} />
+              </div>
+            </div>
+
+            <h2 className="mb-2 text-center text-[24px] font-extrabold">
+              {t.profilePage.deleteConfirmTitle || "Delete your account?"}
+            </h2>
+
+            <p className="mb-6 text-center text-[16px] text-[#aeb4d6]">
+              {t.profilePage.deleteConfirmText ||
+                "This will permanently remove your account and all associated data (applications, saved jobs, CV, notifications). This action cannot be undone."}
+            </p>
+
+            {deleteError && (
+              <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4 max-[420px]:grid-cols-1">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+                className="rounded-[14px] border border-white/15 bg-transparent px-5 py-3 text-[16px] font-bold text-white transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {t.common.cancel || "Cancel"}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+                className="rounded-[14px] bg-gradient-to-r from-[#ff6a8d] to-[#ff3d68] px-5 py-3 text-[16px] font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isDeleting
+                  ? t.profilePage.deleting || "Deleting..."
+                  : t.profilePage.deleteAccount || "Delete My Account"}
               </button>
             </div>
           </div>

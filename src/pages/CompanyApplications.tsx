@@ -45,6 +45,8 @@ type ApplicationItem = {
   stage: ApplicationStage;
   currentStep: number;
   status: string;
+  viewedByCompany: boolean;
+  preInterviewAnswers: Record<string, string>;
 };
 
 type BackendApplicant = {
@@ -57,6 +59,8 @@ type BackendApplicant = {
   appliedDate: string | null;
   matchPercent: number | null;
   matchLabel: string | null;
+  viewedByCompany?: boolean;
+  preInterviewAnswers?: Record<string, string>;
 };
 
 function deriveFit(match: number | null): FitLevel | null {
@@ -115,6 +119,8 @@ function mapApplicant(item: BackendApplicant): ApplicationItem {
     stage,
     currentStep: deriveStep(stage),
     status: item.status || "Under Review",
+    viewedByCompany: Boolean(item.viewedByCompany),
+    preInterviewAnswers: item.preInterviewAnswers || {},
   };
 }
 
@@ -284,6 +290,23 @@ function CompanyApplications() {
     setSelectedApplication((prev) =>
       prev && prev.id === id && prev.match !== matchScore ? { ...prev, ...patch } : prev
     );
+  };
+
+  const openApplicationDetail = (app: ApplicationItem) => {
+    setSelectedApplication(app);
+
+    if (!app.viewedByCompany) {
+      const patch = { viewedByCompany: true };
+
+      setApplications((prev) =>
+        prev.map((item) => (item.id === app.id ? { ...item, ...patch } : item))
+      );
+      setSelectedApplication((prev) =>
+        prev && prev.id === app.id ? { ...prev, ...patch } : prev
+      );
+
+      apiFetch(`/api/applications/${app.id}/mark-viewed`, { method: "POST" }).catch(() => {});
+    }
   };
 
   const openContactModal = (app: ApplicationItem) => {
@@ -498,7 +521,7 @@ function CompanyApplications() {
                       <div className="flex flex-wrap gap-2 xl:justify-end">
                         <button
                           type="button"
-                          onClick={() => setSelectedApplication(app)}
+                          onClick={() => openApplicationDetail(app)}
                           className="inline-flex items-center gap-2 rounded-[12px] border border-[#6b78ff]/40 bg-[#5964ff]/10 px-4 py-2 text-sm font-semibold text-[#cfd5ff] transition hover:bg-[#5964ff]/20"
                         >
                           <Eye size={16} />
@@ -735,6 +758,28 @@ function CompanyApplications() {
                     </p>
                   </div>
                 </div>
+
+                {Object.keys(selectedApplication.preInterviewAnswers).length > 0 && (
+                  <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
+                    <h2 className="mb-4 text-[20px] font-extrabold">
+                      {page.preInterviewAnswers || "Pre-Interview Answers"}
+                    </h2>
+                    <div className="space-y-4">
+                      {Object.entries(selectedApplication.preInterviewAnswers).map(
+                        ([question, answer]) => (
+                          <div key={question}>
+                            <p className="text-[14px] font-semibold text-white/80">
+                              {question}
+                            </p>
+                            <p className="mt-1 text-[15px] leading-6 text-white/60">
+                              {answer || "-"}
+                            </p>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

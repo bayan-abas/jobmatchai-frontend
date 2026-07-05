@@ -363,6 +363,8 @@ plan: {
   activeFilters: "active filters",
   clearAll: "Clear all",
   viewFullDetails: "View Full Details",
+  saveJob: "Save Job",
+  saved: "Saved",
 
   industry: "Industry",
   seniorityLevel: "Seniority Level",
@@ -567,6 +569,7 @@ plan: {
   meetsRequirement: "Meets requirement",
 
   applyNow: "Apply Now",
+  applying: "Applying...",
   applicationSubmitted: "Application Submitted",
 
   noScoreAvailable: "No score available",
@@ -596,6 +599,7 @@ plan: {
       applicationStatus: "Application Status",
       appliedOn: "Applied on",
       underReview: "Under Review",
+      viewed: "Viewed by Company",
       aiScreening: "AI Screening",
       shortlisted: "Shortlisted",
       interview: "Interview",
@@ -606,6 +610,10 @@ plan: {
         "You haven't applied to any jobs yet. Start exploring opportunities.",
       details: "View Details",
       applied: "Applied",
+      withdrawApplication: "Withdraw Application",
+      withdrawing: "Withdrawing...",
+      withdrawConfirm: "Are you sure you want to withdraw this application?",
+      withdrawBlocked: "This application can no longer be withdrawn because the company has already viewed it.",
       interviewScore: "Interview Score",
       preInterviewScore: "Pre-Interview Score",
       strengthLevel: "Strength Level",
@@ -796,6 +804,8 @@ plan: {
       skills: "Skills",
       editProfile: "Edit Profile",
       saveChanges: "Save Changes",
+      saving: "Saving...",
+      saveError: "Could not save your changes. Please try again.",
       profileUpdated: "Profile updated successfully!",
       basicPlan: "You're on the Basic Plan",
       premiumHint: "Upgrade to Premium to unlock AI-powered features",
@@ -811,6 +821,11 @@ plan: {
       dangerText:
         "Permanently delete your account and all associated data. This action cannot be undone.",
       deleteAccount: "Delete My Account",
+      deleting: "Deleting...",
+      deleteError: "Could not delete your account. Please try again.",
+      deleteConfirmTitle: "Delete your account?",
+      deleteConfirmText:
+        "This will permanently remove your account and all associated data (applications, saved jobs, CV, notifications). This action cannot be undone.",
       modalSubtitle: "Unlock the full power of AI-driven job matching",
       basicLabel: "Basic",
       freeLabel: "Free",
@@ -978,6 +993,7 @@ plan: {
   recommendation: "Recommendation",
   progress: "Progress",
   applicationInfo: "Application Info",
+  preInterviewAnswers: "Pre-Interview Answers",
 
   date: "Date",
   email: "Email",
@@ -1170,6 +1186,10 @@ plan: {
       expiry: "MM/YY",
       pay: "Pay",
       securePayment: "Secure Payment",
+      cancelSubscription: "Cancel Premium",
+      cancelling: "Cancelling...",
+      cancelConfirm:
+        "Are you sure you want to cancel your Premium subscription? You'll lose Premium benefits immediately.",
     },
 
     companyProfilePage: {
@@ -1554,6 +1574,8 @@ jobMatches: {
   activeFilters: "فلاتر مفعلة",
   clearAll: "مسح الكل",
   viewFullDetails: "عرض التفاصيل الكاملة",
+  saveJob: "احفظ الوظيفة",
+  saved: "محفوظة",
 
   industry: "المجال",
   seniorityLevel: "المستوى الوظيفي",
@@ -1710,6 +1732,7 @@ jobMatches: {
   vs: "مقابل",
   meetsRequirement: "يستوفي المتطلب",
   applyNow: "قدّم الآن",
+  applying: "جارٍ التقديم...",
   applicationSubmitted: "تم تقديم الطلب",
   noScoreAvailable: "لا يوجد تقييم متاح",
   excellentMatch: "تطابق ممتاز!",
@@ -1773,6 +1796,7 @@ jobMatches: {
       applicationStatus: "حالة الطلب",
       appliedOn: "تاريخ التقديم",
       underReview: "قيد المراجعة",
+      viewed: "تمت المشاهدة من الشركة",
       aiScreening: "فحص الذكاء الاصطناعي",
       shortlisted: "تم الاختيار المبدئي",
       interview: "مقابلة",
@@ -1783,6 +1807,10 @@ jobMatches: {
         "لم تتقدم لأي وظيفة بعد. ابدأ باستكشاف الفرص.",
       details: "عرض التفاصيل",
       applied: "مُقدَّم",
+      withdrawApplication: "سحب الطلب",
+      withdrawing: "جارٍ السحب...",
+      withdrawConfirm: "هل أنت متأكد أنك تريد سحب هذا الطلب؟",
+      withdrawBlocked: "لا يمكن سحب هذا الطلب بعد الآن لأن الشركة قد شاهدته بالفعل.",
       interviewScore: "درجة المقابلة",
       preInterviewScore: "درجة ما قبل المقابلة",
       strengthLevel: "مستوى القوة",
@@ -1973,6 +2001,8 @@ jobMatches: {
       skills: "المهارات",
       editProfile: "تعديل الملف الشخصي",
       saveChanges: "حفظ التغييرات",
+      saving: "جارٍ الحفظ...",
+      saveError: "تعذر حفظ التغييرات. حاول مرة أخرى.",
       profileUpdated: "تم تحديث الملف الشخصي بنجاح!",
       basicPlan: "أنت على الخطة الأساسية",
       premiumHint: "قم بالترقية إلى بريميوم لفتح ميزات الذكاء الاصطناعي",
@@ -1988,6 +2018,11 @@ jobMatches: {
       dangerText:
         "احذف حسابك وجميع البيانات المرتبطة به بشكل نهائي. لا يمكن التراجع عن هذا الإجراء.",
       deleteAccount: "حذف حسابي",
+      deleting: "جارٍ الحذف...",
+      deleteError: "تعذر حذف حسابك. حاول مرة أخرى.",
+      deleteConfirmTitle: "هل تريد حذف حسابك؟",
+      deleteConfirmText:
+        "سيؤدي هذا إلى إزالة حسابك وجميع البيانات المرتبطة به نهائيًا (الطلبات، الوظائف المحفوظة، السيرة الذاتية، الإشعارات). لا يمكن التراجع عن هذا الإجراء.",
       modalSubtitle:
         "افتح القوة الكاملة للمطابقة الوظيفية بالذكاء الاصطناعي",
       basicLabel: "أساسي",
@@ -2155,6 +2190,7 @@ companyApplicationsPage: {
   recommendation: "التوصية",
   progress: "التقدم",
   applicationInfo: "معلومات الطلب",
+  preInterviewAnswers: "إجابات ما قبل المقابلة",
 
   date: "التاريخ",
   email: "البريد الإلكتروني",
@@ -2344,6 +2380,10 @@ companyApplicationsPage: {
       expiry: "MM/YY",
       pay: "ادفع",
       securePayment: "دفع آمن",
+      cancelSubscription: "إلغاء بريميوم",
+      cancelling: "جارٍ الإلغاء...",
+      cancelConfirm:
+        "هل أنت متأكد أنك تريد إلغاء اشتراك بريميوم؟ ستفقد مزايا بريميوم على الفور.",
     },
 
     companyProfilePage: {
@@ -2729,6 +2769,8 @@ plan: {
   activeFilters: "פילטרים פעילים",
   clearAll: "נקה הכל",
   viewFullDetails: "צפה בפרטים המלאים",
+  saveJob: "שמור משרה",
+  saved: "נשמרה",
 
   industry: "תחום",
   seniorityLevel: "רמת ניסיון",
@@ -2885,6 +2927,7 @@ plan: {
   vs: "מול",
   meetsRequirement: "עומד בדרישה",
   applyNow: "הגש עכשיו",
+  applying: "שולח...",
   applicationSubmitted: "הגשה הוגשה",
   noScoreAvailable: "אין ניקוד זמין",
   excellentMatch: "התאמה מצוינת!",
@@ -2948,6 +2991,7 @@ plan: {
       applicationStatus: "סטטוס הגשה",
       appliedOn: "הוגש בתאריך",
       underReview: "בבדיקה",
+      viewed: "נצפה על ידי החברה",
       aiScreening: "סינון AI",
       shortlisted: "ברשימה מצומצמת",
       interview: "ראיון",
@@ -2958,6 +3002,10 @@ plan: {
         "עדיין לא הגשת מועמדות. התחל לחפש הזדמנויות.",
       details: "צפה בפרטים",
       applied: "הוגש",
+      withdrawApplication: "בטל הגשה",
+      withdrawing: "מבטל...",
+      withdrawConfirm: "האם אתה בטוח שברצונך לבטל הגשה זו?",
+      withdrawBlocked: "לא ניתן עוד לבטל הגשה זו מכיוון שהחברה כבר צפתה בה.",
       interviewScore: "ציון ראיון",
       preInterviewScore: "ציון טרום ראיון",
       strengthLevel: "רמת חוזק",
@@ -3147,6 +3195,8 @@ plan: {
       skills: "כישורים",
       editProfile: "ערוך פרופיל",
       saveChanges: "שמור שינויים",
+      saving: "שומר...",
+      saveError: "לא ניתן היה לשמור את השינויים. נסה שוב.",
       profileUpdated: "הפרופיל עודכן בהצלחה!",
       basicPlan: "אתה בתוכנית הבסיסית",
       premiumHint: "שדרג לפרימיום כדי לפתוח יכולות מבוססות בינה מלאכותית",
@@ -3162,6 +3212,11 @@ plan: {
       dangerText:
         "מחק את החשבון שלך ואת כל הנתונים המשויכים אליו לצמיתות. לא ניתן לבטל פעולה זו.",
       deleteAccount: "מחק את החשבון שלי",
+      deleting: "מוחק...",
+      deleteError: "לא ניתן היה למחוק את החשבון. נסה שוב.",
+      deleteConfirmTitle: "למחוק את החשבון שלך?",
+      deleteConfirmText:
+        "פעולה זו תסיר לצמיתות את החשבון שלך ואת כל הנתונים המשויכים אליו (בקשות, משרות שמורות, קורות חיים, התראות). לא ניתן לבטל פעולה זו.",
       modalSubtitle:
         "פתח את כל הכוח של התאמת משרות מבוססת בינה מלאכותית",
       basicLabel: "בסיסי",
@@ -3329,6 +3384,7 @@ companyApplicationsPage: {
   recommendation: "המלצה",
   progress: "התקדמות",
   applicationInfo: "פרטי מועמדות",
+  preInterviewAnswers: "תשובות טרום-ראיון",
 
   date: "תאריך",
   email: "אימייל",
@@ -3518,6 +3574,10 @@ companyApplicationsPage: {
       expiry: "MM/YY",
       pay: "שלם",
       securePayment: "תשלום מאובטח",
+      cancelSubscription: "בטל פרימיום",
+      cancelling: "מבטל...",
+      cancelConfirm:
+        "האם אתה בטוח שברצונך לבטל את מנוי הפרימיום? תאבד את הטבות הפרימיום מיידית.",
     },
 
     companyProfilePage: {
