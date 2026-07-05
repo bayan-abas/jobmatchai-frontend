@@ -7,6 +7,7 @@ import MobileNav from "./MobileNav";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
+import { useUnreadCount } from "../hooks/useUnreadCount";
 import { ArrowLeft, Search, Bell } from "lucide-react";
 
 type CompanyLayoutProps = { children: ReactNode };
@@ -15,6 +16,7 @@ function CompanyLayout({ children }: CompanyLayoutProps) {
   const navigate = useNavigate();
   const { language } = useLanguage();
   const { user } = useAuth();
+  const unreadCount = useUnreadCount();
   const t = translations[language];
   const isRTL = language === "ar" || language === "he";
 
@@ -60,9 +62,11 @@ function CompanyLayout({ children }: CompanyLayoutProps) {
               className="relative flex h-[44px] w-[44px] items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-[#e2e6ff] transition hover:bg-white/[0.08] hover:text-white"
             >
               <Bell size={20} />
-              <span className={`absolute -top-1 flex h-[20px] w-[20px] items-center justify-center rounded-full bg-[#ff4b8b] text-[11px] font-bold text-white shadow-lg ${isRTL ? "-left-1" : "-right-1"}`}>
-                5
-              </span>
+              {unreadCount > 0 && (
+                <span className={`absolute -top-1 flex h-[20px] w-[20px] items-center justify-center rounded-full bg-[#ff4b8b] text-[11px] font-bold text-white shadow-lg ${isRTL ? "-left-1" : "-right-1"}`}>
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </button>
             <div className="h-9 w-px bg-white/10" />
             <div className={`flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2`}>

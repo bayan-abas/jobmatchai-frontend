@@ -11,6 +11,7 @@ import {
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
 import { apiFetch } from "../utils/api";
+import { notifyNotificationsChanged } from "../hooks/useUnreadCount";
 
 type BackendNotification = {
   id: number;
@@ -109,6 +110,11 @@ function CompanyNotifications() {
   const markAllAsRead = async () => {
     const unread = notifications.filter((item) => !item.read);
     setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
+    // Marking everything read makes the new unread count deterministically 0 -
+    // push that to every badge right away instead of waiting on a fresh
+    // GET /unread-count round trip, which can take several seconds and made
+    // the badges look stuck even though the backend write itself succeeded.
+    notifyNotificationsChanged(0);
 
     await Promise.all(
       unread.map((item) =>
@@ -120,23 +126,16 @@ function CompanyNotifications() {
   const clearAll = async () => {
     const all = notifications;
     setNotifications([]);
+    notifyNotificationsChanged(0);
 
     await Promise.all(
       all.map((item) => apiFetch(`/api/notifications/${item.id}`, { method: "DELETE" }).catch(() => null))
     );
   };
 
-  const markOneAsRead = async (id: number) => {
-    setNotifications((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, read: true } : item))
-    );
-
-    try {
-      await apiFetch(`/api/notifications/${id}/read`, { method: "POST" });
-    } catch {
-      // local state already reflects the intent; nothing else to reconcile
-    }
-  };
+  // Clicking any single notification clears the whole unread badge, not just
+  // that one item - mirrors the candidate-side notifications page.
+  const markOneAsRead = () => markAllAsRead();
 
   return (
     <div
@@ -211,7 +210,7 @@ function CompanyNotifications() {
               return (
                 <div
                   key={item.id}
-                  onClick={() => markOneAsRead(item.id)}
+                  onClick={markOneAsRead}
                   className="group relative cursor-pointer rounded-[26px] border border-white/10 bg-white/5 p-5 md:p-6 shadow-2xl backdrop-blur-xl transition hover:bg-white/[0.07]"
                 >
                   <div className={`flex items-start gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>

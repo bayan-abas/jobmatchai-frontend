@@ -13,6 +13,7 @@ import {
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
 import { apiFetch } from "../utils/api";
+import { notifyNotificationsChanged } from "../hooks/useUnreadCount";
 
 type BackendNotification = {
   id: number;
@@ -96,6 +97,11 @@ function NotificationsPage() {
   const handleMarkAllAsRead = async () => {
     const unread = notifications.filter((item) => !item.read);
     setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
+    // Marking everything read makes the new unread count deterministically 0 -
+    // push that to every badge right away instead of waiting on a fresh
+    // GET /unread-count round trip, which can take several seconds and made
+    // the badges look stuck even though the backend write itself succeeded.
+    notifyNotificationsChanged(0);
 
     await Promise.all(
       unread.map((item) =>
@@ -107,6 +113,7 @@ function NotificationsPage() {
   const handleClearAll = async () => {
     const all = notifications;
     setNotifications([]);
+    notifyNotificationsChanged(0);
 
     await Promise.all(
       all.map((item) => apiFetch(`/api/notifications/${item.id}`, { method: "DELETE" }).catch(() => null))
@@ -114,13 +121,20 @@ function NotificationsPage() {
   };
 
   const handleDismiss = async (id: number) => {
+    const remainingUnread = notifications.filter((item) => item.id !== id && !item.read).length;
     setNotifications((prev) => prev.filter((item) => item.id !== id));
+    notifyNotificationsChanged(remainingUnread);
     try {
       await apiFetch(`/api/notifications/${id}`, { method: "DELETE" });
     } catch {
       // already removed from view; nothing else to reconcile
     }
   };
+
+  // Clicking any single notification clears the whole unread badge, not just
+  // that one item - this mirrors how most notification centers behave (opening
+  // one is treated as having seen the list) and is what candidates expect here.
+  const handleOpenNotification = () => handleMarkAllAsRead();
 
   return (
     <div
@@ -234,7 +248,8 @@ function NotificationsPage() {
               return (
                 <article
                   key={item.id}
-                  className={`rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)] transition hover:border-white/20 hover:bg-[rgba(50,52,108,0.96)] ${
+                  onClick={handleOpenNotification}
+                  className={`cursor-pointer rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)] transition hover:border-white/20 hover:bg-[rgba(50,52,108,0.96)] ${
                     !item.read ? "ring-1 ring-[#5e66ff33]" : ""
                   }`}
                 >
@@ -282,7 +297,10 @@ function NotificationsPage() {
 
                         <button
                           type="button"
-                          onClick={() => handleDismiss(item.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDismiss(item.id);
+                          }}
                           className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-[#c4cae9] transition hover:bg-white/10 hover:text-white"
                         >
                           <Trash2 size={13} />

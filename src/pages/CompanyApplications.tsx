@@ -74,7 +74,7 @@ function deriveStage(status: string | null): ApplicationStage {
   const normalized = (status || "").toLowerCase();
   if (normalized === "accepted" || normalized === "rejected") return "Decided";
   if (normalized === "shortlisted") return "Shortlisted";
-  if (normalized === "screening") return "Screening";
+  if (normalized === "screening" || normalized === "ai screening" || normalized === "applied") return "Screening";
   return "New";
 }
 

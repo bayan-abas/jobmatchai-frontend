@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
@@ -15,6 +15,7 @@ import {
   CalendarDays,
   Sparkles,
   ChevronRight,
+  ChevronLeft,
   ArrowLeft,
   Building2,
   MapPin,
@@ -142,6 +143,11 @@ function CandidateDashboard() {
   const [profileScore, setProfileScore] = useState(0);
   const [jobStats, setJobStats] = useState({ internal: 0, external: 0, total: 0 });
   const [recentlyViewed, setRecentlyViewed] = useState<RecentlyViewedItem[]>([]);
+  const recentlyViewedScrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollRecentlyViewed = (direction: -1 | 1) => {
+    recentlyViewedScrollRef.current?.scrollBy({ left: direction * 280, behavior: "smooth" });
+  };
 
   const usedApplications = applicationsThisMonth;
   const remainingApplications = Math.max(FREE_PLAN_LIMIT - usedApplications, 0);
@@ -646,21 +652,52 @@ function CandidateDashboard() {
 
         {recentlyViewed.length > 0 && (
           <section className="mb-8 rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
-            <div className="mb-5 flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#a855f71f] text-[#d8b4fe]">
-                <CalendarDays size={22} />
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#a855f71f] text-[#d8b4fe]">
+                  <CalendarDays size={22} />
+                </div>
+                <div className={isRTL ? "text-right" : "text-left"}>
+                  <h3 className="text-[22px] font-extrabold text-white">
+                    {t.dashboard.recentlyViewed.title}
+                  </h3>
+                  <p className="mt-1 text-[15px] text-[#aeb4d6]">
+                    {t.dashboard.recentlyViewed.subtitle}
+                  </p>
+                </div>
               </div>
-              <div className={isRTL ? "text-right" : "text-left"}>
-                <h3 className="text-[22px] font-extrabold text-white">
-                  {t.dashboard.recentlyViewed.title}
-                </h3>
-                <p className="mt-1 text-[15px] text-[#aeb4d6]">
-                  {t.dashboard.recentlyViewed.subtitle}
-                </p>
-              </div>
+
+              {recentlyViewed.length > 1 && (
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => scrollRecentlyViewed(isRTL ? 1 : -1)}
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white/10 hover:text-white"
+                    aria-label="Scroll left"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollRecentlyViewed(isRTL ? -1 : 1)}
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white/10 hover:text-white"
+                    aria-label="Scroll right"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              )}
             </div>
 
-            <div className="flex gap-4 overflow-x-auto pb-2">
+            <div
+              ref={recentlyViewedScrollRef}
+              onWheel={(e) => {
+                if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                  e.currentTarget.scrollLeft += e.deltaY;
+                }
+              }}
+              className="flex gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
               {recentlyViewed.map((item) => (
                 <button
                   key={`${item.jobType}-${item.jobId}`}

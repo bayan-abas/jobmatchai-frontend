@@ -3,7 +3,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { useEffect, useState } from "react";
-import { apiFetch } from "../utils/api";
+import { apiFetch, ApiError } from "../utils/api";
 import { FREE_PLAN_LIMIT } from "../utils/applicationLimit";
 import { ISRAELI_CITIES } from "../utils/israeliCities";
 import { JOB_TITLES, EXPERIENCE_OPTIONS, ALL_SKILLS } from "../utils/candidateOptions";
@@ -24,6 +24,7 @@ import {
   Zap,
   Save,
   Plus,
+  Lock,
 } from "lucide-react";
 
 export type ProfileCompletenessFields = {
@@ -67,6 +68,14 @@ function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [changePasswordError, setChangePasswordError] = useState("");
+  const [changePasswordSuccess, setChangePasswordSuccess] = useState(false);
 
   const [userName, setUserName] = useState(user?.name || "");
   const [userEmail, setUserEmail] = useState(user?.email || "");
@@ -178,6 +187,61 @@ function ProfilePage() {
       );
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const closeChangePasswordModal = () => {
+    setShowChangePasswordModal(false);
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmNewPassword("");
+    setChangePasswordError("");
+    setChangePasswordSuccess(false);
+  };
+
+  const handleChangePassword = async () => {
+    setChangePasswordError("");
+
+    if (!currentPassword) {
+      setChangePasswordError(
+        t.profilePage.currentPasswordRequired || "Please enter your current password."
+      );
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setChangePasswordError(
+        t.profilePage.passwordLength || "New password must be at least 6 characters."
+      );
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setChangePasswordError(
+        t.profilePage.passwordsDontMatch || "New passwords do not match."
+      );
+      return;
+    }
+
+    setIsChangingPassword(true);
+
+    try {
+      await apiFetch("/api/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      setChangePasswordSuccess(true);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+    } catch (err) {
+      setChangePasswordError(
+        err instanceof ApiError
+          ? err.message
+          : t.profilePage.changePasswordError || "Could not change your password. Please try again."
+      );
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -567,6 +631,34 @@ function ProfilePage() {
           </section>
 
           <section>
+            <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] p-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+              <div className="mb-4 flex items-center gap-3">
+                <Lock size={23} className="text-[#7c88ff]" />
+                <h2 className="text-[24px] font-extrabold text-white">
+                  {t.profilePage.security || "Security"}
+                </h2>
+              </div>
+
+              <p className="mb-6 text-[16px] leading-8 text-[#c9cde6]">
+                {t.profilePage.securityText ||
+                  "Update your password to keep your account secure."}
+              </p>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setChangePasswordError("");
+                  setChangePasswordSuccess(false);
+                  setShowChangePasswordModal(true);
+                }}
+                className="rounded-[16px] border border-[#7c88ff]/40 bg-[#7c88ff]/10 px-6 py-3 text-[15px] font-bold text-[#c4b5fd] transition hover:bg-[#7c88ff]/20"
+              >
+                {t.profilePage.changePassword || "Change Password"}
+              </button>
+            </div>
+          </section>
+
+          <section>
             <div className="rounded-[30px] border border-[rgba(255,88,120,0.26)] bg-[rgba(44,45,95,0.94)] p-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
               <div
                 className={`mb-4 flex items-center gap-3`}
@@ -744,6 +836,117 @@ function ProfilePage() {
                 {t.profilePage.upgradeNow || "Upgrade Now"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showChangePasswordModal && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(1,4,19,0.72)] px-4 backdrop-blur-md"
+          onClick={() => !isChangingPassword && closeChangePasswordModal()}
+        >
+          <div
+            className="relative w-full max-w-[480px] rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,#09152f_0%,#0d1730_100%)] p-8 text-white shadow-[0_30px_80px_rgba(0,0,0,0.55)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {!isChangingPassword && (
+              <button
+                type="button"
+                onClick={closeChangePasswordModal}
+                className={`absolute top-5 text-[#9aa4cf] transition hover:text-white ${
+                  isRTL ? "left-5" : "right-5"
+                }`}
+              >
+                <X size={22} />
+              </button>
+            )}
+
+            <div className="mb-5 flex justify-center">
+              <div className="flex h-[78px] w-[78px] items-center justify-center rounded-[24px] bg-gradient-to-br from-[#7f4cff] to-[#a855f7] shadow-[0_18px_40px_rgba(127,76,255,0.35)]">
+                <Lock size={34} />
+              </div>
+            </div>
+
+            <h2 className="mb-2 text-center text-[24px] font-extrabold">
+              {t.profilePage.changePassword || "Change Password"}
+            </h2>
+
+            {changePasswordSuccess ? (
+              <>
+                <p className="mb-6 text-center text-[16px] text-[#aeb4d6]">
+                  {t.profilePage.changePasswordSuccess || "Your password has been updated."}
+                </p>
+                <button
+                  type="button"
+                  onClick={closeChangePasswordModal}
+                  className="w-full rounded-[14px] bg-gradient-to-r from-[#7f4cff] to-[#a855f7] px-5 py-3 text-[16px] font-bold text-white transition hover:opacity-90"
+                >
+                  {t.common.close || "Close"}
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="mb-6 text-center text-[16px] text-[#aeb4d6]">
+                  {t.profilePage.changePasswordSubtitle ||
+                    "Enter your current password and choose a new one."}
+                </p>
+
+                <div className="mb-4 space-y-4">
+                  <input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder={t.profilePage.currentPassword || "Current password"}
+                    className={inputClass}
+                    disabled={isChangingPassword}
+                  />
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder={t.profilePage.newPassword || "New password"}
+                    className={inputClass}
+                    disabled={isChangingPassword}
+                  />
+                  <input
+                    type="password"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    placeholder={t.profilePage.confirmNewPassword || "Confirm new password"}
+                    className={inputClass}
+                    disabled={isChangingPassword}
+                  />
+                </div>
+
+                {changePasswordError && (
+                  <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                    {changePasswordError}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4 max-[420px]:grid-cols-1">
+                  <button
+                    type="button"
+                    onClick={closeChangePasswordModal}
+                    disabled={isChangingPassword}
+                    className="rounded-[14px] border border-white/15 bg-transparent px-5 py-3 text-[16px] font-bold text-white transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {t.common.cancel || "Cancel"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleChangePassword}
+                    disabled={isChangingPassword}
+                    className="rounded-[14px] bg-gradient-to-r from-[#7f4cff] to-[#a855f7] px-5 py-3 text-[16px] font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isChangingPassword
+                      ? t.profilePage.changingPassword || "Changing..."
+                      : t.profilePage.changePassword || "Change Password"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
