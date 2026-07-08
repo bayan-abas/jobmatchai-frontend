@@ -31,6 +31,21 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const TOKEN_STORAGE_KEY = "jobmatch_token";
 
+// The backend stores/returns role case as-is (e.g. some accounts have "COMPANY"/"CANDIDATE"
+// from other write paths), but every frontend role check (ProtectedRoute, LoginPage's
+// post-login redirect, CandidateLayout's label) compares against the lowercase "candidate"/
+// "company" literals. Normalizing here, once, at the single place AuthUser enters state,
+// means every consumer can keep doing a plain lowercase comparison. Exported so call sites
+// that read the raw API response directly (e.g. LoginPage's own redirect decision, which
+// runs before this context's async state update lands) can normalize the same way.
+export function normalizeRole(role: string | null | undefined): Role {
+  return (role || "").toLowerCase() as Role;
+}
+
+function normalizeUser(user: AuthUser): AuthUser {
+  return { ...user, role: normalizeRole(user.role) };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() => sessionStorage.getItem(TOKEN_STORAGE_KEY));
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -63,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const me = await apiFetch("/api/auth/me");
         if (!cancelled) {
-          setUser(me);
+          setUser(normalizeUser(me));
         }
       } catch {
         if (!cancelled) {
@@ -86,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = (newToken: string, newUser: AuthUser) => {
     setToken(newToken);
-    setUser(newUser);
+    setUser(normalizeUser(newUser));
     sessionStorage.setItem(TOKEN_STORAGE_KEY, newToken);
   };
 
@@ -97,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const me = await apiFetch("/api/auth/me");
-      setUser(me);
+      setUser(normalizeUser(me));
     } catch {
       // ignore - keep the previously loaded user on a transient failure
     }

@@ -8,7 +8,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, normalizeRole } from "../context/AuthContext";
 import { translations } from "../translations";
 import { apiFetch, ApiError } from "../utils/api";
 
@@ -57,15 +57,16 @@ const handleLogin = async (e: React.FormEvent) => {
     }
 
     const foundUser = data.user;
+    const role = normalizeRole(foundUser.role);
 
     login(data.token, foundUser);
 
-    if (foundUser.role === "candidate") {
+    if (role === "candidate") {
       navigate("/candidate-dashboard");
       return;
     }
 
-    if (foundUser.role === "company") {
+    if (role === "company") {
       navigate("/company-dashboard");
       return;
     }
