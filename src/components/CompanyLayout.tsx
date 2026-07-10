@@ -49,7 +49,7 @@ function CompanyLayout({ children }: CompanyLayoutProps) {
               <Search size={18} />
               <input
                 type="text"
-                placeholder={t?.dashboard?.searchPlaceholder || "Search..."}
+                placeholder={t?.companySidebar?.searchPlaceholder || "Search candidates..."}
                 className={`w-full bg-transparent text-[15px] text-white outline-none placeholder:text-[#8d94bd] ${isRTL ? "text-right" : "text-left"}`}
               />
             </div>

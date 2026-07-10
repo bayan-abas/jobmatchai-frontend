@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
 import { apiFetch, ApiError } from "../utils/api";
@@ -78,6 +78,8 @@ function getStatusClass(status: string | null) {
 
 function CompanyCandidates() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const targetCandidateEmail = (location.state as { candidateEmail?: string } | null)?.candidateEmail;
   const { language } = useLanguage();
   const t = translations[language] || translations.en;
   const isRTL = language === "ar" || language === "he";
@@ -129,6 +131,16 @@ function CompanyCandidates() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!targetCandidateEmail || candidates.length === 0) return;
+
+    const match = candidates.find((candidate) => candidate.candidateEmail === targetCandidateEmail);
+    if (match) {
+      setSelectedCandidate(match);
+      navigate(location.pathname, { replace: true });
+    }
+  }, [targetCandidateEmail, candidates, navigate, location.pathname]);
 
   const filteredCandidates = useMemo(() => {
     const query = search.trim().toLowerCase();

@@ -187,6 +187,7 @@ export const translations: Record<Language, any> = {
       companyProfile: "Company Profile",
       notifications: "Notifications",
       brandSubtitle: "AI-Powered Recruitment",
+      searchPlaceholder: "Search candidates...",
     },
 
     dashboard: {
@@ -258,7 +259,7 @@ plan: {
     companyDashboard: {
       welcome: "Welcome",
       title: "Company Dashboard",
-      subtitle: "Here's what’s happening with your hiring activity today",
+      subtitle: "Track your hiring activity and manage your recruitment process.",
       stats: {
         jobPosts: "Job Posts",
         candidates: "Candidates",
@@ -1420,6 +1421,7 @@ plan: {
       companyProfile: "ملف الشركة",
       notifications: "الإشعارات",
       brandSubtitle: "توظيف مدعوم بالذكاء الاصطناعي",
+      searchPlaceholder: "ابحث عن المرشحين...",
     },
 
     dashboard: {
@@ -1489,7 +1491,7 @@ plan: {
     companyDashboard: {
       welcome: "مرحبًا",
       title: "لوحة تحكم الشركة",
-      subtitle: "إليك آخر ما يحدث في نشاط التوظيف اليوم",
+      subtitle: "تابع نشاط التوظيف الخاص بك وأدر عملية التوظيف.",
       stats: {
         jobPosts: "الوظائف المنشورة",
         candidates: "المرشحون",
@@ -2635,6 +2637,7 @@ companyApplicationsPage: {
       companyProfile: "פרופיל החברה",
       notifications: "התראות",
       brandSubtitle: "גיוס מבוסס בינה מלאכותית",
+      searchPlaceholder: "חפש מועמדים...",
     },
 
     dashboard: {
@@ -2704,7 +2707,7 @@ companyApplicationsPage: {
     companyDashboard: {
       welcome: "ברוך הבא",
       title: "לוח בקרה לחברה",
-      subtitle: "הנה מה שקורה היום בפעילות הגיוס שלך",
+      subtitle: "עקוב אחר פעילות הגיוס שלך ונהל את תהליך הגיוס.",
       stats: {
         jobPosts: "משרות שפורסמו",
         candidates: "מועמדים",
