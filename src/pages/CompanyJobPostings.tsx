@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -16,6 +16,7 @@ import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { apiFetch, ApiError } from "../utils/api";
 import { formatSalary } from "../utils/formatSalary";
+import { getMatchTier } from "../utils/matchScore";
 
 type JobStatus = "Active" | "Closed" | "Draft";
 
@@ -33,7 +34,11 @@ type JobItem = {
   postedDate: string;
   status: JobStatus;
   applicants: number;
-  newApplicants?: number;
+};
+
+type BackendApplication = {
+  jobId: number;
+  matchPercent: number | null;
 };
 
 function CompanyJobPostings() {
@@ -46,6 +51,7 @@ function CompanyJobPostings() {
   const isRTL = language === "ar" || language === "he";
 
   const [jobs, setJobs] = useState<JobItem[]>([]);
+  const [applications, setApplications] = useState<BackendApplication[]>([]);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -67,6 +73,34 @@ function CompanyJobPostings() {
     fetchJobs();
   }, [page.notSpecified, page.recently, page.untitledJob]);
 
+  useEffect(() => {
+    if (!user?.email) return;
+
+    apiFetch("/api/applications/company")
+      .then((data: BackendApplication[]) => {
+        setApplications(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {});
+  }, [user?.email]);
+
+  const avgMatchScoreByJobId = useMemo(() => {
+    const scoresByJob = new Map<number, number[]>();
+
+    for (const app of applications) {
+      if (typeof app.matchPercent !== "number") continue;
+      const scores = scoresByJob.get(app.jobId) || [];
+      scores.push(app.matchPercent);
+      scoresByJob.set(app.jobId, scores);
+    }
+
+    const averages = new Map<number, number>();
+    for (const [jobId, scores] of scoresByJob) {
+      averages.set(jobId, Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length));
+    }
+
+    return averages;
+  }, [applications]);
+
   const fetchJobs = async () => {
     try {
       const companyEmail = user?.email;
@@ -86,7 +120,7 @@ function CompanyJobPostings() {
         companyEmail: job.companyEmail || companyEmail,
         location: job.location || page.notSpecified || "Not specified",
         type: job.type || "Full-time",
-        salary: job.salary || page.notSpecified || "Not specified",
+        salary: job.salary || "",
         description: job.description || "",
         requirements: job.requirements || "",
         skills: job.skills || "",
@@ -324,7 +358,7 @@ function CompanyJobPostings() {
 
                       <div className="flex items-center gap-1.5">
                         <CircleDollarSign size={15} />
-                        <span>{formatSalary(job.salary)}</span>
+                        <span>{formatSalary(job.salary) || page.salaryNotSpecified || "Salary not specified"}</span>
                       </div>
 
                       <div>
@@ -346,11 +380,21 @@ function CompanyJobPostings() {
                     </div>
 
                     <div className="text-center">
-                      <div className="text-[22px] font-extrabold text-[#39e3b2]">
-                        {job.newApplicants ? `+${job.newApplicants}` : "-"}
+                      <div
+                        className={`text-[22px] font-extrabold ${
+                          job.applicants > 0 && avgMatchScoreByJobId.has(job.id)
+                            ? getMatchTier(avgMatchScoreByJobId.get(job.id)!).text
+                            : "text-white/45"
+                        }`}
+                      >
+                        {job.applicants === 0
+                          ? page.noApplicants || "No applicants"
+                          : avgMatchScoreByJobId.has(job.id)
+                          ? `${avgMatchScoreByJobId.get(job.id)}%`
+                          : page.notScoredYet || "Not scored yet"}
                       </div>
                       <div className="text-[13px] text-white/45">
-                        {job.newApplicants ? page.new || "New" : "-"}
+                        {page.avgMatchScore || "Avg Match Score"}
                       </div>
                     </div>
                   </div>
@@ -617,7 +661,7 @@ function CompanyJobPostings() {
 
             <span className="h-1 w-1 rounded-full bg-white/30" />
 
-            <span>{deleteJobModal.salary}</span>
+            <span>{formatSalary(deleteJobModal.salary) || page.salaryNotSpecified || "Salary not specified"}</span>
           </div>
         </div>
 

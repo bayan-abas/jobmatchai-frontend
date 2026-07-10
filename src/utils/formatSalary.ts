@@ -6,9 +6,11 @@
 // currency and relabeling it ₪ would misrepresent the actual posting.
 const HAS_CURRENCY_MARKER = /[$€£₪]|USD|EUR|GBP|ILS|NIS/i;
 
+const IS_ZERO = /^0+(\.0+)?$/;
+
 export function formatSalary(salary?: string | null): string | null {
   const trimmed = (salary || "").trim();
-  if (!trimmed) {
+  if (!trimmed || IS_ZERO.test(trimmed)) {
     return null;
   }
 
