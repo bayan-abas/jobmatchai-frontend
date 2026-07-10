@@ -14,7 +14,7 @@ import {
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
 import { apiFetch, ApiError } from "../utils/api";
-import { formatSalary } from "../utils/formatSalary";
+import { formatSalaryRange } from "../utils/formatSalary";
 import { getMatchTier } from "../utils/matchScore";
 
 type JobCompanyDetails = {
@@ -156,7 +156,7 @@ function CompanyJobDetailsPage() {
                 <div className="flex items-center gap-2">
                   <Wallet size={18} />
                   <span className="font-semibold text-emerald-300">
-                    {formatSalary(job.salary) || d.salaryNotSpecified || "Salary not specified"}
+                    {formatSalaryRange(job.salary) || d.salaryNotSpecified || "Salary not specified"}
                   </span>
                 </div>
                 {job.createdAt && (

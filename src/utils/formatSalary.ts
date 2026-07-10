@@ -16,3 +16,34 @@ export function formatSalary(salary?: string | null): string | null {
 
   return HAS_CURRENCY_MARKER.test(trimmed) ? trimmed : `₪ ${trimmed}`;
 }
+
+// Company-posted jobs store salary as a bare number or a "min - max" range (see
+// formatSalary above) - this renders that same raw value as a polished "₪min – ₪max / month"
+// string for detail views, with locale-aware thousands separators instead of the raw digits.
+// A value that already carries its own currency marker is left to formatSalary/untouched,
+// since we can't safely reinterpret e.g. "$120k - $150k" as two plain ILS numbers.
+export function formatSalaryRange(salary?: string | null): string | null {
+  const trimmed = (salary || "").trim();
+  if (!trimmed || IS_ZERO.test(trimmed)) {
+    return null;
+  }
+
+  if (HAS_CURRENCY_MARKER.test(trimmed)) {
+    return trimmed;
+  }
+
+  const numbers = trimmed
+    .match(/[\d,.]+/g)
+    ?.map((n) => Number(n.replace(/,/g, "")))
+    .filter((n) => Number.isFinite(n) && n > 0);
+
+  if (!numbers || numbers.length === 0) {
+    return null;
+  }
+
+  const format = (n: number) => `₪${n.toLocaleString("en-US")}`;
+
+  return numbers.length === 1
+    ? `${format(numbers[0])} / month`
+    : `${format(numbers[0])} – ${format(numbers[1])} / month`;
+}
