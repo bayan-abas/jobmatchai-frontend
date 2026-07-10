@@ -20,6 +20,10 @@ export type AuthUser = {
   companySize?: string | null;
   website?: string | null;
   companyDescription?: string | null;
+  linkedin?: string | null;
+  github?: string | null;
+  founded?: string | null;
+  companyType?: string | null;
 };
 
 type AuthContextType = {

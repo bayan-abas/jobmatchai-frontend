@@ -9,11 +9,28 @@ import {
   ArrowLeft,
   BriefcaseBusiness,
   FileText,
+  Target,
+  Plus,
+  Link2,
+  GitFork,
+  CalendarDays,
+  Tag,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { apiFetch } from "../utils/api";
+
+type BackendApplicant = {
+  matchPercent: number | null;
+};
+
+// LinkedIn/GitHub are stored as free text (e.g. "linkedin.com/company/x") - without a
+// protocol prefix an <a href> resolves as a relative link on this same site instead of
+// actually leaving it, so this adds "https://" only when one isn't already present.
+function withProtocol(url: string) {
+  return /^https?:\/\//i.test(url) ? url : `https://${url}`;
+}
 
 function CompanyProfile() {
   const { language } = useLanguage();
@@ -32,8 +49,19 @@ function CompanyProfile() {
     companySize: user?.companySize || c.defaultCompanySize,
     location: user?.location || c.defaultLocation,
     website: user?.website || c.defaultWebsite,
-    description: user?.companyDescription || c.defaultDescription,
+    // Unlike the other fields, description has no baked-in placeholder value - an empty
+    // one gets its own friendly empty state below instead of a fallback string that could
+    // get silently saved as the "real" description the moment the user hits Save.
+    description: user?.companyDescription || "",
+    linkedin: user?.linkedin || "",
+    github: user?.github || "",
+    founded: user?.founded || "",
+    companyType: user?.companyType || "",
   });
+
+  const [jobsCount, setJobsCount] = useState<number | null>(null);
+  const [applicationsCount, setApplicationsCount] = useState<number | null>(null);
+  const [avgMatchScore, setAvgMatchScore] = useState<number | null>(null);
 
   useEffect(() => {
     setCompanyData({
@@ -42,13 +70,46 @@ function CompanyProfile() {
       companySize: user?.companySize || c.defaultCompanySize,
       location: user?.location || c.defaultLocation,
       website: user?.website || c.defaultWebsite,
-      description: user?.companyDescription || c.defaultDescription,
+      description: user?.companyDescription || "",
+      linkedin: user?.linkedin || "",
+      github: user?.github || "",
+      founded: user?.founded || "",
+      companyType: user?.companyType || "",
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  useEffect(() => {
+    if (!user?.email) return;
+
+    let cancelled = false;
+
+    Promise.all([
+      apiFetch(`/api/jobs/company/${user.email}`).catch(() => []),
+      apiFetch("/api/applications/company").catch(() => []),
+    ]).then(([jobs, apps]) => {
+      if (cancelled) return;
+
+      setJobsCount(Array.isArray(jobs) ? jobs.length : 0);
+
+      const applications: BackendApplicant[] = Array.isArray(apps) ? apps : [];
+      setApplicationsCount(applications.length);
+
+      const scored = applications.filter((a) => typeof a.matchPercent === "number");
+      setAvgMatchScore(
+        scored.length > 0
+          ? Math.round(scored.reduce((sum, a) => sum + (a.matchPercent as number), 0) / scored.length)
+          : null
+      );
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.email]);
+
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setCompanyData((prev) => ({
@@ -73,6 +134,10 @@ function CompanyProfile() {
           companySize: companyData.companySize,
           website: companyData.website,
           companyDescription: companyData.description,
+          linkedin: companyData.linkedin,
+          github: companyData.github,
+          founded: companyData.founded,
+          companyType: companyData.companyType,
         }),
       });
 
@@ -179,40 +244,23 @@ function CompanyProfile() {
                 <p className="mt-3 text-lg text-white/70">{companyData.industry}</p>
               )}
 
-              <div className={`mt-8 w-full space-y-4 ${isRTL ? "text-right" : "text-left"}`}>
-                <div className={`flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-white/80 ${isRTL ? "flex-row-reverse" : ""}`}>
-                  <MapPin size={18} className="text-violet-300" />
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      name="location"
-                      value={companyData.location}
-                      onChange={handleChange}
-                      className="w-full bg-transparent outline-none"
-                    />
-                  ) : (
-                    <span>{companyData.location}</span>
-                  )}
+              <div className="mt-8 grid w-full grid-cols-3 gap-3">
+                <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-4 text-center">
+                  <BriefcaseBusiness size={16} className="mx-auto mb-2 text-violet-300" />
+                  <p className="text-xl font-bold text-white">{jobsCount ?? "—"}</p>
+                  <p className="mt-1 text-[11px] leading-tight text-white/50">{c.statActiveJobs || "Active Jobs"}</p>
                 </div>
 
-                <div className={`flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-white/80 ${isRTL ? "flex-row-reverse" : ""}`}>
-                  <Users size={18} className="text-violet-300" />
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      name="companySize"
-                      value={companyData.companySize}
-                      onChange={handleChange}
-                      className="w-full bg-transparent outline-none"
-                    />
-                  ) : (
-                    <span>{companyData.companySize}</span>
-                  )}
+                <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-4 text-center">
+                  <FileText size={16} className="mx-auto mb-2 text-violet-300" />
+                  <p className="text-xl font-bold text-white">{applicationsCount ?? "—"}</p>
+                  <p className="mt-1 text-[11px] leading-tight text-white/50">{c.statTotalApplications || "Total Applications"}</p>
                 </div>
 
-                <div className={`flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-white/80 ${isRTL ? "flex-row-reverse" : ""}`}>
-                  <Mail size={18} className="text-violet-300" />
-                  <span className="break-all">{user?.email || ""}</span>
+                <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-4 text-center">
+                  <Target size={16} className="mx-auto mb-2 text-violet-300" />
+                  <p className="text-xl font-bold text-white">{avgMatchScore !== null ? `${avgMatchScore}%` : "—"}</p>
+                  <p className="mt-1 text-[11px] leading-tight text-white/50">{c.statAvgMatchScore || "Avg Match Score"}</p>
                 </div>
               </div>
             </div>
@@ -321,12 +369,128 @@ function CompanyProfile() {
                     separate, more sensitive flow than a general profile update. */}
                 <p className="break-all text-lg font-medium">{user?.email || ""}</p>
               </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <div className={`mb-2 flex items-center gap-2 text-sm text-white/60 ${isRTL ? "flex-row-reverse" : ""}`}>
+                  <Link2 size={16} />
+                  {c.linkedin || "LinkedIn"}
+                </div>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    name="linkedin"
+                    value={companyData.linkedin}
+                    onChange={handleChange}
+                    className="w-full rounded-xl bg-white/10 px-4 py-3 text-white outline-none"
+                  />
+                ) : companyData.linkedin.trim() ? (
+                  <a
+                    href={withProtocol(companyData.linkedin.trim())}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="break-all text-lg font-medium text-violet-300 transition hover:text-violet-200 hover:underline"
+                  >
+                    {companyData.linkedin}
+                  </a>
+                ) : (
+                  <p className="text-lg font-medium text-white/40">{c.notProvided || "Not provided"}</p>
+                )}
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <div className={`mb-2 flex items-center gap-2 text-sm text-white/60 ${isRTL ? "flex-row-reverse" : ""}`}>
+                  <GitFork size={16} />
+                  {c.github || "GitHub"}
+                </div>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    name="github"
+                    value={companyData.github}
+                    onChange={handleChange}
+                    className="w-full rounded-xl bg-white/10 px-4 py-3 text-white outline-none"
+                  />
+                ) : companyData.github.trim() ? (
+                  <a
+                    href={withProtocol(companyData.github.trim())}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="break-all text-lg font-medium text-violet-300 transition hover:text-violet-200 hover:underline"
+                  >
+                    {companyData.github}
+                  </a>
+                ) : (
+                  <p className="text-lg font-medium text-white/40">{c.notProvided || "Not provided"}</p>
+                )}
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <div className={`mb-2 flex items-center gap-2 text-sm text-white/60 ${isRTL ? "flex-row-reverse" : ""}`}>
+                  <CalendarDays size={16} />
+                  {c.founded || "Founded"}
+                </div>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={4}
+                    name="founded"
+                    value={companyData.founded}
+                    onChange={handleChange}
+                    placeholder="2022"
+                    className="w-full rounded-xl bg-white/10 px-4 py-3 text-white outline-none"
+                  />
+                ) : (
+                  <p className="text-lg font-medium">
+                    {companyData.founded.trim() || (
+                      <span className="text-white/40">{c.notProvided || "Not provided"}</span>
+                    )}
+                  </p>
+                )}
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <div className={`mb-2 flex items-center gap-2 text-sm text-white/60 ${isRTL ? "flex-row-reverse" : ""}`}>
+                  <Tag size={16} />
+                  {c.companyType || "Company Type"}
+                </div>
+                {isEditing ? (
+                  <select
+                    name="companyType"
+                    value={companyData.companyType}
+                    onChange={handleChange}
+                    className="w-full rounded-xl bg-white/10 px-4 py-3 text-white outline-none"
+                  >
+                    <option value="" className="bg-[#1d2258] text-white/50">
+                      {c.selectCompanyType || "Select company type"}
+                    </option>
+                    <option value={c.companyTypeStartup || "Startup"} className="bg-[#1d2258] text-white">
+                      {c.companyTypeStartup || "Startup"}
+                    </option>
+                    <option value={c.companyTypePrivate || "Private Company"} className="bg-[#1d2258] text-white">
+                      {c.companyTypePrivate || "Private Company"}
+                    </option>
+                    <option value={c.companyTypeEnterprise || "Enterprise"} className="bg-[#1d2258] text-white">
+                      {c.companyTypeEnterprise || "Enterprise"}
+                    </option>
+                    <option value={c.companyTypeNonprofit || "Non-profit"} className="bg-[#1d2258] text-white">
+                      {c.companyTypeNonprofit || "Non-profit"}
+                    </option>
+                  </select>
+                ) : (
+                  <p className="text-lg font-medium">
+                    {companyData.companyType.trim() || (
+                      <span className="text-white/40">{c.notProvided || "Not provided"}</span>
+                    )}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6">
               <div className={`mb-3 flex items-center gap-2 text-sm text-white/60 ${isRTL ? "flex-row-reverse" : ""}`}>
                 <FileText size={16} />
-                {c.companyDescription}
+                {c.aboutCompany || "About Company"}
               </div>
               {isEditing ? (
                 <textarea
@@ -334,12 +498,27 @@ function CompanyProfile() {
                   value={companyData.description}
                   onChange={handleChange}
                   rows={6}
+                  placeholder={c.noDescriptionText || "Tell candidates about your company, culture and mission."}
                   className="w-full rounded-2xl bg-white/10 px-4 py-4 text-white outline-none"
                 />
-              ) : (
+              ) : companyData.description.trim() ? (
                 <p className="text-lg leading-8 text-white/85">
                   {companyData.description}
                 </p>
+              ) : (
+                <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-6 py-8 text-center">
+                  <p className="text-white/50">
+                    {c.noDescriptionText || "Tell candidates about your company, culture and mission."}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(true)}
+                    className="inline-flex items-center gap-2 rounded-xl border border-violet-400/30 bg-violet-500/10 px-4 py-2 text-sm font-semibold text-violet-200 transition hover:bg-violet-500/20"
+                  >
+                    <Plus size={15} />
+                    {c.addDescription || "Add Description"}
+                  </button>
+                </div>
               )}
             </div>
           </div>
