@@ -135,6 +135,11 @@ function CompanyRegisterPage() {
       return;
     }
 
+    if (!/[A-Za-z]/.test(cleanPassword) || !/\d/.test(cleanPassword)) {
+      setError(tr.errors.passwordComplexity);
+      return;
+    }
+
     if (cleanPassword !== cleanConfirmPassword) {
       setError(tr.errors.passwordMismatch);
       return;
@@ -174,12 +179,21 @@ try {
 
   login(loginData.token, loginData.user);
 
-  localStorage.setItem("phone", cleanPhone);
-  localStorage.setItem("location", cleanLocation);
-  localStorage.setItem("industry", industry);
-  localStorage.setItem("companySize", companySize);
-  localStorage.setItem("website", cleanWebsite);
-  localStorage.setItem("description", cleanDescription);
+  try {
+    await apiFetch(`/api/users/${loginData.user.id}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        phone: cleanPhone,
+        location: cleanLocation,
+        industry,
+        companySize,
+        website: cleanWebsite,
+        companyDescription: cleanDescription,
+      }),
+    });
+  } catch (profileError) {
+    console.error(profileError);
+  }
 
   setSuccess(tr.success);
 

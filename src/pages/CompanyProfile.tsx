@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Building2,
   Users,
@@ -11,54 +11,41 @@ import {
   FileText,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
+import { apiFetch } from "../utils/api";
 
 function CompanyProfile() {
   const { language } = useLanguage();
+  const { user, refreshUser } = useAuth();
   const t = translations[language];
   const c = t.companyProfilePage;
   const isRTL = language === "ar" || language === "he";
 
-  const getStoredValue = (keys: string[], fallback: string) => {
-    for (const key of keys) {
-      const value = localStorage.getItem(key);
-      if (value && value.trim() !== "") return value;
-    }
-    return fallback;
-  };
-
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   const [companyData, setCompanyData] = useState({
-    companyName: getStoredValue(
-      ["companyName", "name", "fullName", "registerCompanyName"],
-      c.defaultCompanyName
-    ),
-    industry: getStoredValue(
-      ["companyIndustry", "industry", "registerIndustry"],
-      c.defaultIndustry
-    ),
-    companySize: getStoredValue(
-      ["companySize", "size", "registerCompanySize"],
-      c.defaultCompanySize
-    ),
-    location: getStoredValue(
-      ["companyLocation", "location", "registerLocation"],
-      c.defaultLocation
-    ),
-    website: getStoredValue(
-      ["companyWebsite", "website", "registerWebsite"],
-      c.defaultWebsite
-    ),
-    email: getStoredValue(
-      ["companyEmail", "email", "userEmail", "registerEmail"],
-      c.defaultEmail
-    ),
-    description: getStoredValue(
-      ["companyDescription", "description", "registerDescription"],
-      c.defaultDescription
-    ),
+    companyName: user?.name || c.defaultCompanyName,
+    industry: user?.industry || c.defaultIndustry,
+    companySize: user?.companySize || c.defaultCompanySize,
+    location: user?.location || c.defaultLocation,
+    website: user?.website || c.defaultWebsite,
+    description: user?.companyDescription || c.defaultDescription,
   });
+
+  useEffect(() => {
+    setCompanyData({
+      companyName: user?.name || c.defaultCompanyName,
+      industry: user?.industry || c.defaultIndustry,
+      companySize: user?.companySize || c.defaultCompanySize,
+      location: user?.location || c.defaultLocation,
+      website: user?.website || c.defaultWebsite,
+      description: user?.companyDescription || c.defaultDescription,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -70,16 +57,34 @@ function CompanyProfile() {
     }));
   };
 
-  const handleSave = () => {
-    localStorage.setItem("companyName", companyData.companyName);
-    localStorage.setItem("companyIndustry", companyData.industry);
-    localStorage.setItem("companySize", companyData.companySize);
-    localStorage.setItem("companyLocation", companyData.location);
-    localStorage.setItem("companyWebsite", companyData.website);
-    localStorage.setItem("companyEmail", companyData.email);
-    localStorage.setItem("companyDescription", companyData.description);
+  const handleSave = async () => {
+    if (!user?.id) return;
 
-    setIsEditing(false);
+    setSaveError("");
+    setIsSaving(true);
+
+    try {
+      await apiFetch(`/api/users/${user.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          name: companyData.companyName,
+          location: companyData.location,
+          industry: companyData.industry,
+          companySize: companyData.companySize,
+          website: companyData.website,
+          companyDescription: companyData.description,
+        }),
+      });
+
+      await refreshUser();
+      setIsEditing(false);
+    } catch {
+      setSaveError(
+        c.saveError || "Could not save your changes. Please try again."
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -116,25 +121,31 @@ function CompanyProfile() {
             </div>
           </div>
 
-            <button
-              onClick={() => {
-                if (isEditing) {
-                  handleSave();
-                } else {
-                  setIsEditing(true);
-                }
-              }}
-              className={`flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white transition ${
-                isRTL ? "flex-row-reverse" : ""
-              } ${
-                isEditing
-                  ? "rounded-lg bg-green-500 hover:bg-green-600 shadow-md"
-                  : "rounded-2xl bg-gradient-to-r from-violet-500 to-indigo-500 shadow-lg shadow-violet-500/20 hover:scale-[1.02]"
-              }`}
-            >
-              <Pencil size={16} />
-              {isEditing ? c.saveChanges : c.editProfile}
-            </button>
+            <div className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+              {saveError && (
+                <p className="text-sm text-rose-300">{saveError}</p>
+              )}
+              <button
+                disabled={isSaving}
+                onClick={() => {
+                  if (isEditing) {
+                    handleSave();
+                  } else {
+                    setIsEditing(true);
+                  }
+                }}
+                className={`flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white transition disabled:opacity-60 ${
+                  isRTL ? "flex-row-reverse" : ""
+                } ${
+                  isEditing
+                    ? "rounded-lg bg-green-500 hover:bg-green-600 shadow-md"
+                    : "rounded-2xl bg-gradient-to-r from-violet-500 to-indigo-500 shadow-lg shadow-violet-500/20 hover:scale-[1.02]"
+                }`}
+              >
+                <Pencil size={16} />
+                {isSaving ? c.saving || "Saving..." : isEditing ? c.saveChanges : c.editProfile}
+              </button>
+            </div>
         </div>
 
         <div className="grid grid-cols-1 gap-8 xl:grid-cols-[440px_1fr]">
@@ -201,7 +212,7 @@ function CompanyProfile() {
 
                 <div className={`flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-white/80 ${isRTL ? "flex-row-reverse" : ""}`}>
                   <Mail size={18} className="text-violet-300" />
-                  <span className="break-all">{companyData.email}</span>
+                  <span className="break-all">{user?.email || ""}</span>
                 </div>
               </div>
             </div>
@@ -306,17 +317,9 @@ function CompanyProfile() {
                   <Mail size={16} />
                   {c.contactEmail}
                 </div>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    name="email"
-                    value={companyData.email}
-                    onChange={handleChange}
-                    className="w-full rounded-xl bg-white/10 px-4 py-3 text-white outline-none"
-                  />
-                ) : (
-                  <p className="break-all text-lg font-medium">{companyData.email}</p>
-                )}
+                {/* Email isn't editable here - changing an account's login email is a
+                    separate, more sensitive flow than a general profile update. */}
+                <p className="break-all text-lg font-medium">{user?.email || ""}</p>
               </div>
             </div>
 

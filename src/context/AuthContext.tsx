@@ -16,6 +16,10 @@ export type AuthUser = {
   yearsOfExperience?: string | null;
   skills?: string | null;
   professionalSummary?: string | null;
+  industry?: string | null;
+  companySize?: string | null;
+  website?: string | null;
+  companyDescription?: string | null;
 };
 
 type AuthContextType = {
@@ -30,6 +34,15 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const TOKEN_STORAGE_KEY = "jobmatch_token";
+
+// Stray form-draft keys written by the candidate/company registration and profile pages.
+// None of these are ever read back anywhere (verified - they're write-only leftovers), but
+// clearing them here means every logout path (sidebar, 401 auto-logout, delete-account)
+// gets the same cleanup for free instead of each call site having to duplicate this list.
+const STRAY_LOCAL_STORAGE_KEYS = [
+  "phone", "location", "currentTitle", "experience", "skills", "summary",
+  "resumeName", "isPremium", "industry", "companySize", "website", "description",
+];
 
 // The backend stores/returns role case as-is (e.g. some accounts have "COMPANY"/"CANDIDATE"
 // from other write paths), but every frontend role check (ProtectedRoute, LoginPage's
@@ -55,9 +68,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   tokenRef.current = token;
 
   const logout = () => {
+    tokenRef.current = null;
     setToken(null);
     setUser(null);
     sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+    STRAY_LOCAL_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
   };
 
   useEffect(() => {
@@ -100,6 +115,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = (newToken: string, newUser: AuthUser) => {
+    // tokenRef.current is normally kept in sync by the render-time assignment above,
+    // but that only happens on the NEXT render after setToken schedules one. Callers
+    // that immediately fire an authenticated request right after login() (e.g.
+    // CandidateRegisterPage saving profile fields right after auto-login) would
+    // otherwise read the stale/null token via getToken(), get a 401, and trigger an
+    // immediate logout - undoing the login that just happened. Updating the ref here
+    // makes the new token available synchronously, before React re-renders.
+    tokenRef.current = newToken;
     setToken(newToken);
     setUser(normalizeUser(newUser));
     sessionStorage.setItem(TOKEN_STORAGE_KEY, newToken);

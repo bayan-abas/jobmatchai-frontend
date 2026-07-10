@@ -33,6 +33,11 @@ function ResetPasswordPage() {
       return;
     }
 
+    if (!/[A-Za-z]/.test(newPassword) || !/\d/.test(newPassword)) {
+      setError("Password must contain both letters and numbers.");
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       setError("Passwords do not match.");
       return;

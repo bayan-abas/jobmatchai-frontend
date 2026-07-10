@@ -20,6 +20,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { getRingColor } from "../utils/jobInference";
+import { formatSalary } from "../utils/formatSalary";
 import SkillExplanationModal from "../components/SkillExplanationModal";
 import PreInterviewModal from "../components/PreInterviewModal";
 import { apiFetch } from "../utils/api";
@@ -41,7 +42,10 @@ type JobData = {
   applyUrl?: string;
 };
 
-type MatchStatus = "loggedOut" | "loading" | "noAnalysis" | "scored" | "noScore";
+// "error" = the AI couldn't compute this job's match at all (a transient failure, never
+// cached by the backend) - distinct from "noScore", which is a real AI verdict that this
+// job isn't a field match.
+type MatchStatus = "loggedOut" | "loading" | "noAnalysis" | "scored" | "noScore" | "error";
 
 type MatchDetail = {
   hasAnalysis: boolean;
@@ -54,11 +58,16 @@ type MatchDetail = {
   improvementSuggestions: string[];
   recommendation: string | null;
   shouldApply: boolean | null;
-  fieldRelated: boolean;
+  fieldRelated: boolean | null;
   skillsMatchPercent: number | null;
   experienceMatchPercent: number | null;
   educationMatchPercent: number | null;
   languageMatchPercent: number | null;
+  fieldRelevancePercent: number | null;
+  certificationMatchPercent: number | null;
+  locationMatchPercent: number | null;
+  missingRequiredSkills: string[];
+  missingPreferredSkills: string[];
 };
 
 function splitSkills(value?: string): string[] {
@@ -202,7 +211,9 @@ function JobDetailsPage() {
         }
 
         setMatchDetail(data);
-        setMatchStatus(data.fieldRelated === false ? "noScore" : "scored");
+        setMatchStatus(
+          data.fieldRelated === null ? "error" : data.fieldRelated === false ? "noScore" : "scored"
+        );
       })
       .catch(() => {
         if (!cancelled) {
@@ -276,8 +287,15 @@ function JobDetailsPage() {
 
   const requirements = splitSkills(job?.requirements);
   const skills = splitSkills(job?.skills);
+  // Only meaningful when matchStatus is "scored" - matchDetail.matchPercent is only ever
+  // null for "noScore"/"error", where percent is never read for display (no fallback to 0).
   const percent = matchDetail?.matchPercent ?? 0;
-  const ringColor = matchStatus === "scored" ? getRingColor("scored", percent) : "#5f648a";
+  const ringColor =
+    matchStatus === "scored"
+      ? getRingColor("scored", percent)
+      : matchStatus === "error"
+        ? getRingColor("error", 0)
+        : "#5f648a";
 
   return (
     <div
@@ -351,7 +369,7 @@ function JobDetailsPage() {
                   <div className="flex items-center gap-2">
                     <Wallet size={18} />
                     <span className="font-semibold text-emerald-300">
-                      {job.salary || d.salaryNotSpecified}
+                      {formatSalary(job.salary) || d.salaryNotSpecified}
                     </span>
                   </div>
                   {jobType === "external" && job.sourceName && (
@@ -561,11 +579,21 @@ function JobDetailsPage() {
                         background:
                           matchStatus === "scored"
                             ? `conic-gradient(${ringColor} ${percent * 3.6}deg, #2a2c5a 0deg)`
-                            : "conic-gradient(#5f648a 360deg, #2a2c5a 0deg)",
+                            : matchStatus === "error"
+                              ? `conic-gradient(${ringColor} 360deg, #2a2c5a 0deg)`
+                              : "conic-gradient(#5f648a 360deg, #2a2c5a 0deg)",
                       }}
                     />
                     <div className="absolute inset-[10px] flex items-center justify-center rounded-full bg-[#252654] text-[32px] font-extrabold text-white">
-                      {matchStatus === "scored" ? `${percent}%` : matchStatus === "loading" ? "" : "?"}
+                      {matchStatus === "scored"
+                        ? `${percent}%`
+                        : matchStatus === "loading"
+                          ? ""
+                          : matchStatus === "error"
+                            ? "!"
+                            : matchStatus === "noScore"
+                              ? "—"
+                              : "?"}
                     </div>
                   </div>
 
@@ -574,6 +602,8 @@ function JobDetailsPage() {
                       ? d.profileMatchScore
                       : matchStatus === "noScore"
                       ? d.differentField
+                      : matchStatus === "error"
+                      ? "Couldn't compute your match"
                       : matchStatus === "loading"
                       ? d.matchScoreLoading
                       : matchStatus === "loggedOut"
@@ -581,8 +611,19 @@ function JobDetailsPage() {
                       : d.noScoreAvailable}
                   </p>
 
-                  {(matchStatus === "scored" || matchStatus === "noScore") && matchDetail?.matchReason && (
-                    <p className="mt-3 text-[13px] leading-6 text-[#c4cae9]">{matchDetail.matchReason}</p>
+                  {(matchStatus === "scored" || matchStatus === "noScore" || matchStatus === "error") &&
+                    matchDetail?.matchReason && (
+                      <p className="mt-3 text-[13px] leading-6 text-[#c4cae9]">{matchDetail.matchReason}</p>
+                    )}
+
+                  {matchStatus === "error" && (
+                    <button
+                      type="button"
+                      onClick={() => window.location.reload()}
+                      className="mt-4 inline-flex items-center justify-center rounded-full border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-sm font-semibold text-amber-300 transition hover:bg-amber-400/20"
+                    >
+                      Retry
+                    </button>
                   )}
 
                   {matchStatus === "noAnalysis" && isLoggedIn && (
@@ -654,8 +695,16 @@ function JobDetailsPage() {
                       { label: d.skillsMatch, value: matchDetail.skillsMatchPercent },
                       { label: d.experienceMatch, value: matchDetail.experienceMatchPercent },
                       { label: d.educationMatch, value: matchDetail.educationMatchPercent },
+                      { label: d.certificationMatch, value: matchDetail.certificationMatchPercent },
+                      { label: d.locationMatch, value: matchDetail.locationMatchPercent },
                       { label: d.languageMatch, value: matchDetail.languageMatchPercent },
-                    ].map((row) => (
+                    ]
+                      // Component rows that weren't applicable to this job (backend leaves them
+                      // null and excludes them from the weighted score) are omitted rather than
+                      // shown as a misleading 0% - that would look like a gap that hurt the score
+                      // when it was actually just excluded and had no effect on it.
+                      .filter((row) => row.value !== null)
+                      .map((row) => (
                       <div key={row.label}>
                         <div className="mb-1.5 flex items-center justify-between text-[13px] font-semibold text-[#c4cae9]">
                           <span>{row.label}</span>

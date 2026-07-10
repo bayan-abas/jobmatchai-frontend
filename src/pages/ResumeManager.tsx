@@ -12,6 +12,7 @@ import {
   BadgeCheck,
   AlertCircle,
   TrendingUp,
+  Info,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
@@ -44,6 +45,7 @@ function ResumeManager() {
   const isRTL = language === "ar" || language === "he";
 
   const [fileName, setFileName] = useState("");
+  const [displayFileName, setDisplayFileName] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -95,11 +97,15 @@ function ResumeManager() {
         if (!user) return;
 
         let currentFileName = "";
+        let currentDisplayName = "";
         try {
-          currentFileName = (await apiFetch(`/api/cv/current`)).trim();
+          const info = await apiFetch(`/api/cv/current-info`);
+          currentFileName = (info.fileName || "").trim();
+          currentDisplayName = (info.originalFileName || currentFileName).trim();
         } catch (err) {
           if (err instanceof ApiError) {
             setFileName("");
+            setDisplayFileName("");
             setAnalysis(null);
             localStorage.removeItem("resumeFileName");
             return;
@@ -109,6 +115,7 @@ function ResumeManager() {
 
         if (currentFileName) {
           setFileName(currentFileName);
+          setDisplayFileName(currentDisplayName);
           localStorage.setItem("resumeFileName", currentFileName);
 
           try {
@@ -119,6 +126,7 @@ function ResumeManager() {
           }
         } else {
           setFileName("");
+          setDisplayFileName("");
           setAnalysis(null);
           localStorage.removeItem("resumeFileName");
         }
@@ -158,14 +166,15 @@ function ResumeManager() {
       formData.append("file", file);
       formData.append("language", language);
 
-      const savedFileName = await apiFetch("/api/cv/upload", {
+      const uploadResult = await apiFetch("/api/cv/upload", {
         method: "POST",
         body: formData,
       });
 
-      setFileName(savedFileName);
+      setFileName(uploadResult.fileName);
+      setDisplayFileName(uploadResult.originalFileName || uploadResult.fileName);
       resetAnalysis();
-      localStorage.setItem("resumeFileName", savedFileName);
+      localStorage.setItem("resumeFileName", uploadResult.fileName);
 
       showToast("success", r.uploadSuccess);
     } catch (error) {
@@ -207,6 +216,7 @@ function ResumeManager() {
       });
 
       setFileName("");
+      setDisplayFileName("");
       resetAnalysis();
       localStorage.removeItem("resumeFileName");
 
@@ -445,7 +455,7 @@ function ResumeManager() {
                       </div>
 
                       <p className="break-all text-[16px] text-[#c4cae9]">
-                        {fileName}
+                        {displayFileName}
                       </p>
                     </div>
                   </div>
@@ -525,6 +535,24 @@ function ResumeManager() {
 
             {analysis && !isAnalyzing && (
               <>
+                <div
+                  className={`flex items-start gap-3 rounded-[22px] border border-cyan-400/15 bg-cyan-400/5 px-6 py-5 ${
+                    isRTL ? "flex-row-reverse text-right" : "text-left"
+                  }`}
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-400/10 text-cyan-300">
+                    <Info size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-[16px] font-bold text-white">
+                      {r.scoreExplanationTitle}
+                    </h4>
+                    <p className="mt-1 text-[14px] leading-6 text-[#b8bddb]">
+                      {r.scoreExplanationText}
+                    </p>
+                  </div>
+                </div>
+
                 <article className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-7 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
                   <div className="flex flex-col items-center justify-center text-center">
                     <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#5e66ff1f] text-[#7c88ff] shadow-[0_0_35px_rgba(127,76,255,0.18)]">

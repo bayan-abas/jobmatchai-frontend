@@ -5,6 +5,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { apiFetch } from "../utils/api";
+import { formatSalary } from "../utils/formatSalary";
 
 type SavedJobRow = {
   id: number;
@@ -128,7 +129,7 @@ function FavoritesPage() {
                       {row.salary && (
                         <span className={`inline-flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
                           <Wallet size={16} />
-                          {row.salary}
+                          {formatSalary(row.salary)}
                         </span>
                       )}
                     </div>

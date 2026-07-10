@@ -80,9 +80,22 @@ function CompanyNotifications() {
 
     async function load() {
       try {
-        const data = await apiFetch("/api/notifications");
-        if (!cancelled) {
-          setNotifications(data);
+        const data: BackendNotification[] = await apiFetch("/api/notifications");
+        if (cancelled) return;
+
+        setNotifications(data);
+
+        // Opening this page is itself "seeing" the notifications - mark everything
+        // read right away instead of waiting for an explicit click, so the badge
+        // clears the moment the user opens the panel.
+        if (data.some((item) => !item.read)) {
+          setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
+          notifyNotificationsChanged(0);
+          // keepalive: the browser would otherwise cancel this in-flight request if the
+          // user closes the tab/navigates away right after opening the page (a completely
+          // normal flow) - without it, the badge clears locally but the read status never
+          // reaches the database, so it reappears unread on the next visit.
+          apiFetch("/api/notifications/mark-all-read", { method: "POST", keepalive: true }).catch(() => null);
         }
       } catch {
         if (!cancelled) {
@@ -108,7 +121,7 @@ function CompanyNotifications() {
   );
 
   const markAllAsRead = async () => {
-    const unread = notifications.filter((item) => !item.read);
+    const hasUnread = notifications.some((item) => !item.read);
     setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
     // Marking everything read makes the new unread count deterministically 0 -
     // push that to every badge right away instead of waiting on a fresh
@@ -116,11 +129,9 @@ function CompanyNotifications() {
     // the badges look stuck even though the backend write itself succeeded.
     notifyNotificationsChanged(0);
 
-    await Promise.all(
-      unread.map((item) =>
-        apiFetch(`/api/notifications/${item.id}/read`, { method: "POST" }).catch(() => null)
-      )
-    );
+    if (!hasUnread) return;
+
+    await apiFetch("/api/notifications/mark-all-read", { method: "POST", keepalive: true }).catch(() => null);
   };
 
   const clearAll = async () => {

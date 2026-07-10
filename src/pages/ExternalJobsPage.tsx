@@ -5,32 +5,20 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import ExternalJobCard, { type ExternalJobData, type MatchInfo } from "../components/ExternalJobCard";
-import { inferIndustry, extractSalaryNumber } from "../utils/jobInference";
+import { inferIndustry, extractSalaryNumber, INDUSTRY_KEYS } from "../utils/jobInference";
 import { apiFetch } from "../utils/api";
 import { ISRAELI_CITIES } from "../utils/israeliCities";
+import { ISRAELI_REGIONS, getRegionForLocation, type IsraeliRegion } from "../utils/israeliRegions";
 
-const INDUSTRY_KEYS = [
-  "technology", "engineering", "healthcare", "education", "finance", "marketing",
-  "retail", "sales", "customerService", "hospitality", "restaurants", "logistics",
-  "construction", "factory", "security", "legal", "administration", "humanResources",
-  "realEstate", "beauty", "cleaning", "agriculture", "media", "design", "translation",
-  "writing", "general",
-];
-
-const COUNTRY_NAMES: Record<string, string> = {
-  IL: "Israel", US: "United States", GB: "United Kingdom", UK: "United Kingdom",
-  DE: "Germany", FR: "France", CA: "Canada", AU: "Australia", NL: "Netherlands",
-  IE: "Ireland", ES: "Spain", IT: "Italy", PL: "Poland", SE: "Sweden",
-  CH: "Switzerland", IN: "India", SG: "Singapore", AE: "United Arab Emirates",
-};
-
-function formatCountryName(code: string) {
-  return COUNTRY_NAMES[code.toUpperCase()] || code;
-}
+type SortOrder = "match" | "newest" | "oldest";
 
 type MatchScoreEntry = {
   matchPercent: number | null;
-  fieldRelated: boolean;
+  matchReason: string;
+  // true = real "field match" verdict; false = real "not a field match" verdict (matchReason
+  // explains why); null = the AI couldn't compute this job at all - a transient failure, not
+  // a verdict, and never cached by the backend, so it's worth retrying.
+  fieldRelated: boolean | null;
 };
 
 function ExternalJobsPage() {
@@ -50,11 +38,12 @@ function ExternalJobsPage() {
   const [fetchError, setFetchError] = useState("");
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [countryFilter, setCountryFilter] = useState("");
+  const [regionFilter, setRegionFilter] = useState<IsraeliRegion | "">("");
   const [cityFilter, setCityFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [industryFilter, setIndustryFilter] = useState("");
   const [minSalary, setMinSalary] = useState(0);
+  const [sortOrder, setSortOrder] = useState<SortOrder>("match");
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [matchScores, setMatchScores] = useState<Map<number, MatchScoreEntry>>(new Map());
@@ -92,7 +81,10 @@ function ExternalJobsPage() {
       method: "POST",
       body: JSON.stringify({ email: identity.email, externalJobIds, language }),
     })
-      .then((data: { hasAnalysis: boolean; matches: { jobId: number; matchPercent: number | null; fieldRelated?: boolean }[] }) => {
+      .then((data: {
+        hasAnalysis: boolean;
+        matches: { jobId: number; matchPercent: number | null; matchReason?: string; fieldRelated?: boolean | null }[];
+      }) => {
         if (cancelled) return;
         setHasAnalysis(Boolean(data.hasAnalysis));
 
@@ -100,7 +92,10 @@ function ExternalJobsPage() {
         (data.matches || []).forEach((match) => {
           nextScores.set(match.jobId, {
             matchPercent: match.matchPercent,
-            fieldRelated: match.fieldRelated !== false,
+            matchReason: match.matchReason || "",
+            // A missing key (older API responses) defaults to true; an explicit null is the
+            // backend's "couldn't compute this" sentinel and must stay null, not collapse to true.
+            fieldRelated: match.fieldRelated === undefined ? true : match.fieldRelated,
           });
         });
         setMatchScores(nextScores);
@@ -180,29 +175,22 @@ function ExternalJobsPage() {
     }
   };
 
-  const countries = useMemo(
-    () => Array.from(new Set(jobs.map((job) => job.country).filter(Boolean))) as string[],
-    [jobs]
-  );
-
   const cities = useMemo(() => {
+    const regionCities = regionFilter
+      ? ISRAELI_CITIES.filter((city) => getRegionForLocation(city) === regionFilter)
+      : ISRAELI_CITIES;
+
     const jobCities = Array.from(
       new Set(
         jobs
-          .filter((job) => !countryFilter || job.country === countryFilter)
+          .filter((job) => !regionFilter || getRegionForLocation(job.city, job.location) === regionFilter)
           .map((job) => job.city)
           .filter(Boolean)
       )
     ) as string[];
 
-    if (countryFilter.toUpperCase() === "IL") {
-      return Array.from(new Set([...ISRAELI_CITIES, ...jobCities])).sort((a, b) =>
-        a.localeCompare(b)
-      );
-    }
-
-    return jobCities;
-  }, [jobs, countryFilter]);
+    return Array.from(new Set([...regionCities, ...jobCities])).sort((a, b) => a.localeCompare(b));
+  }, [jobs, regionFilter]);
 
   const types = useMemo(
     () => Array.from(new Set(jobs.map((job) => job.type).filter(Boolean))) as string[],
@@ -217,8 +205,12 @@ function ExternalJobsPage() {
     const entry = matchScores.get(job.id);
     if (!entry) return { status: "noAnalysis", percent: 0 };
 
+    if (entry.fieldRelated === null) {
+      return { status: "error", percent: 0, reason: entry.matchReason };
+    }
+
     if (!entry.fieldRelated || entry.matchPercent === null) {
-      return { status: "noScore", percent: 0 };
+      return { status: "noScore", percent: 0, reason: entry.matchReason };
     }
 
     return { status: "scored", percent: entry.matchPercent };
@@ -234,16 +226,27 @@ function ExternalJobsPage() {
         (job.companyName || "").toLowerCase().includes(search) ||
         (job.skills || "").toLowerCase().includes(search);
 
-      const matchesCountry = !countryFilter || job.country === countryFilter;
+      const matchesRegion = !regionFilter || getRegionForLocation(job.city, job.location) === regionFilter;
       const matchesCity = !cityFilter || job.city === cityFilter;
       const matchesType = !typeFilter || job.type === typeFilter;
       const matchesIndustry = !industryFilter || inferIndustry(job) === industryFilter;
 
       const jobSalary = extractSalaryNumber(job.salary);
-      const matchesSalary = jobSalary === 0 ? true : jobSalary >= minSalary;
+      // minSalary is the slider value in thousands (label reads "Xk"), while
+      // extractSalaryNumber returns the raw shekel figure - comparing them directly
+      // made this filter pass almost everything regardless of slider position.
+      const matchesSalary = jobSalary === 0 ? true : jobSalary >= minSalary * 1000;
 
-      return matchesSearch && matchesCountry && matchesCity && matchesType && matchesIndustry && matchesSalary;
+      return matchesSearch && matchesRegion && matchesCity && matchesType && matchesIndustry && matchesSalary;
     });
+
+    if (sortOrder === "newest" || sortOrder === "oldest") {
+      return [...filtered].sort((a, b) => {
+        const timeA = a.importedAt ? new Date(a.importedAt).getTime() : 0;
+        const timeB = b.importedAt ? new Date(b.importedAt).getTime() : 0;
+        return sortOrder === "newest" ? timeB - timeA : timeA - timeB;
+      });
+    }
 
     return [...filtered].sort((a, b) => {
       const infoA = getMatchInfo(a);
@@ -256,11 +259,12 @@ function ExternalJobsPage() {
   }, [
     jobs,
     searchTerm,
-    countryFilter,
+    regionFilter,
     cityFilter,
     typeFilter,
     industryFilter,
     minSalary,
+    sortOrder,
     matchScores,
     hasAnalysis,
     matchScoresLoading,
@@ -318,16 +322,18 @@ function ExternalJobsPage() {
               </div>
 
               <select
-                value={countryFilter}
+                value={regionFilter}
                 onChange={(e) => {
-                  setCountryFilter(e.target.value);
+                  setRegionFilter(e.target.value as IsraeliRegion | "");
                   setCityFilter("");
                 }}
                 className="rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none"
               >
-                <option className="text-black" value="">{p.allCountries}</option>
-                {countries.map((country) => (
-                  <option className="text-black" key={country} value={country}>{formatCountryName(country)}</option>
+                <option className="text-black" value="">{p.allRegions}</option>
+                {ISRAELI_REGIONS.map((region) => (
+                  <option className="text-black" key={region} value={region}>
+                    {p.regions?.[region] || region}
+                  </option>
                 ))}
               </select>
 
@@ -368,10 +374,20 @@ function ExternalJobsPage() {
                 ))}
               </select>
 
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+                className={`flex items-center rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none ${isRTL ? "text-right" : "text-left"}`}
+              >
+                <option className="text-black" value="match">{p.sortBestMatch}</option>
+                <option className="text-black" value="newest">{p.sortNewestFirst}</option>
+                <option className="text-black" value="oldest">{p.sortOldestFirst}</option>
+              </select>
+
               <div className="lg:col-span-3">
                 <label className={`mb-2 flex items-center gap-2 text-[15px] text-[#d7dbf7] ${isRTL ? "flex-row-reverse justify-end" : ""}`}>
                   <DollarSign size={17} />
-                  <span>{t.jobMatches.minSalary}: {minSalary}k</span>
+                  <span>{t.jobMatches.minSalary}: ₪{minSalary}k</span>
                 </label>
                 <input
                   type="range"

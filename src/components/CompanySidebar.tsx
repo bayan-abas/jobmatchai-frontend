@@ -39,10 +39,6 @@ function CompanySidebar({ isCollapsed, setIsCollapsed }: CompanySidebarProps) {
   ];
 
   const handleLogout = () => {
-    const nonAuthKeys = [
-      "phone", "location", "industry", "companySize", "website", "description",
-    ];
-    nonAuthKeys.forEach((k) => localStorage.removeItem(k));
     logout();
     navigate("/login");
   };

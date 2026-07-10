@@ -35,6 +35,7 @@ type RecentApplication = {
 };
 
 type MatchItem = {
+  id: number;
   title: string;
   company: string;
   location: string;
@@ -259,6 +260,7 @@ function CandidateDashboard() {
 
         setTopMatches(
           jobsWithScores.slice(0, 3).map(({ job, score }) => ({
+            id: job.id as number,
             title: job.title || "Job Position",
             company: job.company || job.companyName || "Company",
             location: job.location || "Not specified",
@@ -268,22 +270,28 @@ function CandidateDashboard() {
         );
 
         setApplications(
-          appsData.slice(0, 3).map((app) => {
-            const status = app.status || "Under Review";
-            const scoreEntry =
-              typeof app.jobId === "number" ? matchByJobId.get(app.jobId) : undefined;
+          appsData
+            // A fabricated id here would silently break the "open this application"
+            // navigation below (it points at state.selectedApplicationId, which has to be
+            // a real application id) - skip anything malformed rather than inventing one.
+            .filter((app) => typeof app.id === "number" || typeof app.jobId === "number")
+            .slice(0, 3)
+            .map((app) => {
+              const status = app.status || "Under Review";
+              const scoreEntry =
+                typeof app.jobId === "number" ? matchByJobId.get(app.jobId) : undefined;
 
-            return {
-              id: app.id || app.jobId || Math.floor(Math.random() * 100000),
-              title: app.title || app.jobTitle || "Application",
-              company: app.company || app.companyName || "Company",
-              location: app.location || "Not specified",
-              percent: scoreEntry ? scoreEntry.matchPercent : null,
-              status,
-              days: app.appliedDate || "Recently",
-              statusClass: getStatusClass(status),
-            };
-          })
+              return {
+                id: (app.id ?? app.jobId) as number,
+                title: app.title || app.jobTitle || "Application",
+                company: app.company || app.companyName || "Company",
+                location: app.location || "Not specified",
+                percent: scoreEntry ? scoreEntry.matchPercent : null,
+                status,
+                days: app.appliedDate || "Recently",
+                statusClass: getStatusClass(status),
+              };
+            })
         );
       } catch (error) {
         console.error("Dashboard fetch error:", error);
@@ -489,7 +497,7 @@ function CandidateDashboard() {
               ) : (
                 topMatches.map((job) => (
                   <article
-                    key={`${job.title}-${job.company}`}
+                    key={job.id}
                     onClick={() =>
                       navigate("/job-matches", {
                         state: { selectedJobTitle: job.title },

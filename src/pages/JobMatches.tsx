@@ -23,7 +23,14 @@ import {
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
-import { getRingColor as getSharedRingColor } from "../utils/jobInference";
+import {
+  getRingColor as getSharedRingColor,
+  inferIndustry as sharedInferIndustry,
+  inferLevel as sharedInferLevel,
+  inferExperience as sharedInferExperience,
+  INDUSTRY_KEYS,
+} from "../utils/jobInference";
+import { formatSalary } from "../utils/formatSalary";
 import { apiFetch } from "../utils/api";
 import { FREE_PLAN_LIMIT } from "../utils/applicationLimit";
 import LoadingScreen from "../components/LoadingScreen";
@@ -62,7 +69,11 @@ type MatchScoreEntry = {
   matchReason: string;
   matchedSkills: string[];
   missingSkills: string[];
-  fieldRelated: boolean;
+  // true = AI decided this job matches the candidate's field; false = AI decided it doesn't
+  // (a real verdict, with matchReason explaining why); null = the AI couldn't compute this
+  // job's match at all (a transient failure, not a verdict) - the backend never caches this,
+  // so it's worth retrying rather than treating it the same as a genuine field mismatch.
+  fieldRelated: boolean | null;
 };
 
 function JobMatches() {
@@ -117,327 +128,15 @@ function JobMatches() {
       .replace(/\s+/g, " ")
       .trim();
 
-  const inferIndustry = (job: BackendJob) => {
-    const text = normalize(
-      `${job.title || ""} ${job.description || ""} ${job.requirements || ""} ${job.skills || ""} ${job.type || ""}`
-    );
-
-    if (
-      text.includes("react") ||
-      text.includes("java") ||
-      text.includes("python") ||
-      text.includes("javascript") ||
-      text.includes("typescript") ||
-      text.includes("developer") ||
-      text.includes("programmer") ||
-      text.includes("software") ||
-      text.includes("frontend") ||
-      text.includes("backend") ||
-      text.includes("full stack") ||
-      text.includes("data") ||
-      text.includes("it") ||
-      text.includes("cyber") ||
-      text.includes("cloud") ||
-      text.includes("network") ||
-      text.includes("devops") ||
-      text.includes("qa") ||
-      text.includes("ui") ||
-      text.includes("ux")
-    ) {
-      return "technology";
-    }
-
-    if (
-      text.includes("engineer") ||
-      text.includes("engineering") ||
-      text.includes("autocad") ||
-      text.includes("infrastructure") ||
-      text.includes("civil") ||
-      text.includes("mechanical") ||
-      text.includes("electrical") ||
-      text.includes("industrial") ||
-      text.includes("chemical") ||
-      text.includes("architect") ||
-      text.includes("architecture")
-    ) {
-      return "engineering";
-    }
-
-    if (
-      text.includes("medical") ||
-      text.includes("health") ||
-      text.includes("doctor") ||
-      text.includes("nurse") ||
-      text.includes("nursing") ||
-      text.includes("hospital") ||
-      text.includes("clinic") ||
-      text.includes("pharmacy") ||
-      text.includes("pharmacist") ||
-      text.includes("dentist") ||
-      text.includes("lab") ||
-      text.includes("laboratory") ||
-      text.includes("psychology")
-    ) {
-      return "healthcare";
-    }
-
-    if (
-      text.includes("teacher") ||
-      text.includes("teaching") ||
-      text.includes("education") ||
-      text.includes("learning") ||
-      text.includes("school") ||
-      text.includes("tutor") ||
-      text.includes("professor") ||
-      text.includes("lecturer")
-    ) {
-      return "education";
-    }
-
-    if (
-      text.includes("account") ||
-      text.includes("accounting") ||
-      text.includes("finance") ||
-      text.includes("financial") ||
-      text.includes("bank") ||
-      text.includes("banking") ||
-      text.includes("tax") ||
-      text.includes("insurance") ||
-      text.includes("auditor") ||
-      text.includes("economics")
-    ) {
-      return "finance";
-    }
-
-    if (
-      text.includes("marketing") ||
-      text.includes("seo") ||
-      text.includes("content") ||
-      text.includes("social media") ||
-      text.includes("copywriter") ||
-      text.includes("digital marketing") ||
-      text.includes("advertising") ||
-      text.includes("campaign")
-    ) {
-      return "marketing";
-    }
-
-    if (
-      text.includes("retail") ||
-      text.includes("store") ||
-      text.includes("shop") ||
-      text.includes("cashier") ||
-      text.includes("supermarket") ||
-      text.includes("pos") ||
-      text.includes("sales associate")
-    ) {
-      return "retail";
-    }
-
-    if (
-      text.includes("sales") ||
-      text.includes("salesperson") ||
-      text.includes("sales manager") ||
-      text.includes("business development")
-    ) {
-      return "sales";
-    }
-
-    if (
-      text.includes("customer service") ||
-      text.includes("customer support") ||
-      text.includes("call center") ||
-      text.includes("support representative") ||
-      text.includes("service representative")
-    ) {
-      return "customerService";
-    }
-
-    if (
-      text.includes("hotel") ||
-      text.includes("hospitality") ||
-      text.includes("tourism") ||
-      text.includes("guest")
-    ) {
-      return "hospitality";
-    }
-
-    if (
-      text.includes("restaurant") ||
-      text.includes("chef") ||
-      text.includes("waiter") ||
-      text.includes("barista") ||
-      text.includes("kitchen") ||
-      text.includes("cook") ||
-      text.includes("food service") ||
-      text.includes("baking")
-    ) {
-      return "restaurants";
-    }
-
-    if (
-      text.includes("logistics") ||
-      text.includes("shipping") ||
-      text.includes("supply") ||
-      text.includes("warehouse") ||
-      text.includes("delivery") ||
-      text.includes("driver") ||
-      text.includes("transportation") ||
-      text.includes("truck")
-    ) {
-      return "logistics";
-    }
-
-    if (
-      text.includes("construction") ||
-      text.includes("builder") ||
-      text.includes("building") ||
-      text.includes("plumbing") ||
-      text.includes("carpentry") ||
-      text.includes("electrician") ||
-      text.includes("maintenance")
-    ) {
-      return "construction";
-    }
-
-    if (
-      text.includes("factory") ||
-      text.includes("manufacturing") ||
-      text.includes("production") ||
-      text.includes("machine operator") ||
-      text.includes("packaging")
-    ) {
-      return "factory";
-    }
-
-    if (
-      text.includes("security") ||
-      text.includes("guard") ||
-      text.includes("police") ||
-      text.includes("military") ||
-      text.includes("fire safety")
-    ) {
-      return "security";
-    }
-
-    if (
-      text.includes("legal") ||
-      text.includes("lawyer") ||
-      text.includes("attorney") ||
-      text.includes("law")
-    ) {
-      return "legal";
-    }
-
-    if (
-      text.includes("office") ||
-      text.includes("administration") ||
-      text.includes("secretary") ||
-      text.includes("secretarial") ||
-      text.includes("assistant")
-    ) {
-      return "administration";
-    }
-
-    if (
-      text.includes("hr") ||
-      text.includes("human resources") ||
-      text.includes("recruiter") ||
-      text.includes("recruitment")
-    ) {
-      return "humanResources";
-    }
-
-    if (
-      text.includes("real estate") ||
-      text.includes("property") ||
-      text.includes("broker")
-    ) {
-      return "realEstate";
-    }
-
-    if (
-      text.includes("beauty") ||
-      text.includes("makeup") ||
-      text.includes("hairdresser") ||
-      text.includes("nail")
-    ) {
-      return "beauty";
-    }
-
-    if (
-      text.includes("cleaning") ||
-      text.includes("housekeeping") ||
-      text.includes("janitor") ||
-      text.includes("laundry")
-    ) {
-      return "cleaning";
-    }
-
-    if (
-      text.includes("agriculture") ||
-      text.includes("farm") ||
-      text.includes("farming")
-    ) {
-      return "agriculture";
-    }
-
-    if (
-      text.includes("media") ||
-      text.includes("journalism") ||
-      text.includes("photography") ||
-      text.includes("video editing") ||
-      text.includes("animation")
-    ) {
-      return "media";
-    }
-
-    if (
-      text.includes("design") ||
-      text.includes("graphic") ||
-      text.includes("interior design")
-    ) {
-      return "design";
-    }
-
-    if (
-      text.includes("translation") ||
-      text.includes("translator")
-    ) {
-      return "translation";
-    }
-
-    if (
-      text.includes("writing") ||
-      text.includes("writer")
-    ) {
-      return "writing";
-    }
-
-    return "general";
-  };
-
-  const inferLevel = (job: BackendJob) => {
-    const text = normalize(`${job.title || ""} ${job.description || ""} ${job.requirements || ""}`);
-
-    if (text.includes("lead") || text.includes("principal")) return "Lead";
-    if (text.includes("senior") || text.includes("5+")) return "Senior";
-    if (text.includes("junior") || text.includes("entry") || text.includes("0-1")) return "Entry";
-    return "Mid";
-  };
-
-  const inferExperience = (job: BackendJob) => {
-    const text = `${job.title || ""} ${job.description || ""} ${job.requirements || ""}`;
-    const match = text.match(/(\d+)\+?\s*(years|year|yrs|yr)/i);
-
-    if (match) return `${match[1]}+ years`;
-
-    const level = inferLevel(job);
-    if (level === "Entry") return "1+ years";
-    if (level === "Senior") return "5+ years";
-    if (level === "Lead") return "7+ years";
-    return "2+ years";
-  };
+  // Delegates to the shared, single-source-of-truth implementations in utils/jobInference.ts
+  // (also used by ExternalJobsPage) rather than keeping a second copy here - this file used to
+  // have its own independent copy of all three, which is how a substring-matching bug (bare
+  // "it"/"ui" keywords matching inside ordinary words like "hospital" or "position", so
+  // healthcare/education jobs got misclassified as "technology") went unfixed here even after
+  // being fixed in the shared copy.
+  const inferIndustry = sharedInferIndustry;
+  const inferLevel = sharedInferLevel;
+  const inferExperience = sharedInferExperience;
 
   const buildJobFromBackend = (backendJob: BackendJob): Job => {
     // Skill match/miss tags are AI-computed (semantic, not substring matching) and
@@ -533,7 +232,7 @@ function JobMatches() {
         hasAnalysis: boolean;
         matches: {
           jobId: number;
-          fieldRelated?: boolean;
+          fieldRelated?: boolean | null;
           matchPercent: number | null;
           matchReason: string;
           matchedSkills?: string[];
@@ -551,7 +250,9 @@ function JobMatches() {
             matchReason: match.matchReason,
             matchedSkills: match.matchedSkills || [],
             missingSkills: match.missingSkills || [],
-            fieldRelated: match.fieldRelated !== false,
+            // A missing key (older API responses) defaults to true; an explicit null is the
+            // backend's "couldn't compute this" sentinel and must stay null, not collapse to true.
+            fieldRelated: match.fieldRelated === undefined ? true : match.fieldRelated,
           });
         });
 
@@ -575,148 +276,12 @@ function JobMatches() {
     };
   }, [jobs, language]);
 
-const industryOptions = [
- "allIndustries",
-
-"technology",
-"software",
-"hardware",
-"engineering",
-"civilEngineering",
-"mechanicalEngineering",
-"electricalEngineering",
-"industrialEngineering",
-"chemicalEngineering",
-"architecture",
-"interiorDesign",
-"construction",
-"maintenance",
-"plumbing",
-"carpentry",
-"electricity",
-"mechanics",
-"automotive",
-"transportation",
-"delivery",
-"logistics",
-"warehouse",
-"supplyChain",
-"shipping",
-"customs",
-"aviation",
-"airportServices",
-"marine",
-"tourism",
-"hospitality",
-"hotelManagement",
-"restaurants",
-"foodService",
-"chef",
-"waiter",
-"barista",
-"baking",
-"cashier",
-"supermarket",
-"retail",
-"luxuryRetail",
-"sales",
-"customerService",
-"customerSupport",
-"callCenter",
-"officeWork",
-"administration",
-"secretarial",
-"management",
-"projectManagement",
-"business",
-"consulting",
-"humanResources",
-"finance",
-"accounting",
-"banking",
-"insurance",
-"economics",
-"marketing",
-"digitalMarketing",
-"seo",
-"socialMedia",
-"copywriting",
-"contentCreation",
-"media",
-"journalism",
-"photography",
-"videoEditing",
-"animation",
-"music",
-"fashion",
-"beauty",
-"fitness",
-"sports",
-"healthcare",
-"medical",
-"nursing",
-"dentistry",
-"pharmacy",
-"laboratory",
-"psychology",
-"socialWork",
-"elderCare",
-"childcare",
-"vet",
-"education",
-"teaching",
-"research",
-"mathematics",
-"statistics",
-"physics",
-"chemistry",
-"biotechnology",
-"dataScience",
-"ai",
-"machineLearning",
-"cybersecurity",
-"networking",
-"cloudComputing",
-"devOps",
-"qaTesting",
-"gameDevelopment",
-"uiux",
-"telecommunications",
-"ecommerce",
-"translation",
-"writing",
-"legal",
-"government",
-"security",
-"police",
-"military",
-"fireSafety",
-"emergencyServices",
-"ngo",
-"religiousServices",
-"factory",
-"manufacturing",
-"packaging",
-"printing",
-"agriculture",
-"mining",
-"oilGas",
-"renewableEnergy",
-"cleaning",
-"housekeeping",
-"laundry",
-"realEstate",
-"procurement",
-"importExport",
-"eventManagement",
-"studentJobs",
-"internship",
-"partTime",
-"fullTime",
-"remoteWork",
-"freelance",
-"general",
-  ];
+// The dropdown must only ever offer values inferIndustry() can actually return (see
+// utils/jobInference.ts's INDUSTRY_KEYS) - this used to be a much larger, independently
+// hand-written list of ~140 granular categories ("software", "cybersecurity", "callCenter",
+// "hotelManagement", ...) that inferIndustry() never produces, so selecting almost any of
+// them was guaranteed to show zero jobs no matter what data existed.
+const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
 
   const seniorityOptions = ["allLevels", "entry", "mid", "senior", "lead"];
 
@@ -826,7 +391,12 @@ const industryOptions = [
   type MatchInfo =
     | { status: "loading" }
     | { status: "noAnalysis" }
+    // The AI tried and gave a real verdict that this job isn't a field match - matchReason
+    // explains why, straight from the AI's own comparison of the CV and the job posting.
     | { status: "noScore"; reason: string }
+    // The AI could not compute a score at all (a transient failure), not a verdict - never
+    // shown as if it were a real "not a match" result, and never cached, so reloading retries.
+    | { status: "error"; reason: string }
     | {
         status: "scored";
         percent: number;
@@ -849,6 +419,10 @@ const industryOptions = [
       return { status: "noAnalysis" };
     }
 
+    if (entry.fieldRelated === null) {
+      return { status: "error", reason: entry.matchReason };
+    }
+
     if (!entry.fieldRelated || entry.matchPercent === null) {
       return { status: "noScore", reason: entry.matchReason };
     }
@@ -868,7 +442,10 @@ const industryOptions = [
       const matchesLevel =
         !seniority || job.level.toLowerCase() === seniority.toLowerCase();
       const jobSalary = extractSalaryNumber(job.salary);
-      const matchesSalary = jobSalary === 0 ? true : jobSalary >= minSalary;
+      // minSalary is the slider value in thousands (label reads "$Xk"), while
+      // extractSalaryNumber returns the raw dollar figure - comparing them directly
+      // made this filter pass almost everything regardless of slider position.
+      const matchesSalary = jobSalary === 0 ? true : jobSalary >= minSalary * 1000;
 
       const info = getMatchInfo(job);
       const matchesScore = info.status === "scored" ? info.percent >= minMatch : true;
@@ -1052,7 +629,14 @@ const industryOptions = [
       >
         <div className="flex flex-col gap-6 md:flex-row md:items-center">
           <div className="flex flex-col items-center justify-center md:justify-start">
-            <div className="relative h-[98px] w-[98px]">
+            <div
+              className="relative h-[98px] w-[98px]"
+              title={
+                matchInfo.status === "noScore" || matchInfo.status === "error"
+                  ? matchInfo.reason
+                  : undefined
+              }
+            >
               <div
                 className={`h-full w-full rounded-full transition-all duration-[1800ms] ease-out ${
                   matchInfo.status === "loading" ? "animate-pulse" : ""
@@ -1061,19 +645,38 @@ const industryOptions = [
                   background:
                     matchInfo.status === "scored"
                       ? `conic-gradient(${ringColor} ${numeric * 3.6}deg, #2a2c5a 0deg)`
-                      : "conic-gradient(#5f648a 360deg, #2a2c5a 0deg)",
-                  boxShadow: matchInfo.status === "scored" ? `0 0 24px ${ringColor}22` : "0 0 0 rgba(0,0,0,0)",
+                      : matchInfo.status === "error"
+                        ? `conic-gradient(${ringColor} 360deg, #2a2c5a 0deg)`
+                        : "conic-gradient(#5f648a 360deg, #2a2c5a 0deg)",
+                  boxShadow:
+                    matchInfo.status === "scored" || matchInfo.status === "error"
+                      ? `0 0 24px ${ringColor}22`
+                      : "0 0 0 rgba(0,0,0,0)",
                 }}
               />
 
               <div className="absolute inset-[8px] flex items-center justify-center rounded-full bg-[#252654] text-[22px] font-extrabold text-white shadow-inner">
-                {matchInfo.status === "scored" ? `${matchInfo.percent}%` : matchInfo.status === "loading" ? "" : "?"}
+                {matchInfo.status === "scored"
+                  ? `${matchInfo.percent}%`
+                  : matchInfo.status === "loading"
+                    ? ""
+                    : matchInfo.status === "error"
+                      ? "!"
+                      : matchInfo.status === "noScore"
+                        ? "—"
+                        : "?"}
               </div>
             </div>
 
             {matchInfo.status === "loading" && (
               <span className="mt-2 text-[12px] font-medium text-white/40">
                 {t.jobMatches.matchScoreLoading}
+              </span>
+            )}
+
+            {matchInfo.status === "error" && (
+              <span className="mt-2 max-w-[110px] text-center text-[11px] font-medium text-amber-300/80">
+                Couldn't compute - refresh to retry
               </span>
             )}
 
@@ -1143,7 +746,7 @@ const industryOptions = [
 
               <div className="flex items-center gap-2">
                 <Wallet size={16} />
-                <span className="font-semibold text-emerald-300">{job.salary}</span>
+                <span className="font-semibold text-emerald-300">{formatSalary(job.salary)}</span>
               </div>
 
               <div className="flex items-center gap-2">
@@ -1513,7 +1116,7 @@ const industryOptions = [
                         >
                           <DollarSign size={17} />
                           <span>
-                            {t.jobMatches.minSalary}: ${minSalary}k
+                            {t.jobMatches.minSalary}: ₪{minSalary}k
                           </span>
                         </label>
 

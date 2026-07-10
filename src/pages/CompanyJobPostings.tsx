@@ -15,6 +15,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { apiFetch, ApiError } from "../utils/api";
+import { formatSalary } from "../utils/formatSalary";
 
 type JobStatus = "Active" | "Closed" | "Draft";
 
@@ -323,7 +324,7 @@ function CompanyJobPostings() {
 
                       <div className="flex items-center gap-1.5">
                         <CircleDollarSign size={15} />
-                        <span>{job.salary}</span>
+                        <span>{formatSalary(job.salary)}</span>
                       </div>
 
                       <div>

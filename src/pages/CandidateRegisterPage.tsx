@@ -42,6 +42,7 @@ function CandidateRegisterPage() {
   const [selectedSkill, setSelectedSkill] = useState("");
   const [skills, setSkills] = useState<string[]>([]);
   const [resumeName, setResumeName] = useState("");
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -63,10 +64,12 @@ function CandidateRegisterPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     setResumeName(file.name);
+    setResumeFile(file);
   };
 
   const removeResume = () => {
     setResumeName("");
+    setResumeFile(null);
   };
 
   const addSkill = () => {
@@ -139,6 +142,14 @@ function CandidateRegisterPage() {
       return;
     }
 
+    if (!/[A-Za-z]/.test(cleanPassword) || !/\d/.test(cleanPassword)) {
+      setError(
+        t?.candidateRegisterPage?.errors?.passwordComplexity ||
+          "Password must contain both letters and numbers."
+      );
+      return;
+    }
+
     if (cleanPassword !== cleanConfirmPassword) {
       setError(
         t?.candidateRegisterPage?.errors?.passwordMismatch ||
@@ -201,8 +212,21 @@ try {
     console.error(profileError);
   }
 
-  if (resumeName) {
-    localStorage.setItem("resumeName", resumeName);
+  if (resumeFile) {
+    try {
+      const resumeFormData = new FormData();
+      resumeFormData.append("file", resumeFile);
+      resumeFormData.append("language", language);
+      await apiFetch("/api/cv/upload", {
+        method: "POST",
+        body: resumeFormData,
+      });
+    } catch (resumeError) {
+      // Resume upload is optional at registration - don't block account creation over it,
+      // but don't pretend it succeeded either (the "Upload Resume (Optional)" UI previously
+      // only ever stored the file name, never actually sent the file to the backend).
+      console.error(resumeError);
+    }
   }
 
   setSuccess(

@@ -43,11 +43,6 @@ function CandidateSidebar({ isCollapsed, setIsCollapsed }: CandidateSidebarProps
   ];
 
   const handleLogout = () => {
-    const nonAuthKeys = [
-      "phone", "location", "currentTitle", "experience", "skills", "summary",
-      "resumeName", "isPremium",
-    ];
-    nonAuthKeys.forEach((k) => localStorage.removeItem(k));
     logout();
     navigate("/login");
   };

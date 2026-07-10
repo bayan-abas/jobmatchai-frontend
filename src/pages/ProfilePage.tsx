@@ -25,6 +25,7 @@ import {
   Save,
   Plus,
   Lock,
+  Loader2,
 } from "lucide-react";
 
 export type ProfileCompletenessFields = {
@@ -97,6 +98,7 @@ function ProfilePage() {
   });
   const [skillDraft, setSkillDraft] = useState("");
   const [hasResume, setHasResume] = useState(false);
+  const [resumeStatusLoading, setResumeStatusLoading] = useState(true);
   const [applicationsCount, setApplicationsCount] = useState(0);
 
   useEffect(() => {
@@ -134,7 +136,8 @@ function ProfilePage() {
 
     apiFetch(`/api/cv/current`)
       .then((fileName) => setHasResume(Boolean(fileName && fileName.trim())))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setResumeStatusLoading(false));
   }, [userEmail]);
 
   const profileScore = computeProfileCompleteness({
@@ -389,17 +392,25 @@ function ProfilePage() {
                 <p className="mt-2 text-[16px] text-[#b8bfdc]">{userTitle}</p>
 
                 <div className="relative mt-7 mb-6 flex h-[132px] w-[132px] items-center justify-center rounded-full">
-                  <div
-                    className="absolute inset-0 rounded-full"
-                    style={{
-                      background: `conic-gradient(#7c83ff ${profileScore}%, rgba(123,132,255,0.14) ${profileScore}% 100%)`,
-                    }}
-                  />
+                  {resumeStatusLoading ? (
+                    <div className="absolute inset-0 animate-pulse rounded-full bg-white/10" />
+                  ) : (
+                    <div
+                      className="absolute inset-0 rounded-full"
+                      style={{
+                        background: `conic-gradient(#7c83ff ${profileScore}%, rgba(123,132,255,0.14) ${profileScore}% 100%)`,
+                      }}
+                    />
+                  )}
                   <div className="absolute inset-[12px] rounded-full bg-[#252654]" />
                   <div className="relative z-10 flex flex-col items-center justify-center">
-                    <span className="text-[22px] font-extrabold text-white">
-                      {profileScore}%
-                    </span>
+                    {resumeStatusLoading ? (
+                      <Loader2 size={22} className="animate-spin text-[#9aa2d6]" />
+                    ) : (
+                      <span className="text-[22px] font-extrabold text-white">
+                        {profileScore}%
+                      </span>
+                    )}
                     <span className="text-[14px] text-[#b9c0e0]">
                       {t.dashboard.stats.profileScore}
                     </span>
@@ -407,7 +418,10 @@ function ProfilePage() {
                 </div>
 
                 <p className="max-w-[220px] text-[15px] leading-7 text-[#b8bfdc]">
-                  {profileScore >= 100
+                  {resumeStatusLoading
+                    ? t.profilePage.profileHint ||
+                      "Complete your profile to improve your match score"
+                    : profileScore >= 100
                     ? t.profilePage.profileCompleteHint ||
                       "Your profile is complete! Great work."
                     : t.profilePage.profileHint ||
