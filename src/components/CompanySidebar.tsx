@@ -6,7 +6,6 @@ import { translations } from "../translations";
 import {
   LayoutDashboard,
   BriefcaseBusiness,
-  Users,
   FileText,
   Building2,
   Bell,
@@ -32,7 +31,6 @@ function CompanySidebar({ isCollapsed, setIsCollapsed }: CompanySidebarProps) {
   const menuItems = [
     { label: t.companySidebar.dashboard,     path: "/company-dashboard",     icon: LayoutDashboard },
     { label: t.companySidebar.jobPostings,   path: "/company-job-postings",  icon: BriefcaseBusiness },
-    { label: t.companySidebar.candidates,    path: "/company-candidates",    icon: Users },
     { label: t.companySidebar.applications,  path: "/company-applications",  icon: FileText },
     { label: t.companySidebar.companyProfile,path: "/company-profile",       icon: Building2 },
     { label: t.companySidebar.notifications, path: "/company-notifications", icon: Bell },

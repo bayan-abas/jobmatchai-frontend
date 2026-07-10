@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 const HomePage = lazy(() => import("./pages/HomePage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -20,11 +20,11 @@ const ResumeManager = lazy(() => import("./pages/ResumeManager"));
 const CompanyJobPostings = lazy(() => import("./pages/CompanyJobPostings"));
 const CompanyJobDetailsPage = lazy(() => import("./pages/CompanyJobDetailsPage"));
 const PostJob = lazy(() => import("./pages/PostJob"));
-const CompanyCandidates = lazy(() => import("./pages/CompanyCandidates"));
 const CompanyApplications = lazy(() => import("./pages/CompanyApplications"));
 const CompanyProfile = lazy(() => import("./pages/CompanyProfile"));
 const CompanyNotifications = lazy(() => import("./pages/CompanyNotifications"));
 const PublicJobsPage = lazy(() => import("./pages/PublicJobsPage"));
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 
 const PaymentPage = lazy(() => import("./pages/PaymentPage"));
 const PaymentSuccessPage = lazy(() => import("./pages/PaymentSuccessPage"));
@@ -78,10 +78,16 @@ function App() {
           <Route path="/company-job-postings"   element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyJobPostings /></CompanyLayout></ProtectedRoute>} />
           <Route path="/company-job-details/:jobId" element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyJobDetailsPage /></CompanyLayout></ProtectedRoute>} />
           <Route path="/post-job"               element={<ProtectedRoute requiredRole="company"><CompanyLayout><PostJob /></CompanyLayout></ProtectedRoute>} />
-          <Route path="/company-candidates"     element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyCandidates /></CompanyLayout></ProtectedRoute>} />
           <Route path="/company-applications"   element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyApplications /></CompanyLayout></ProtectedRoute>} />
           <Route path="/company-profile"        element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyProfile /></CompanyLayout></ProtectedRoute>} />
           <Route path="/company-notifications"  element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyNotifications /></CompanyLayout></ProtectedRoute>} />
+
+          {/* The Candidates page was removed in favor of Applications - keep this so old
+              bookmarks/links don't land on a dead route. */}
+          <Route path="/company-candidates" element={<Navigate to="/company-applications" replace />} />
+
+          {/* Catch-all: any unmatched path gets a real 404 page instead of rendering blank. */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
     </>

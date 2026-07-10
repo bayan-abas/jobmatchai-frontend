@@ -127,7 +127,7 @@ function CompanyDashboard() {
       icon: Users,
       iconBg: "bg-cyan-500/15",
       iconColor: "text-cyan-300",
-      route: "/company-candidates",
+      route: "/company-applications",
     },
     {
       title: page.stats.applications,
@@ -269,7 +269,7 @@ function CompanyDashboard() {
                   </div>
 
                   <button
-                    onClick={() => navigate("/company-candidates")}
+                    onClick={() => navigate("/company-applications")}
                     className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-300 transition hover:text-emerald-200"
                   >
                     {t.common.viewAll}
@@ -294,9 +294,9 @@ function CompanyDashboard() {
                       <button
                         key={candidate.id}
                         onClick={() =>
-                          navigate("/company-candidates", {
-                            state: { candidateEmail: candidate.candidateEmail },
-                          })
+                          navigate(
+                            `/company-applications?jobId=${candidate.jobId}&jobTitle=${encodeURIComponent(candidate.jobTitle || "")}`
+                          )
                         }
                         className="flex w-full items-center justify-between gap-4 rounded-[24px] border border-white/10 bg-white/[0.045] px-4 py-4 text-left transition hover:bg-white/[0.07]"
                       >

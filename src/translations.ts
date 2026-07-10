@@ -182,7 +182,6 @@ export const translations: Record<Language, any> = {
     companySidebar: {
       dashboard: "Dashboard",
       jobPostings: "Job Postings",
-      candidates: "Candidates",
       applications: "Applications",
       companyProfile: "Company Profile",
       notifications: "Notifications",
@@ -981,31 +980,6 @@ plan: {
       serverConnectionFailed: "Server connection failed.",
     },
 
-    companyCandidatesPage: {
-      title: "Candidates",
-      subtitle: "Everyone who has applied to your job postings",
-      searchPlaceholder: "Search by name, email, or job title...",
-      candidatesMatchCriteria: "candidates",
-      noCandidatesYet: "No candidates yet. They'll appear here once someone applies to one of your jobs.",
-      noCandidatesForFilters: "No candidates match your search.",
-      contactCandidate: "Contact Candidate",
-      contactCandidateWith: "Contact",
-      scheduleInterview: "Schedule Interview",
-      withCandidate: "With",
-      applications: "Applications",
-      messageSent: "Message sent!",
-      send: "Send",
-      date: "Date",
-      time: "Time",
-      interviewType: "Interview Type",
-      online: "Online",
-      inPerson: "In Person",
-      notes: "Notes",
-      addInterviewNotes: "Add interview notes...",
-      confirmSchedule: "Confirm Schedule",
-      interviewScheduledWith: "Interview scheduled with",
-    },
-
     companyApplicationsPage: {
   title: "Applications",
   subtitle: "Manage and track all job applications",
@@ -1079,7 +1053,13 @@ plan: {
       clearAll: "Clear all",
       noNotifications: "No notifications yet",
       noNotificationsText:
-        "When new updates arrive, they will appear here.",
+        "You will receive notifications when a candidate applies, an AI analysis is completed, or an application status changes.",
+      hintNewApplication: "New candidate application",
+      hintAiAnalysis: "AI analysis completed",
+      hintStatusUpdate: "Application status updated",
+      groupToday: "Today",
+      groupYesterday: "Yesterday",
+      groupEarlier: "Earlier",
     },
 
     forgotPasswordPage: {
@@ -1438,7 +1418,6 @@ plan: {
     companySidebar: {
       dashboard: "لوحة التحكم",
       jobPostings: "الوظائف المنشورة",
-      candidates: "المرشحون",
       applications: "الطلبات",
       companyProfile: "ملف الشركة",
       notifications: "الإشعارات",
@@ -2221,30 +2200,6 @@ jobMatches: {
       serverConnectionFailed: "فشل الاتصال بالخادم.",
     },
 
-    companyCandidatesPage: {
-      title: "المرشحون",
-      subtitle: "جميع من تقدموا للوظائف التي نشرتها",
-      searchPlaceholder: "ابحث بالاسم أو البريد الإلكتروني أو اسم الوظيفة...",
-      candidatesMatchCriteria: "مرشحون",
-      noCandidatesYet: "لا يوجد مرشحون بعد. سيظهرون هنا بمجرد تقديم أحدهم على إحدى وظائفك.",
-      noCandidatesForFilters: "لا يوجد مرشحون يطابقون بحثك.",
-      contactCandidate: "التواصل مع المرشح",
-      contactCandidateWith: "التواصل مع",
-      scheduleInterview: "جدولة مقابلة",
-      withCandidate: "مع",
-      applications: "الطلبات",
-      messageSent: "تم إرسال الرسالة!",
-      send: "إرسال",
-      date: "التاريخ",
-      time: "الوقت",
-      interviewType: "نوع المقابلة",
-      online: "عبر الإنترنت",
-      inPerson: "حضوري",
-      notes: "ملاحظات",
-      addInterviewNotes: "أضف ملاحظات المقابلة...",
-      confirmSchedule: "تأكيد الجدولة",
-      interviewScheduledWith: "تم جدولة مقابلة مع",
-    },
 
 companyApplicationsPage: {
   title: "الطلبات",
@@ -2319,7 +2274,13 @@ companyApplicationsPage: {
       clearAll: "حذف الكل",
       noNotifications: "لا توجد إشعارات بعد",
       noNotificationsText:
-        "أنت على اطلاع كامل. ستظهر التحديثات الجديدة هنا.",
+        "ستصلك إشعارات عند تقديم مرشح لطلب، أو اكتمال تحليل الذكاء الاصطناعي، أو تغيّر حالة طلب.",
+      hintNewApplication: "طلب توظيف جديد من مرشح",
+      hintAiAnalysis: "اكتمال تحليل الذكاء الاصطناعي",
+      hintStatusUpdate: "تحديث حالة الطلب",
+      groupToday: "اليوم",
+      groupYesterday: "أمس",
+      groupEarlier: "سابقًا",
     },
 
     forgotPasswordPage: {
@@ -2676,7 +2637,6 @@ companyApplicationsPage: {
     companySidebar: {
       dashboard: "לוח בקרה",
       jobPostings: "משרות פתוחות",
-      candidates: "מועמדים",
       applications: "הגשות",
       companyProfile: "פרופיל החברה",
       notifications: "התראות",
@@ -3459,30 +3419,6 @@ plan: {
       serverConnectionFailed: "החיבור לשרת נכשל.",
     },
 
-    companyCandidatesPage: {
-      title: "מועמדים",
-      subtitle: "כל מי שהגיש מועמדות למשרות שפרסמת",
-      searchPlaceholder: "חפש לפי שם, אימייל או שם משרה...",
-      candidatesMatchCriteria: "מועמדים",
-      noCandidatesYet: "עדיין אין מועמדים. הם יופיעו כאן ברגע שמישהו יגיש מועמדות לאחת המשרות שלך.",
-      noCandidatesForFilters: "אין מועמדים התואמים לחיפוש שלך.",
-      contactCandidate: "צור קשר עם מועמד",
-      contactCandidateWith: "צור קשר עם",
-      scheduleInterview: "קבע ראיון",
-      withCandidate: "עם",
-      applications: "הגשות",
-      messageSent: "ההודעה נשלחה!",
-      send: "שלח",
-      date: "תאריך",
-      time: "שעה",
-      interviewType: "סוג הראיון",
-      online: "מקוון",
-      inPerson: "פרונטלי",
-      notes: "הערות",
-      addInterviewNotes: "הוסף הערות לראיון...",
-      confirmSchedule: "אשר קביעה",
-      interviewScheduledWith: "נקבע ראיון עם",
-    },
 companyApplicationsPage: {
   title: "מועמדויות",
   subtitle: "ניהול ומעקב אחרי כל המועמדויות",
@@ -3556,7 +3492,13 @@ companyApplicationsPage: {
       clearAll: "נקה הכול",
       noNotifications: "אין התראות עדיין",
       noNotificationsText:
-        "אתה מעודכן. עדכונים חדשים יופיעו כאן.",
+        "תקבל התראות כאשר מועמד מגיש בקשה, ניתוח בינה מלאכותית מושלם, או סטטוס בקשה משתנה.",
+      hintNewApplication: "בקשת מועמדות חדשה",
+      hintAiAnalysis: "ניתוח בינה מלאכותית הושלם",
+      hintStatusUpdate: "סטטוס הבקשה עודכן",
+      groupToday: "היום",
+      groupYesterday: "אתמול",
+      groupEarlier: "מוקדם יותר",
     },
 
     forgotPasswordPage: {
