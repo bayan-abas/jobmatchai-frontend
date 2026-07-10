@@ -41,6 +41,17 @@ type BackendApplication = {
   matchPercent: number | null;
 };
 
+function formatPostedDate(iso?: string | null): string | null {
+  if (!iso) return null;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 function CompanyJobPostings() {
   const navigate = useNavigate();
   const { language } = useLanguage();
@@ -124,7 +135,7 @@ function CompanyJobPostings() {
         description: job.description || "",
         requirements: job.requirements || "",
         skills: job.skills || "",
-        postedDate: page.recently || "Recently",
+        postedDate: formatPostedDate(job.createdAt) || page.recently || "Recently",
         status: "Active",
         applicants: job.applicantsCount ?? 0,
       }));
@@ -433,7 +444,13 @@ function CompanyJobPostings() {
                             isRTL ? "left-0" : "right-0"
                           }`}
                         >
-                          <button className="flex w-full items-center gap-2 px-4 py-3 text-sm font-semibold hover:bg-gray-100">
+                          <button
+                            onClick={() => {
+                              setOpenMenuId(null);
+                              navigate(`/company-job-details/${job.id}`);
+                            }}
+                            className="flex w-full items-center gap-2 px-4 py-3 text-sm font-semibold hover:bg-gray-100"
+                          >
                             {page.viewDetails || "View Details"}
                           </button>
 

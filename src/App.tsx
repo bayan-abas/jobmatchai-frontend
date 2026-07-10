@@ -18,6 +18,7 @@ const Applications = lazy(() => import("./pages/Applications"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const ResumeManager = lazy(() => import("./pages/ResumeManager"));
 const CompanyJobPostings = lazy(() => import("./pages/CompanyJobPostings"));
+const CompanyJobDetailsPage = lazy(() => import("./pages/CompanyJobDetailsPage"));
 const PostJob = lazy(() => import("./pages/PostJob"));
 const CompanyCandidates = lazy(() => import("./pages/CompanyCandidates"));
 const CompanyApplications = lazy(() => import("./pages/CompanyApplications"));
@@ -75,6 +76,7 @@ function App() {
           {/* Company */}
           <Route path="/company-dashboard"      element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyDashboard /></CompanyLayout></ProtectedRoute>} />
           <Route path="/company-job-postings"   element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyJobPostings /></CompanyLayout></ProtectedRoute>} />
+          <Route path="/company-job-details/:jobId" element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyJobDetailsPage /></CompanyLayout></ProtectedRoute>} />
           <Route path="/post-job"               element={<ProtectedRoute requiredRole="company"><CompanyLayout><PostJob /></CompanyLayout></ProtectedRoute>} />
           <Route path="/company-candidates"     element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyCandidates /></CompanyLayout></ProtectedRoute>} />
           <Route path="/company-applications"   element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyApplications /></CompanyLayout></ProtectedRoute>} />

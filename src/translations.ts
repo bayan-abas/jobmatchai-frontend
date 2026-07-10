@@ -871,6 +871,7 @@ plan: {
       closedJobs: "Closed Jobs",
       applicants: "Applicants",
       viewCandidates: "View Candidates",
+      viewDetails: "View Details",
       editJob: "Edit Job",
       noJobs: "No job postings yet",
       noJobsText:
@@ -906,6 +907,23 @@ plan: {
       failedToUpdateJob: "Failed to update job.",
       failedToDeleteJob: "Failed to delete job.",
       serverConnectionFailed: "Server connection failed.",
+    },
+
+    companyJobDetailsPage: {
+      back: "Back to Job Postings",
+      loading: "Loading job details...",
+      jobNotFound: "Job not found.",
+      loadError: "Failed to load job details.",
+      untitledJob: "Untitled Job",
+      salaryNotSpecified: "Salary not specified",
+      posted: "Posted",
+      applicants: "Applicants",
+      avgMatchScore: "Avg Match Score",
+      noApplicants: "No applicants",
+      notScoredYet: "Not scored yet",
+      description: "Description",
+      experienceLevel: "Requirements / Experience Level",
+      requiredSkills: "Required Skills",
     },
 
     postJobPage: {
@@ -2094,6 +2112,7 @@ jobMatches: {
       closedJobs: "الوظائف المغلقة",
       applicants: "المتقدمون",
       viewCandidates: "عرض المرشحين",
+      viewDetails: "عرض التفاصيل",
       editJob: "تعديل الوظيفة",
       noJobs: "لا توجد وظائف منشورة بعد",
       noJobsText: "أنشئ أول وظيفة لبدء استقبال المرشحين.",
@@ -2128,6 +2147,23 @@ jobMatches: {
       failedToUpdateJob: "فشل تحديث الوظيفة.",
       failedToDeleteJob: "فشل حذف الوظيفة.",
       serverConnectionFailed: "فشل الاتصال بالخادم.",
+    },
+
+    companyJobDetailsPage: {
+      back: "العودة إلى الوظائف المنشورة",
+      loading: "جارٍ تحميل تفاصيل الوظيفة...",
+      jobNotFound: "الوظيفة غير موجودة.",
+      loadError: "فشل تحميل تفاصيل الوظيفة.",
+      untitledJob: "وظيفة بدون عنوان",
+      salaryNotSpecified: "الراتب غير محدد",
+      posted: "نُشرت في",
+      applicants: "المتقدمون",
+      avgMatchScore: "متوسط نسبة التطابق",
+      noApplicants: "لا يوجد متقدمون",
+      notScoredYet: "لم يتم التقييم بعد",
+      description: "الوصف",
+      experienceLevel: "المتطلبات / مستوى الخبرة",
+      requiredSkills: "المهارات المطلوبة",
     },
 
     postJobPage: {
@@ -3314,6 +3350,7 @@ plan: {
       closedJobs: "משרות סגורות",
       applicants: "מועמדים",
       viewCandidates: "צפה במועמדים",
+      viewDetails: "צפה בפרטים",
       editJob: "ערוך משרה",
       noJobs: "אין משרות עדיין",
       noJobsText: "צור את המשרה הראשונה שלך כדי להתחיל לקבל מועמדים.",
@@ -3348,6 +3385,23 @@ plan: {
       failedToUpdateJob: "עדכון המשרה נכשל.",
       failedToDeleteJob: "מחיקת המשרה נכשלה.",
       serverConnectionFailed: "החיבור לשרת נכשל.",
+    },
+
+    companyJobDetailsPage: {
+      back: "חזרה למשרות פתוחות",
+      loading: "טוען את פרטי המשרה...",
+      jobNotFound: "המשרה לא נמצאה.",
+      loadError: "טעינת פרטי המשרה נכשלה.",
+      untitledJob: "משרה ללא כותרת",
+      salaryNotSpecified: "השכר לא צוין",
+      posted: "פורסמה בתאריך",
+      applicants: "מועמדים",
+      avgMatchScore: "ציון התאמה ממוצע",
+      noApplicants: "אין מועמדים",
+      notScoredYet: "עדיין לא דורג",
+      description: "תיאור",
+      experienceLevel: "דרישות / רמת ניסיון",
+      requiredSkills: "כישורים נדרשים",
     },
 
     postJobPage: {
