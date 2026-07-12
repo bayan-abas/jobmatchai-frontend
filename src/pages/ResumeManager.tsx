@@ -17,7 +17,7 @@ import {
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
-import { apiFetch, ApiError, API_BASE_URL } from "../utils/api";
+import { apiFetch, apiFetchBlob, ApiError } from "../utils/api";
 
 type AnalysisResult = {
   score: number;
@@ -193,13 +193,21 @@ function ResumeManager() {
     }
   };
 
-  const handleViewCV = () => {
+  const handleViewCV = async () => {
     if (!fileName) return;
 
-    window.open(
-      `${API_BASE_URL}/api/cv/download/${encodeURIComponent(fileName)}`,
-      "_blank"
-    );
+    try {
+      const blob = await apiFetchBlob(`/api/cv/download/${encodeURIComponent(fileName)}`);
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, "_blank");
+    } catch (error) {
+      console.error("CV view error:", error);
+      if (error instanceof ApiError) {
+        showToast("error", getSafeErrorMessage(error.message, r.errorViewFailed));
+      } else {
+        showToast("error", r.errorViewFailed);
+      }
+    }
   };
 
   const handleDelete = async () => {

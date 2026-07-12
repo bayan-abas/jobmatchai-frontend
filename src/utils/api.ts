@@ -53,6 +53,35 @@ function confirmSessionExpired() {
   return sessionCheckInFlight;
 }
 
+// window.open(url) navigates the browser directly to that URL with no way to attach an
+// Authorization header, so it can't be used against a JWT-protected endpoint like CV
+// download/view - the request arrives unauthenticated and the backend rejects it. Fetching
+// the file as a blob (with the same Bearer header apiFetch attaches) and opening an object
+// URL created from that blob is the standard way to let the browser render/open an
+// authenticated file in a new tab without ever putting the token in a URL (which would leak
+// into browser history and server logs).
+export async function apiFetchBlob(path: string): Promise<Blob> {
+  const token = getToken();
+  const headers = new Headers();
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, { headers });
+
+  if (response.status === 401) {
+    confirmSessionExpired();
+  }
+
+  if (!response.ok) {
+    const message = await response.text().catch(() => "");
+    throw new ApiError(message || `Request failed with status ${response.status}`, response.status);
+  }
+
+  return response.blob();
+}
+
 export class ApiError extends Error {
   status: number;
 
