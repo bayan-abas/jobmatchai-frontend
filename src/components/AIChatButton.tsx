@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bot, X, Send, Sparkles, MessageSquare, RotateCcw } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../utils/api";
 
 type Message = {
@@ -11,7 +12,9 @@ type Message = {
 
 function AIChatButton() {
   const { language } = useLanguage();
+  const { user } = useAuth();
   const isRTL = language === "ar" || language === "he";
+  const isCompany = user?.role === "company";
 
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -22,15 +25,28 @@ function AIChatButton() {
   const content = useMemo(() => {
     if (language === "ar") {
       return {
-        title: "مساعد JobMatchAI",
-        subtitle: "اسألني عن الوظائف، السيرة، أو التطوير المهني",
+        title: isCompany ? "مساعد التوظيف JobMatchAI" : "مساعد JobMatchAI",
+        subtitle: isCompany
+          ? "اسألني عن المرشحين والطلبات والتوظيف"
+          : "اسألني عن الوظائف، السيرة، أو التطوير المهني",
         placeholder: "اكتب رسالتك...",
-        welcome: "مرحبًا! أنا مساعدك الذكي. أقدر أساعدك في فهم الوظائف المناسبة، تحسين ملفك الشخصي، أو إعطائك نصائح مهنية.",
+        welcome: isCompany
+          ? "مرحبًا! أنا مساعدك الذكي للتوظيف. أقدر أساعدك في مراجعة المتقدمين، تحديد أفضل المرشحين، تحليل نسب التطابق، وتحسين إعلانات الوظائف."
+          : "مرحبًا! أنا مساعدك الذكي. أقدر أساعدك في فهم الوظائف المناسبة، تحسين ملفك الشخصي، أو إعطائك نصائح مهنية.",
         typing: "يكتب الآن...",
         clear: "محادثة جديدة",
-        quick1: "شو أفضل الوظائف إلي؟",
-        quick2: "كيف أحسن السيرة الذاتية؟",
-        quick3: "كيف أزيد نسبة التطابق؟",
+        quickPrompts: isCompany
+          ? [
+              "من هم أفضل المرشحين لدي؟",
+              "ما الطلبات التي يجب مراجعتها أولاً؟",
+              "ما الوظيفة التي حصلت على أكثر عدد من الطلبات؟",
+              "لخص طلباتي الأخيرة.",
+              "ما المرشحون الذين لديهم أعلى نسب تطابق؟",
+              "كيف يمكنني تحسين هذا الإعلان الوظيفي؟",
+              "ما المهارات الناقصة لدى المتقدمين؟",
+              "أظهر المرشحين بانتظار المراجعة.",
+            ]
+          : ["شو أفضل الوظائف إلي؟", "كيف أحسن السيرة الذاتية؟", "كيف أزيد نسبة التطابق؟"],
         send: "إرسال",
         buttonLabel: "مساعد AI",
         onlineNow: "متاح الآن",
@@ -40,15 +56,28 @@ function AIChatButton() {
 
     if (language === "he") {
       return {
-        title: "עוזר JobMatchAI",
-        subtitle: "אפשר לשאול על משרות, קורות חיים ופיתוח קריירה",
+        title: isCompany ? "עוזר הגיוס של JobMatchAI" : "עוזר JobMatchAI",
+        subtitle: isCompany
+          ? "שאל אותי על מועמדים, הגשות וגיוס"
+          : "אפשר לשאול על משרות, קורות חיים ופיתוח קריירה",
         placeholder: "כתוב הודעה...",
-        welcome: "היי! אני העוזר החכם שלך. אני יכול לעזור לך להבין אילו משרות מתאימות לך, לשפר את הפרופיל שלך, ולתת טיפים לקריירה.",
+        welcome: isCompany
+          ? "היי! אני עוזר הגיוס החכם שלך. אני יכול לעזור לך לבדוק מועמדים, לזהות את המועמדים המובילים, לנתח ציוני התאמה, ולשפר את מודעות הדרושים שלך."
+          : "היי! אני העוזר החכם שלך. אני יכול לעזור לך להבין אילו משרות מתאימות לך, לשפר את הפרופיל שלך, ולתת טיפים לקריירה.",
         typing: "מקליד...",
         clear: "שיחה חדשה",
-        quick1: "אילו משרות הכי מתאימות לי?",
-        quick2: "איך לשפר את קורות החיים?",
-        quick3: "איך להעלות את אחוז ההתאמה?",
+        quickPrompts: isCompany
+          ? [
+              "מי המועמדים המובילים שלי?",
+              "אילו הגשות כדאי לבדוק קודם?",
+              "לאיזו משרה יש הכי הרבה הגשות?",
+              "סכם את ההגשות האחרונות שלי.",
+              "לאילו מועמדים יש את ציוני ההתאמה הגבוהים ביותר?",
+              "איך אפשר לשפר את מודעת המשרה הזו?",
+              "אילו כישורים חסרים למועמדים שלי?",
+              "הצג מועמדים הממתינים לבדיקה.",
+            ]
+          : ["אילו משרות הכי מתאימות לי?", "איך לשפר את קורות החיים?", "איך להעלות את אחוז ההתאמה?"],
         send: "שלח",
         buttonLabel: "עוזר AI",
         onlineNow: "זמין עכשיו",
@@ -57,21 +86,34 @@ function AIChatButton() {
     }
 
     return {
-      title: "JobMatchAI Assistant",
-      subtitle: "Ask me about jobs, resumes, and career growth",
+      title: isCompany ? "JobMatchAI Recruitment Assistant" : "JobMatchAI Assistant",
+      subtitle: isCompany
+        ? "Ask me about candidates, applications, and hiring"
+        : "Ask me about jobs, resumes, and career growth",
       placeholder: "Type your message...",
-      welcome: "Hi! I'm your smart assistant. I can help you understand job matches, improve your profile, and give career tips.",
+      welcome: isCompany
+        ? "Hi! I'm your AI recruitment assistant. I can help you review applicants, identify top candidates, analyze match scores, and improve your job postings."
+        : "Hi! I'm your smart assistant. I can help you understand job matches, improve your profile, and give career tips.",
       typing: "Typing...",
       clear: "New chat",
-      quick1: "What jobs fit me best?",
-      quick2: "How can I improve my resume?",
-      quick3: "How do I increase my match score?",
+      quickPrompts: isCompany
+        ? [
+            "Who are my top candidates?",
+            "Which applications should I review first?",
+            "Which job has the most applications?",
+            "Summarize my recent applications.",
+            "Which candidates have the highest match scores?",
+            "How can I improve this job posting?",
+            "What skills are missing from my applicants?",
+            "Show candidates waiting for review.",
+          ]
+        : ["What jobs fit me best?", "How can I improve my resume?", "How do I increase my match score?"],
       send: "Send",
       buttonLabel: "AI Assistant",
       onlineNow: "Online now",
       errorReply: "Sorry, something went wrong. Please try again.",
     };
-  }, [language]);
+  }, [language, isCompany]);
 
   useEffect(() => {
     setMessages([{ id: 1, sender: "ai", text: content.welcome }]);
@@ -187,7 +229,7 @@ function AIChatButton() {
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-4">
             <div className={`mb-4 flex flex-wrap gap-2 ${isRTL ? "justify-end" : "justify-start"}`}>
-              {[content.quick1, content.quick2, content.quick3].map((item) => (
+              {content.quickPrompts.map((item) => (
                 <button
                   key={item}
                   type="button"

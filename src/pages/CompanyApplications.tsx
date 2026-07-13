@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
-import { apiFetch, ApiError } from "../utils/api";
+import { apiFetch, apiFetchBlob, ApiError } from "../utils/api";
 import { getMatchTier, getMatchLabel, getRecommendation } from "../utils/matchScore";
 import CandidateAiSummaryModal from "../components/CandidateAiSummaryModal";
 import AcceptApplicationModal, { type ContactMethod } from "../components/AcceptApplicationModal";
@@ -15,7 +15,6 @@ import {
   XCircle,
   Send,
   Brain,
-  Eye as EyeStep,
   Star,
   CheckCircle,
   Calendar,
@@ -25,6 +24,12 @@ import {
   Sparkles,
   Trophy,
   ArrowUpDown,
+  GraduationCap,
+  Languages as LanguagesIcon,
+  Briefcase,
+  Loader2,
+  AlertTriangle,
+  ClipboardCheck,
 } from "lucide-react";
 
 type ApplicationStage =
@@ -32,8 +37,6 @@ type ApplicationStage =
   | "Screening"
   | "Shortlisted"
   | "Decided";
-
-type FitLevel = "High Fit" | "Medium Fit" | "Low Fit";
 
 type ApplicationItem = {
   id: number;
@@ -43,7 +46,6 @@ type ApplicationItem = {
   date: string;
   match: number | null;
   matchLabel: string | null;
-  fit: FitLevel | null;
   stage: ApplicationStage;
   currentStep: number;
   status: string;
@@ -73,11 +75,71 @@ type BackendApplicant = {
   contactMessage?: string | null;
 };
 
-function deriveFit(match: number | null): FitLevel | null {
-  if (match === null) return null;
-  if (match >= 85) return "High Fit";
-  if (match >= 65) return "Medium Fit";
-  return "Low Fit";
+// Raw extracted-CV fields from GET /api/applications/{id}/candidate-profile - a plain DB
+// read, distinct from InlineAiSummary's AI-generated narrative below.
+type CandidateProfile = {
+  hasAnalysis: boolean;
+  resumeUploaded: boolean;
+  skills?: string[];
+  yearsOfExperience?: string | null;
+  experienceLevel?: string | null;
+  previousJobTitles?: string | null;
+  educationEvidence?: string | null;
+  certificationsEvidence?: string | null;
+  licensesEvidence?: string | null;
+  languages?: string | null;
+};
+
+// AI-generated narrative from POST /api/applications/{id}/ai-summary (same endpoint/cache
+// CandidateAiSummaryModal already uses).
+type InlineAiSummary = {
+  hasAnalysis: boolean;
+  professionalBackground?: string;
+  keySkills?: string[];
+  yearsOfExperience?: string;
+  strengths?: string;
+  weaknesses?: string;
+  overallSuitability?: string;
+  matchScore?: number;
+  matchLabel?: string;
+  message?: string;
+};
+
+// CVAnalysis stores education/certification/license as coarse match-relevance categories
+// (see OpenAICVAnalysisService's fixed enums), not a free-text degree/institution/year - the
+// backend simply doesn't extract those specific fields. Humanizing the real category is honest;
+// inventing a degree name/institution/year that was never extracted would not be.
+function describeEducationEvidence(value: string | null | undefined): string | null {
+  switch (value) {
+    case "relevant_degree":
+      return "Has a degree directly relevant to this field.";
+    case "general":
+      return "Has a general degree, not specific to this field.";
+    default:
+      return null;
+  }
+}
+
+function describeCertificationsEvidence(value: string | null | undefined): string | null {
+  switch (value) {
+    case "field_relevant":
+      return "Holds a certification relevant to this field.";
+    case "general":
+      return "Holds a general professional certification.";
+    default:
+      return null;
+  }
+}
+
+function describeLicensesEvidence(value: string | null | undefined): string | null {
+  switch (value) {
+    case "licensed":
+      return "Holds a required professional license.";
+    case "in_progress":
+      return "A required professional license is in progress.";
+    default:
+      return null;
+  }
 }
 
 function deriveStage(status: string | null): ApplicationStage {
@@ -111,6 +173,51 @@ function deriveStep(stage: ApplicationStage): number {
   if (stage === "Shortlisted") return 4;
   if (stage === "Screening") return 2;
   return 1;
+}
+
+// "en-US" matches the fixed-locale convention already used elsewhere for dates in this
+// codebase (e.g. CompanyJobPostings.tsx) rather than the viewer's browser/OS locale.
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return dateStr;
+  return date.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
+}
+
+type ProgressStepState = "completed" | "current" | "pending" | "rejected";
+type ProgressStep = { key: string; label: string; state: ProgressStepState };
+
+// Derives the real pipeline position from the application's actual status string (never a
+// fixed "every stage active" placeholder) plus whether a CV analysis/match score exists for
+// this candidate+job. A single `status` field has no history, so stages the pipeline could
+// have skipped (e.g. Shortlisted before an Accept) are only ever marked "completed" when that
+// can be inferred honestly (Accepted implies Shortlisted happened; Rejected does not, since a
+// rejection can happen from any earlier stage) - never fabricated.
+function computeCandidateProgress(status: string | null, hasAnalysis: boolean, labels: {
+  applied: string; aiAnalysis: string; underReview: string; shortlisted: string; accepted: string; rejected: string;
+}): ProgressStep[] {
+  const normalized = (status || "").toLowerCase();
+  const isRejected = normalized === "rejected";
+  const isAccepted = normalized === "accepted";
+  const isShortlisted = normalized === "shortlisted";
+
+  const underReviewState: ProgressStepState =
+    isShortlisted || isAccepted || isRejected ? "completed" : "current";
+
+  const shortlistedState: ProgressStepState =
+    isShortlisted ? "current" : isAccepted ? "completed" : "pending";
+
+  return [
+    { key: "applied", label: labels.applied, state: "completed" },
+    { key: "aiAnalysis", label: labels.aiAnalysis, state: hasAnalysis ? "completed" : "pending" },
+    { key: "underReview", label: labels.underReview, state: underReviewState },
+    { key: "shortlisted", label: labels.shortlisted, state: shortlistedState },
+    {
+      key: "decision",
+      label: isRejected ? labels.rejected : labels.accepted,
+      state: isRejected ? "rejected" : isAccepted ? "completed" : "pending",
+    },
+  ];
 }
 
 // Reuses acceptApplicationModal's translations - same fixed vocabulary the company just chose
@@ -147,7 +254,6 @@ function mapApplicant(item: BackendApplicant): ApplicationItem {
     date: item.appliedDate || "",
     match,
     matchLabel: item.matchLabel ?? (match !== null ? getMatchLabel(match) : null),
-    fit: deriveFit(match),
     stage,
     currentStep: deriveStep(stage),
     status: item.status || "Under Review",
@@ -182,8 +288,31 @@ function CompanyApplications() {
   const [aiSummaryApplication, setAiSummaryApplication] =
     useState<ApplicationItem | null>(null);
 
+  // Raw, already-extracted CVAnalysis fields (skills/experience/education/languages) for the
+  // candidate info cards - a plain DB read (see /candidate-profile), never an OpenAI call, so
+  // it's safe to fetch every time the detail view opens.
+  const [candidateProfile, setCandidateProfile] = useState<CandidateProfile | null>(null);
+  const [candidateProfileLoading, setCandidateProfileLoading] = useState(false);
+
+  // The richer AI-generated summary (professional background, key skills, strengths,
+  // weaknesses, overall suitability) - only auto-fetched when a cached CandidateAiSummary is
+  // already known to exist (selectedApplication.match !== null, sourced from that same cache),
+  // which guarantees the call below is a cache hit and never triggers a fresh OpenAI request.
+  const [inlineAiSummary, setInlineAiSummary] = useState<InlineAiSummary | null>(null);
+  const [inlineAiSummaryLoading, setInlineAiSummaryLoading] = useState(false);
+
+  // Hiring Decision card - shared across Accept/Reject/Shortlist/Keep Under Review so only one
+  // status-changing request can be in flight at a time, and success/error feedback is visible
+  // regardless of which action triggered it.
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [statusUpdateError, setStatusUpdateError] = useState("");
+  const [statusUpdateSuccess, setStatusUpdateSuccess] = useState("");
+
   const [showContactModal, setShowContactModal] = useState(false);
   const [messageText, setMessageText] = useState("");
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [contactModalError, setContactModalError] = useState("");
+  const [contactModalSuccess, setContactModalSuccess] = useState(false);
 
   // The application being accepted - opens AcceptApplicationModal to collect the required
   // contact method (and optional message) BEFORE the status actually changes, instead of
@@ -201,6 +330,9 @@ function CompanyApplications() {
     page.online || "Online"
   );
   const [interviewNotes, setInterviewNotes] = useState("");
+  const [isSchedulingInterview, setIsSchedulingInterview] = useState(false);
+  const [interviewModalError, setInterviewModalError] = useState("");
+  const [interviewModalSuccess, setInterviewModalSuccess] = useState(false);
 
   const [applications, setApplications] = useState<ApplicationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -290,13 +422,21 @@ function CompanyApplications() {
     return matchLabel || getMatchLabel(match);
   };
 
-  const getStageLabel = (stage: ApplicationStage) => {
-    return page.tabs?.[stage] || stage;
+  // Real backend status (Applied / AI Screening / Under Review / Shortlisted / Accepted /
+  // Rejected) rendered as-is - never a computed stage bucket - so the badge can't say
+  // something the application's actual status field doesn't. Colors mirror the identical
+  // status badge on the Company Dashboard's Recent Activity card for consistency.
+  const getStatusBadgeStyles = (status: string) => {
+    const normalized = (status || "").toLowerCase();
+    if (normalized === "shortlisted") return "bg-cyan-500/10 text-cyan-300 border-cyan-400/25";
+    if (normalized === "accepted") return "bg-emerald-500/10 text-emerald-300 border-emerald-400/25";
+    if (normalized === "rejected") return "bg-rose-500/10 text-rose-300 border-rose-400/25";
+    return "bg-amber-500/10 text-amber-300 border-amber-400/25";
   };
 
   const applyStatusUpdate = async (
     id: number,
-    status: "Accepted" | "Rejected",
+    status: "Accepted" | "Rejected" | "Shortlisted" | "Under Review",
     extra?:
       | { contactMethod: ContactMethod; contactMethodOther: string; contactMessage: string }
       | { rejectionReason: string }
@@ -319,10 +459,11 @@ function CompanyApplications() {
       throw new Error(data.message || "Could not update application status.");
     }
 
+    const stage = deriveStage(status);
     const patch = {
       status,
-      stage: "Decided" as ApplicationStage,
-      currentStep: 5,
+      stage,
+      currentStep: deriveStep(stage),
       contactMethod: contact?.contactMethod ?? null,
       contactMethodOther: contact?.contactMethod === "other" ? contact.contactMethodOther : null,
       contactMessage: contact?.contactMessage || null,
@@ -351,8 +492,49 @@ function CompanyApplications() {
     contactMessage: string
   ) => {
     if (!acceptTarget) return;
-    await applyStatusUpdate(acceptTarget.id, "Accepted", { contactMethod, contactMethodOther, contactMessage });
-    setAcceptTarget(null);
+    setIsUpdatingStatus(true);
+    setStatusUpdateError("");
+    setStatusUpdateSuccess("");
+    try {
+      await applyStatusUpdate(acceptTarget.id, "Accepted", { contactMethod, contactMethodOther, contactMessage });
+      setStatusUpdateSuccess(page.acceptSuccess || "Application accepted.");
+      setAcceptTarget(null);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  // Shortlist/Keep Under Review apply immediately (no modal) - neither requires the mandatory
+  // extra input Accept/Reject do, but they still share isUpdatingStatus so they can't overlap
+  // with any other in-flight status change, and surface the same inline success/error feedback.
+  const handleShortlist = async (id: number) => {
+    if (isUpdatingStatus) return;
+    setIsUpdatingStatus(true);
+    setStatusUpdateError("");
+    setStatusUpdateSuccess("");
+    try {
+      await applyStatusUpdate(id, "Shortlisted");
+      setStatusUpdateSuccess(page.shortlistSuccess || "Candidate shortlisted.");
+    } catch (err) {
+      setStatusUpdateError(err instanceof Error ? err.message : "Could not shortlist this application.");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleKeepUnderReview = async (id: number) => {
+    if (isUpdatingStatus) return;
+    setIsUpdatingStatus(true);
+    setStatusUpdateError("");
+    setStatusUpdateSuccess("");
+    try {
+      await applyStatusUpdate(id, "Under Review");
+      setStatusUpdateSuccess(page.underReviewSuccess || "Application kept under review.");
+    } catch (err) {
+      setStatusUpdateError(err instanceof Error ? err.message : "Could not update this application.");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
   };
 
   // Opens RejectApplicationModal instead of rejecting immediately - a rejection reason is
@@ -365,12 +547,20 @@ function CompanyApplications() {
 
   const handleConfirmReject = async (rejectionReason: string) => {
     if (!rejectTarget) return;
-    await applyStatusUpdate(rejectTarget.id, "Rejected", { rejectionReason });
-    setRejectTarget(null);
+    setIsUpdatingStatus(true);
+    setStatusUpdateError("");
+    setStatusUpdateSuccess("");
+    try {
+      await applyStatusUpdate(rejectTarget.id, "Rejected", { rejectionReason });
+      setStatusUpdateSuccess(page.rejectSuccess || "Application rejected.");
+      setRejectTarget(null);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
   };
 
   const applyAiMatchScore = (id: number, matchScore: number, matchLabel: string) => {
-    const patch = { match: matchScore, matchLabel: matchLabel || getMatchLabel(matchScore), fit: deriveFit(matchScore) };
+    const patch = { match: matchScore, matchLabel: matchLabel || getMatchLabel(matchScore) };
 
     setApplications((prev) =>
       prev.map((app) => (app.id === id && app.match !== matchScore ? { ...app, ...patch } : app))
@@ -385,7 +575,15 @@ function CompanyApplications() {
     setSelectedApplication(app);
 
     if (!app.viewedByCompany) {
-      const patch = { viewedByCompany: true };
+      // Mirrors ApplicationController#markViewed's own transition rule exactly, so the status
+      // badge reflects the real backend state immediately instead of lagging until a reload.
+      const normalizedStatus = (app.status || "").toLowerCase();
+      const movesToUnderReview = normalizedStatus === "applied" || normalizedStatus === "ai screening" || !app.status;
+
+      const patch = {
+        viewedByCompany: true,
+        ...(movesToUnderReview ? { status: "Under Review" } : {}),
+      };
 
       setApplications((prev) =>
         prev.map((item) => (item.id === app.id ? { ...item, ...patch } : item))
@@ -398,10 +596,55 @@ function CompanyApplications() {
     }
   };
 
+  // Only auto-fetch the richer AI narrative when a cached CandidateAiSummary is already known
+  // to exist (match !== null is sourced from that exact cache) - guarantees this call is a
+  // cache hit and never triggers a fresh OpenAI generation just from opening the page.
+  const fetchInlineAiSummary = (applicationId: number) => {
+    setInlineAiSummaryLoading(true);
+    apiFetch(`/api/applications/${applicationId}/ai-summary?language=${language}`, { method: "POST" })
+      .then((data: InlineAiSummary) => setInlineAiSummary(data))
+      .catch(() => setInlineAiSummary(null))
+      .finally(() => setInlineAiSummaryLoading(false));
+  };
+
+  useEffect(() => {
+    setStatusUpdateError("");
+    setStatusUpdateSuccess("");
+    setCandidateProfile(null);
+    setInlineAiSummary(null);
+
+    if (!selectedApplication) return;
+
+    let cancelled = false;
+    setCandidateProfileLoading(true);
+
+    apiFetch(`/api/applications/${selectedApplication.id}/candidate-profile`)
+      .then((data: CandidateProfile) => {
+        if (!cancelled) setCandidateProfile(data);
+      })
+      .catch(() => {
+        if (!cancelled) setCandidateProfile(null);
+      })
+      .finally(() => {
+        if (!cancelled) setCandidateProfileLoading(false);
+      });
+
+    if (selectedApplication.match !== null) {
+      fetchInlineAiSummary(selectedApplication.id);
+    }
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedApplication?.id]);
+
   const openContactModal = (app: ApplicationItem) => {
     setMessageText(
       `Hi ${app.name}, we would like to contact you regarding your profile.`
     );
+    setContactModalError("");
+    setContactModalSuccess(false);
     setShowContactModal(true);
   };
 
@@ -410,6 +653,8 @@ function CompanyApplications() {
     setInterviewTime("");
     setInterviewType(page.online || "Online");
     setInterviewNotes("");
+    setInterviewModalError("");
+    setInterviewModalSuccess(false);
     setShowInterviewModal(true);
   };
 
@@ -419,6 +664,63 @@ function CompanyApplications() {
 
   const closeInterviewModal = () => {
     setShowInterviewModal(false);
+  };
+
+  // Derived view-model for the Candidate Details page (only meaningful while
+  // selectedApplication is set, but cheap enough to compute unconditionally every render
+  // rather than fight hook-ordering rules with a conditional useMemo).
+  const detailMatch = selectedApplication?.match ?? null;
+  const detailRecommendation = detailMatch !== null ? getRecommendation(detailMatch) : null;
+  const detailTier = detailMatch !== null ? getMatchTier(detailMatch) : null;
+
+  const detailIsFinal = selectedApplication
+    ? ["accepted", "rejected"].includes((selectedApplication.status || "").toLowerCase())
+    : false;
+  const detailIsAccepted = selectedApplication?.status === "Accepted";
+  const detailIsShortlisted = selectedApplication?.status === "Shortlisted";
+
+  // "Recommended action" mirrors the same 3-tier scale as the Recommendation badge - never a
+  // second, independently-invented scale that could disagree with it.
+  const aiRecommendedAction =
+    detailMatch === null
+      ? { label: page.keepUnderReview || "Keep Under Review", reason: "No AI analysis is available for this candidate yet, so there isn't enough information for a confident decision." }
+      : detailRecommendation === "Strong Candidate"
+      ? { label: page.accept || "Accept", reason: `The match score is ${detailMatch}% and the candidate's profile aligns well with this role's requirements.` }
+      : detailRecommendation === "Consider"
+      ? { label: page.keepUnderReview || "Keep Under Review", reason: `The match score is ${detailMatch}%, a moderate fit - worth a closer look before deciding.` }
+      : { label: page.reject || "Reject", reason: `The match score is ${detailMatch}% and the candidate's profile has significant gaps against this role's requirements.` };
+
+  const recommendationExplanation =
+    inlineAiSummary?.hasAnalysis && inlineAiSummary.weaknesses
+      ? inlineAiSummary.weaknesses
+      : inlineAiSummary?.hasAnalysis && inlineAiSummary.overallSuitability
+      ? inlineAiSummary.overallSuitability
+      : aiRecommendedAction.reason;
+
+  const progressSteps = selectedApplication
+    ? computeCandidateProgress(selectedApplication.status, detailMatch !== null, {
+        applied: page.steps?.applied || "Applied",
+        aiAnalysis: page.steps?.aiAnalysis || "AI Analysis",
+        underReview: page.steps?.underReview || "Under Review",
+        shortlisted: page.steps?.shortlisted || "Shortlisted",
+        accepted: page.steps?.accepted || "Accepted",
+        rejected: page.steps?.rejected || "Rejected",
+      })
+    : [];
+
+  const handleDownloadResume = async () => {
+    if (!selectedApplication) return;
+    try {
+      const blob = await apiFetchBlob(`/api/cv/company-download/${selectedApplication.id}`);
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, "_blank");
+    } catch (err) {
+      alert(
+        err instanceof ApiError
+          ? err.message
+          : page.downloadResumeError || "Could not download this candidate's resume."
+      );
+    }
   };
 
   return (
@@ -526,124 +828,119 @@ function CompanyApplications() {
                 return (
                 <div
                   key={app.id}
-                  className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]"
+                  className="min-w-0 rounded-[28px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.18)] md:p-6"
                 >
-                  <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
-                    <div className="flex flex-1 items-start gap-4">
+                  <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+                    <div className="flex min-w-0 flex-1 items-start gap-4">
                       <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] bg-gradient-to-br from-[#7b61ff] to-[#a855f7] text-2xl font-extrabold text-white shadow-[0_12px_28px_rgba(124,77,255,0.28)]">
                         {getInitial(app.name)}
                       </div>
 
-                      <div className={`min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
-                        <div className="mb-1 flex flex-wrap items-center gap-3">
-                          <h2 className="text-[20px] font-extrabold text-white md:text-[24px]">
+                      <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
+                        <div className="mb-1 flex flex-wrap items-center gap-2">
+                          <h2 className="text-[19px] font-extrabold text-white md:text-[22px]">
                             {app.name}
                           </h2>
 
                           {aiRank !== undefined && (
-                            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/25 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-300">
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/25 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-300">
                               <Trophy size={12} />
                               {(page.aiRank || "AI Rank")} #{aiRank}
                             </span>
                           )}
 
                           <span
-                            className={`rounded-full px-3 py-1 text-xs font-bold ${getScoreBadgeStyles(
+                            className={`rounded-full px-2.5 py-1 text-xs font-bold ${getScoreBadgeStyles(
                               app.match
                             )}`}
                           >
                             {getScoreBadgeLabel(app.match, app.matchLabel)}
                           </span>
+
+                          <span
+                            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${getStatusBadgeStyles(
+                              app.status
+                            )}`}
+                          >
+                            {app.status || "Applied"}
+                          </span>
                         </div>
 
-                        <p className="break-all text-[18px] text-white/70">{app.email}</p>
+                        <p className="truncate text-[16px] text-white/70 md:text-[18px]">{app.email}</p>
 
-                        <p className="mt-2 text-sm text-white/45">
+                        <p className="mt-2 truncate text-sm text-white/45">
                           {page.appliedFor || "Applied for"} {app.jobTitle} •{" "}
                           {app.date}
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
-                      <div className="flex items-center gap-6">
-                        {app.match !== null ? (() => {
-                          const tier = getMatchTier(app.match);
-                          return (
-                            <div className="flex flex-col items-center gap-1">
-                              <ScoreRing value={app.match} color={tier.ring} />
-                              <span className={`flex items-center gap-1 text-[12px] font-bold ${tier.text}`}>
-                                <span>{tier.emoji}</span>
-                                {app.match}% {page.matchLabel || "Match"}
-                              </span>
-                              <span className="text-[11px] font-semibold text-white/45">
-                                {app.matchLabel || getMatchLabel(app.match)}
-                              </span>
-                              <span className={`mt-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${tier.bg} ${tier.text} ${tier.border}`}>
-                                {getRecommendation(app.match)}
-                              </span>
-                            </div>
-                          );
-                        })() : (
+                    <div className="flex shrink-0 items-center justify-center xl:justify-start">
+                      {app.match !== null ? (() => {
+                        const tier = getMatchTier(app.match);
+                        return (
                           <div className="flex flex-col items-center gap-1">
-                            <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full border border-white/10 bg-white/5 text-center text-[13px] font-semibold text-white/30">
-                              —
-                            </div>
-                            <span className="text-[11px] font-semibold text-white/40">
-                              {page.notScoredYet || "Not scored yet"}
+                            <ScoreRing value={app.match} color={tier.ring} />
+                            <span className={`flex items-center gap-1 text-[12px] font-bold ${tier.text}`}>
+                              <span>{tier.emoji}</span>
+                              {app.match}% {page.matchLabel || "Match"}
+                            </span>
+                            <span className="text-[11px] font-semibold text-white/45">
+                              {app.matchLabel || getMatchLabel(app.match)}
+                            </span>
+                            <span className={`mt-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${tier.bg} ${tier.text} ${tier.border}`}>
+                              {getRecommendation(app.match)}
                             </span>
                           </div>
-                        )}
-                      </div>
+                        );
+                      })() : (
+                        <div className="flex flex-col items-center gap-1">
+                          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full border border-white/10 bg-white/5 text-center text-[13px] font-semibold text-white/30">
+                            —
+                          </div>
+                          <span className="text-[11px] font-semibold text-white/40">
+                            {page.notScoredYet || "Not scored yet"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
-                      <ApplicationSteps
-                        currentStep={app.currentStep}
-                        labels={{
-                          applied: page.steps?.applied || "Applied",
-                          screening: page.steps?.screening || "Screening",
-                          review: page.steps?.review || "Review",
-                          shortlisted: page.steps?.shortlisted || "Shortlisted",
-                          decision: page.steps?.decision || "Decision",
-                        }}
-                      />
+                    <div className="flex flex-wrap justify-center gap-2 xl:shrink-0 xl:justify-end">
+                      <button
+                        type="button"
+                        onClick={() => openApplicationDetail(app)}
+                        className="inline-flex items-center gap-2 rounded-[12px] border border-[#6b78ff]/40 bg-[#5964ff]/10 px-3.5 py-2 text-sm font-semibold text-[#cfd5ff] transition hover:bg-[#5964ff]/20"
+                      >
+                        <Eye size={16} />
+                        {page.view || "View"}
+                      </button>
 
-                      <div className="flex flex-wrap gap-2 xl:justify-end">
-                        <button
-                          type="button"
-                          onClick={() => openApplicationDetail(app)}
-                          className="inline-flex items-center gap-2 rounded-[12px] border border-[#6b78ff]/40 bg-[#5964ff]/10 px-4 py-2 text-sm font-semibold text-[#cfd5ff] transition hover:bg-[#5964ff]/20"
-                        >
-                          <Eye size={16} />
-                          {page.view || "View"}
-                        </button>
+                      <button
+                        type="button"
+                        onClick={() => setAiSummaryApplication(app)}
+                        className="inline-flex items-center gap-2 rounded-[12px] border border-violet-400/30 bg-violet-500/10 px-3.5 py-2 text-sm font-semibold text-violet-200 transition hover:bg-violet-500/20"
+                      >
+                        <Sparkles size={16} />
+                        {page.aiSummary || "AI Summary"}
+                      </button>
 
-                        <button
-                          type="button"
-                          onClick={() => setAiSummaryApplication(app)}
-                          className="inline-flex items-center gap-2 rounded-[12px] border border-violet-400/30 bg-violet-500/10 px-4 py-2 text-sm font-semibold text-violet-200 transition hover:bg-violet-500/20"
-                        >
-                          <Sparkles size={16} />
-                          {page.aiSummary || "AI Summary"}
-                        </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAccept(app.id)}
+                        className="inline-flex items-center gap-2 rounded-[12px] bg-emerald-500/20 px-3.5 py-2 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/30"
+                      >
+                        <CheckCircle2 size={16} />
+                        {page.accept || "Accept"}
+                      </button>
 
-                        <button
-                          type="button"
-                          onClick={() => handleAccept(app.id)}
-                          className="inline-flex items-center gap-2 rounded-[12px] bg-emerald-500/20 px-4 py-2 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/30"
-                        >
-                          <CheckCircle2 size={16} />
-                          {page.accept || "Accept"}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleReject(app.id)}
-                          className="inline-flex items-center gap-2 rounded-[12px] bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/30"
-                        >
-                          <XCircle size={16} />
-                          {page.reject || "Reject"}
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleReject(app.id)}
+                        className="inline-flex items-center gap-2 rounded-[12px] bg-rose-500/20 px-3.5 py-2 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/30"
+                      >
+                        <XCircle size={16} />
+                        {page.reject || "Reject"}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -671,7 +968,7 @@ function CompanyApplications() {
 
             <div className="mb-6 rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
               <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-                <div className="flex flex-1 gap-5">
+                <div className="flex min-w-0 flex-1 gap-5">
                   <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-[22px] bg-gradient-to-br from-[#7b61ff] to-[#a855f7] text-5xl font-extrabold text-white shadow-[0_12px_28px_rgba(124,77,255,0.28)]">
                     {getInitial(selectedApplication.name)}
                   </div>
@@ -688,6 +985,13 @@ function CompanyApplications() {
                       >
                         {getScoreBadgeLabel(selectedApplication.match, selectedApplication.matchLabel)}
                       </span>
+                      <span
+                        className={`inline-flex items-center rounded-full border px-4 py-2 text-sm font-bold ${getStatusBadgeStyles(
+                          selectedApplication.status
+                        )}`}
+                      >
+                        {selectedApplication.status || "Applied"}
+                      </span>
                     </div>
 
                     <p className="mb-4 text-[18px] text-white/70 md:text-[28px]">
@@ -696,7 +1000,7 @@ function CompanyApplications() {
 
                     <div className="flex flex-wrap gap-x-6 gap-y-3 text-[15px] text-white/60">
                       <span>{selectedApplication.email}</span>
-                      <span>{selectedApplication.date}</span>
+                      <span>{formatDate(selectedApplication.date) || "—"}</span>
                     </div>
                   </div>
                 </div>
@@ -720,7 +1024,9 @@ function CompanyApplications() {
 
                   <button
                     type="button"
-                    className="flex items-center justify-center gap-2 rounded-[14px] border border-cyan-400/20 bg-[#091a43] px-5 py-4 text-[15px] font-semibold text-cyan-300 transition hover:bg-[#0d2358]"
+                    onClick={handleDownloadResume}
+                    disabled={candidateProfile !== null && !candidateProfile.resumeUploaded}
+                    className="flex items-center justify-center gap-2 rounded-[14px] border border-cyan-400/20 bg-[#091a43] px-5 py-4 text-[15px] font-semibold text-cyan-300 transition hover:bg-[#0d2358] disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <Download size={17} />
                     {page.downloadResume || "Download Resume"}
@@ -752,74 +1058,329 @@ function CompanyApplications() {
                       value={selectedApplication.match !== null ? `${selectedApplication.match}%` : "—"}
                     />
                     <StatCard
-                      label={page.date || "Date"}
-                      value={selectedApplication.date || "—"}
+                      label={page.applicationDate || "Application Date"}
+                      value={formatDate(selectedApplication.date) || "—"}
                     />
                     <StatCard
-                      label={page.stage || "Stage"}
-                      value={getStageLabel(selectedApplication.stage)}
+                      label={page.currentStatus || "Current Status"}
+                      value={selectedApplication.status || "Applied"}
                     />
                   </div>
 
                   <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-5">
                     <h3 className="mb-4 text-[18px] font-bold">
-                      {page.hiringSummary || "Hiring Summary"}
+                      {page.hiringSummary || "AI Hiring Summary"}
                     </h3>
-                    <p className="text-[16px] leading-8 text-white/75">
-                      {selectedApplication.match !== null
-                        ? `This candidate has a ${selectedApplication.match}% CV match score for the ${selectedApplication.jobTitle} role.`
-                        : "No CV match analysis is available for this candidate yet."}
-                    </p>
+
+                    {inlineAiSummaryLoading && (
+                      <div className="flex items-center gap-3 text-white/60">
+                        <Loader2 size={18} className="animate-spin" />
+                        <span className="text-sm">{page.generatingSummary || "Loading AI summary..."}</span>
+                      </div>
+                    )}
+
+                    {!inlineAiSummaryLoading && inlineAiSummary?.hasAnalysis && (
+                      <p className="text-[16px] leading-8 text-white/75">
+                        {inlineAiSummary.overallSuitability ||
+                          [inlineAiSummary.strengths, inlineAiSummary.weaknesses].filter(Boolean).join(" ")}
+                      </p>
+                    )}
+
+                    {!inlineAiSummaryLoading && !inlineAiSummary?.hasAnalysis && (
+                      <div>
+                        <p className="mb-4 flex items-start gap-2 text-[15px] leading-7 text-white/60">
+                          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-300" />
+                          {selectedApplication.match !== null
+                            ? page.summaryLoadError || "Could not load the AI summary. Please try again."
+                            : page.noAiSummaryYet ||
+                              "No AI analysis has been generated for this candidate and role yet."}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setAiSummaryApplication(selectedApplication)}
+                          className="inline-flex items-center gap-2 rounded-[12px] border border-violet-400/30 bg-violet-500/10 px-4 py-2 text-sm font-semibold text-violet-200 transition hover:bg-violet-500/20"
+                        >
+                          <Sparkles size={16} />
+                          {page.generateAiSummary || "Generate AI Summary"}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <div className="rounded-[28px] border border-white/10 bg-emerald-500/10 p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
+                <div
+                  className={`rounded-[28px] border p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)] ${
+                    detailRecommendation === "Strong Candidate"
+                      ? "border-emerald-400/20 bg-emerald-500/10"
+                      : detailRecommendation === "Consider"
+                      ? "border-amber-400/20 bg-amber-500/10"
+                      : detailRecommendation === "Not Recommended"
+                      ? "border-rose-400/20 bg-rose-500/10"
+                      : "border-white/10 bg-white/[0.05]"
+                  }`}
+                >
                   <div className="mb-3 flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-300">
+                    <div
+                      className={`flex h-12 w-12 items-center justify-center rounded-2xl ${
+                        detailTier ? `${detailTier.bg} ${detailTier.text}` : "bg-white/10 text-white/50"
+                      }`}
+                    >
                       <CheckCircle size={22} />
                     </div>
                     <div className={isRTL ? "text-right" : "text-left"}>
-                      <p className="text-sm font-semibold uppercase tracking-wide text-violet-300">
+                      <p className="text-sm font-semibold uppercase tracking-wide text-white/50">
                         {page.recommendation || "Recommendation"}
                       </p>
-                      <h3 className="text-[20px] font-extrabold text-emerald-300">
-                        {selectedApplication.fit === "High Fit"
-                          ? page.highFitText ||
-                            "Strong candidate for next stage"
-                          : selectedApplication.fit === "Medium Fit"
-                          ? page.mediumFitText ||
-                            "Worth reviewing carefully"
-                          : selectedApplication.fit === "Low Fit"
-                          ? page.lowFitText || "Lower priority candidate"
-                          : "Awaiting CV match analysis"}
+                      <h3 className={`text-[20px] font-extrabold ${detailTier ? detailTier.text : "text-white/70"}`}>
+                        {detailRecommendation === "Strong Candidate"
+                          ? page.strongCandidate || "Strong Candidate"
+                          : detailRecommendation === "Consider"
+                          ? page.considerCandidate || "Consider"
+                          : detailRecommendation === "Not Recommended"
+                          ? page.notRecommended || "Not Recommended"
+                          : page.awaitingAnalysis || "Awaiting Analysis"}
                       </h3>
                     </div>
                   </div>
 
                   <p className="text-[15px] leading-7 text-white/75">
-                    {page.recommendationBody ||
-                      "Based on the current scores and evaluation stage, this application can be reviewed for the next hiring decision."}
+                    {recommendationExplanation}
                   </p>
                 </div>
+
+                <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
+                  <div className="mb-5 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-500/15 text-cyan-300">
+                      <Briefcase size={20} />
+                    </div>
+                    <h2 className="text-[20px] font-extrabold">
+                      {page.candidateSkills || "Candidate Skills"}
+                    </h2>
+                  </div>
+
+                  {candidateProfileLoading && (
+                    <div className="flex items-center gap-3 text-white/50">
+                      <Loader2 size={16} className="animate-spin" />
+                      <span className="text-sm">{common.loading || "Loading..."}</span>
+                    </div>
+                  )}
+
+                  {!candidateProfileLoading && candidateProfile?.skills && candidateProfile.skills.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {candidateProfile.skills.map((skill) => (
+                        <span
+                          key={skill}
+                          className="rounded-full border border-cyan-400/20 bg-cyan-500/10 px-3 py-1.5 text-sm font-semibold text-cyan-200"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {!candidateProfileLoading && (!candidateProfile?.skills || candidateProfile.skills.length === 0) && (
+                    <p className="text-sm text-white/45">
+                      {page.noSkillsInfo || "No skills information available."}
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
+                    <div className="mb-4 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-300">
+                        <Briefcase size={18} />
+                      </div>
+                      <h2 className="text-[18px] font-extrabold">
+                        {page.experience || "Experience"}
+                      </h2>
+                    </div>
+
+                    {!candidateProfileLoading && candidateProfile?.hasAnalysis ? (
+                      <div className="space-y-2 text-[15px] text-white/70">
+                        {candidateProfile.yearsOfExperience && (
+                          <p>
+                            <span className="font-semibold text-white">{page.totalExperience || "Total experience"}: </span>
+                            {candidateProfile.yearsOfExperience}
+                          </p>
+                        )}
+                        {candidateProfile.previousJobTitles && (
+                          <p>
+                            <span className="font-semibold text-white">{page.previousRoles || "Previous roles"}: </span>
+                            {candidateProfile.previousJobTitles}
+                          </p>
+                        )}
+                        {!candidateProfile.yearsOfExperience && !candidateProfile.previousJobTitles && (
+                          <p className="text-white/45">{page.noExperienceInfo || "No experience information available."}</p>
+                        )}
+                      </div>
+                    ) : (
+                      !candidateProfileLoading && (
+                        <p className="text-sm text-white/45">{page.noExperienceInfo || "No experience information available."}</p>
+                      )
+                    )}
+                  </div>
+
+                  <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
+                    <div className="mb-4 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-500/15 text-indigo-300">
+                        <GraduationCap size={18} />
+                      </div>
+                      <h2 className="text-[18px] font-extrabold">
+                        {page.education || "Education"}
+                      </h2>
+                    </div>
+
+                    {(() => {
+                      if (candidateProfileLoading) return null;
+
+                      const educationLine = describeEducationEvidence(candidateProfile?.educationEvidence);
+                      const certificationLine = describeCertificationsEvidence(candidateProfile?.certificationsEvidence);
+                      const licenseLine = describeLicensesEvidence(candidateProfile?.licensesEvidence);
+                      const lines = [educationLine, certificationLine, licenseLine].filter(
+                        (line): line is string => Boolean(line)
+                      );
+
+                      if (!candidateProfile?.hasAnalysis || lines.length === 0) {
+                        return (
+                          <p className="text-sm text-white/45">
+                            {page.noEducationInfo || "No education information available."}
+                          </p>
+                        );
+                      }
+
+                      return (
+                        <div className="space-y-2 text-[15px] leading-6 text-white/70">
+                          {lines.map((line) => (
+                            <p key={line}>{line}</p>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {!candidateProfileLoading && candidateProfile?.languages && candidateProfile.languages.trim() && (
+                  <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
+                    <div className="mb-4 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-fuchsia-500/15 text-fuchsia-300">
+                        <LanguagesIcon size={18} />
+                      </div>
+                      <h2 className="text-[18px] font-extrabold">
+                        {page.languages || "Languages"}
+                      </h2>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {candidateProfile.languages.split(",").map((lang) => lang.trim()).filter(Boolean).map((lang) => (
+                        <span
+                          key={lang}
+                          className="rounded-full border border-fuchsia-400/20 bg-fuchsia-500/10 px-3 py-1.5 text-sm font-semibold text-fuchsia-200"
+                        >
+                          {lang}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-6">
                 <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
+                  <div className="mb-5 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-500/15 text-violet-300">
+                      <ClipboardCheck size={20} />
+                    </div>
+                    <h2 className="text-[20px] font-extrabold">
+                      {page.hiringDecision || "Hiring Decision"}
+                    </h2>
+                  </div>
+
+                  <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-white/60">
+                    <span className="font-semibold text-white">{page.currentStatus || "Current Status"}:</span>
+                    <span
+                      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${getStatusBadgeStyles(
+                        selectedApplication.status
+                      )}`}
+                    >
+                      {selectedApplication.status || "Applied"}
+                    </span>
+                  </div>
+
+                  <div className="mb-5 rounded-[18px] border border-white/10 bg-white/[0.04] p-4">
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-white/45">
+                      {page.aiRecommendedAction || "AI Recommended Action"}
+                    </p>
+                    <p className="mb-2 text-[17px] font-bold text-white">{aiRecommendedAction.label}</p>
+                    <p className="text-sm leading-6 text-white/60">{aiRecommendedAction.reason}</p>
+                  </div>
+
+                  {statusUpdateError && (
+                    <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                      {statusUpdateError}
+                    </div>
+                  )}
+                  {statusUpdateSuccess && (
+                    <div className="mb-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+                      {statusUpdateSuccess}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => handleAccept(selectedApplication.id)}
+                      disabled={isUpdatingStatus || detailIsFinal}
+                      className="inline-flex items-center justify-center gap-2 rounded-[12px] bg-emerald-500/20 px-3.5 py-2.5 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/30 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <CheckCircle2 size={16} />
+                      {page.accept || "Accept"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleReject(selectedApplication.id)}
+                      disabled={isUpdatingStatus || detailIsFinal}
+                      className="inline-flex items-center justify-center gap-2 rounded-[12px] bg-rose-500/20 px-3.5 py-2.5 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/30 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <XCircle size={16} />
+                      {page.reject || "Reject"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleKeepUnderReview(selectedApplication.id)}
+                      disabled={isUpdatingStatus || detailIsFinal}
+                      className="inline-flex items-center justify-center gap-2 rounded-[12px] border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm font-semibold text-white/75 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {isUpdatingStatus ? <Loader2 size={16} className="animate-spin" /> : <Clock3 size={16} />}
+                      {page.keepUnderReview || "Keep Under Review"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleShortlist(selectedApplication.id)}
+                      disabled={isUpdatingStatus || detailIsFinal || detailIsShortlisted}
+                      className="inline-flex items-center justify-center gap-2 rounded-[12px] border border-cyan-400/30 bg-cyan-500/10 px-3.5 py-2.5 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <Star size={16} />
+                      {page.shortlist || "Shortlist"}
+                    </button>
+                  </div>
+
+                  {detailIsFinal && (
+                    <p className="mt-3 text-xs text-white/40">
+                      {detailIsAccepted
+                        ? page.alreadyAccepted || "This application has already been accepted."
+                        : page.alreadyRejected || "This application has already been rejected."}
+                    </p>
+                  )}
+                </div>
+
+                <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
                   <h2 className="mb-5 text-[20px] font-extrabold">
                     {page.progress || "Progress"}
                   </h2>
-                  <ApplicationSteps
-                    currentStep={selectedApplication.currentStep}
-                    detailed
-                    labels={{
-                      applied: page.steps?.applied || "Applied",
-                      screening: page.steps?.screening || "Screening",
-                      review: page.steps?.review || "Review",
-                      shortlisted:
-                        page.steps?.shortlisted || "Shortlisted",
-                      decision: page.steps?.decision || "Decision",
-                    }}
-                  />
+                  <CandidateProgressSteps steps={progressSteps} />
                 </div>
 
                 <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
@@ -835,13 +1396,31 @@ function CompanyApplications() {
                     </p>
                     <p>
                       <span className="font-semibold text-white">
-                        {page.dateLabel || "Date:"}
+                        {page.applicationDateLabel || "Application Date:"}
                       </span>{" "}
-                      {selectedApplication.date}
+                      {formatDate(selectedApplication.date) || "—"}
                     </p>
                     <p>
                       <span className="font-semibold text-white">
-                        {page.emailLabel || "Email:"}
+                        {page.currentStatusLabel || "Current Status:"}
+                      </span>{" "}
+                      {selectedApplication.status || "Applied"}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-white">
+                        {page.resumeUploadedLabel || "Resume Uploaded:"}
+                      </span>{" "}
+                      {candidateProfileLoading ? "—" : candidateProfile?.resumeUploaded ? common.yes || "Yes" : common.no || "No"}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-white">
+                        {page.aiAnalysisCompletedLabel || "AI Analysis Completed:"}
+                      </span>{" "}
+                      {selectedApplication.match !== null ? common.yes || "Yes" : common.no || "No"}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-white">
+                        {page.emailLabel || "Candidate Email:"}
                       </span>{" "}
                       {selectedApplication.email}
                     </p>
@@ -930,37 +1509,67 @@ function CompanyApplications() {
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
                     rows={5}
-                    className="mb-6 w-full resize-none rounded-[18px] border border-white/10 bg-white/[0.06] px-5 py-4 text-[15px] leading-7 text-white outline-none placeholder:text-white/35"
+                    disabled={isSendingMessage}
+                    className="mb-4 w-full resize-none rounded-[18px] border border-white/10 bg-white/[0.06] px-5 py-4 text-[15px] leading-7 text-white outline-none placeholder:text-white/35 disabled:opacity-60"
                     placeholder={
                       page.writeMessage || "Write your message here..."
                     }
                   />
 
+                  {contactModalError && (
+                    <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                      {contactModalError}
+                    </div>
+                  )}
+
+                  {contactModalSuccess && (
+                    <div className="mb-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+                      {page.messageSent || "Message sent!"}
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-end gap-3">
                     <button
                       onClick={closeContactModal}
-                      className="rounded-[10px] bg-white/10 px-5 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/15"
+                      disabled={isSendingMessage}
+                      className="rounded-[10px] bg-white/10 px-5 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {common.cancel || "Cancel"}
+                      {contactModalSuccess ? common.close || "Close" : common.cancel || "Cancel"}
                     </button>
 
-                    <button
-                      onClick={() => {
-                        apiFetch("/api/messages", {
-                          method: "POST",
-                          body: JSON.stringify({
-                            applicationId: selectedApplication.id,
-                            content: messageText,
-                          }),
-                        }).catch(() => null);
-
-                        alert(page.messageSent || "Message sent!");
-                        setShowContactModal(false);
-                      }}
-                      className="rounded-[10px] bg-[linear-gradient(135deg,#8b4dff,#b14dff)] px-6 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(160,80,255,0.35)] transition hover:opacity-95"
-                    >
-                      {page.send || "Send"}
-                    </button>
+                    {!contactModalSuccess && (
+                      <button
+                        onClick={async () => {
+                          if (!messageText.trim() || isSendingMessage) return;
+                          setIsSendingMessage(true);
+                          setContactModalError("");
+                          try {
+                            const data = await apiFetch("/api/messages", {
+                              method: "POST",
+                              body: JSON.stringify({
+                                applicationId: selectedApplication.id,
+                                content: messageText,
+                              }),
+                            });
+                            if (!data.success) {
+                              throw new Error(data.message || "Could not send the message.");
+                            }
+                            setContactModalSuccess(true);
+                          } catch (err) {
+                            setContactModalError(
+                              err instanceof ApiError ? err.message : "Could not send the message. Please try again."
+                            );
+                          } finally {
+                            setIsSendingMessage(false);
+                          }
+                        }}
+                        disabled={isSendingMessage || !messageText.trim()}
+                        className="inline-flex items-center gap-2 rounded-[10px] bg-[linear-gradient(135deg,#8b4dff,#b14dff)] px-6 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(160,80,255,0.35)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isSendingMessage && <Loader2 size={15} className="animate-spin" />}
+                        {page.send || "Send"}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1059,38 +1668,68 @@ function CompanyApplications() {
                     />
                   </div>
 
+                  {interviewModalError && (
+                    <div className="mt-4 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                      {interviewModalError}
+                    </div>
+                  )}
+
+                  {interviewModalSuccess && (
+                    <div className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+                      {`${page.interviewScheduledWith || "Interview scheduled with"} ${selectedApplication.name}`}
+                    </div>
+                  )}
+
                   <div className="mt-6 flex justify-end gap-3">
                     <button
                       onClick={closeInterviewModal}
-                      className="rounded bg-white/10 px-4 py-2"
+                      disabled={isSchedulingInterview}
+                      className="rounded bg-white/10 px-4 py-2 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {common.cancel || "Cancel"}
+                      {interviewModalSuccess ? common.close || "Close" : common.cancel || "Cancel"}
                     </button>
 
-                    <button
-                      onClick={() => {
-                        if (interviewDate && interviewTime) {
-                          apiFetch("/api/interviews", {
-                            method: "POST",
-                            body: JSON.stringify({
-                              applicationId: selectedApplication.id,
-                              scheduledAt: `${interviewDate}T${interviewTime}`,
-                              type: interviewType,
-                              notes: interviewNotes,
-                            }),
-                          }).catch(() => null);
-                        }
+                    {!interviewModalSuccess && (
+                      <button
+                        onClick={async () => {
+                          if (!interviewDate || !interviewTime || isSchedulingInterview) {
+                            if (!interviewDate || !interviewTime) {
+                              setInterviewModalError(page.interviewDateTimeRequired || "Please choose a date and time.");
+                            }
+                            return;
+                          }
 
-                        alert(
-                          `${page.interviewScheduledWith || "Interview scheduled with"} ${selectedApplication.name}`
-                        );
-                        setShowInterviewModal(false);
-                      }}
-                      className="flex items-center gap-2 rounded bg-purple-500 px-4 py-2 text-white"
-                    >
-                      <Calendar size={16} />
-                      {page.confirmSchedule || "Confirm Schedule"}
-                    </button>
+                          setIsSchedulingInterview(true);
+                          setInterviewModalError("");
+                          try {
+                            const data = await apiFetch("/api/interviews", {
+                              method: "POST",
+                              body: JSON.stringify({
+                                applicationId: selectedApplication.id,
+                                scheduledAt: `${interviewDate}T${interviewTime}`,
+                                type: interviewType,
+                                notes: interviewNotes,
+                              }),
+                            });
+                            if (!data.success) {
+                              throw new Error(data.message || "Could not schedule the interview.");
+                            }
+                            setInterviewModalSuccess(true);
+                          } catch (err) {
+                            setInterviewModalError(
+                              err instanceof ApiError ? err.message : "Could not schedule the interview. Please try again."
+                            );
+                          } finally {
+                            setIsSchedulingInterview(false);
+                          }
+                        }}
+                        disabled={isSchedulingInterview}
+                        className="flex items-center gap-2 rounded bg-purple-500 px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isSchedulingInterview ? <Loader2 size={16} className="animate-spin" /> : <Calendar size={16} />}
+                        {page.confirmSchedule || "Confirm Schedule"}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1106,7 +1745,15 @@ function CompanyApplications() {
             language={language}
             t={t}
             isRTL={isRTL}
-            onClose={() => setAiSummaryApplication(null)}
+            onClose={() => {
+              const closedId = aiSummaryApplication.id;
+              setAiSummaryApplication(null);
+              // If this was opened for the application currently on screen, refresh the inline
+              // summary too - it's now guaranteed cached (just generated), so this is a cache hit.
+              if (selectedApplication?.id === closedId) {
+                fetchInlineAiSummary(closedId);
+              }
+            }}
             onScoreReady={(matchScore, matchLabel) => applyAiMatchScore(aiSummaryApplication.id, matchScore, matchLabel)}
           />
         )}
@@ -1157,89 +1804,44 @@ function ScoreRing({ value, color = "#8690ff" }: { value: number; color?: string
   );
 }
 
-function ApplicationSteps({
-  currentStep,
-  detailed = false,
-  labels,
-}: {
-  currentStep: number;
-  detailed?: boolean;
-  labels: {
-    applied: string;
-    screening: string;
-    review: string;
-    shortlisted: string;
-    decision: string;
-  };
-}) {
-  const steps = [
-    { icon: Send, label: labels.applied },
-    { icon: Brain, label: labels.screening },
-    { icon: EyeStep, label: labels.review },
-    { icon: Star, label: labels.shortlisted },
-    { icon: CheckCircle, label: labels.decision },
-  ];
-
-  if (detailed) {
-    return (
-      <div className="space-y-4">
-        {steps.map((step, index) => {
-          const stepNumber = index + 1;
-          const Icon = step.icon;
-          const active = stepNumber <= currentStep;
-
-          return (
-            <div key={step.label} className="flex items-center gap-3">
-              <div
-                className={`flex h-11 w-11 items-center justify-center rounded-full border ${
-                  active
-                    ? "border-cyan-400/30 bg-cyan-400/15 text-cyan-300"
-                    : "border-white/10 bg-white/5 text-white/30"
-                }`}
-              >
-                <Icon size={18} />
-              </div>
-              <span
-                className={`text-sm font-semibold ${
-                  active ? "text-white" : "text-white/40"
-                }`}
-              >
-                {step.label}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-
+// Renders computeCandidateProgress()'s output - 4 visually distinct states (completed/
+// current/pending/rejected), replacing the old binary active/inactive stepper that could only
+// ever show a fixed bucket ("Decision") instead of the application's real outcome.
+function CandidateProgressSteps({ steps }: { steps: ProgressStep[] }) {
   return (
-    <div className="flex min-w-0 items-center gap-2 overflow-x-auto">
-      {steps.map((step, index) => {
-        const stepNumber = index + 1;
-        const Icon = step.icon;
-        const active = stepNumber <= currentStep;
+    <div className="space-y-4">
+      {steps.map((step) => {
+        const Icon =
+          step.state === "rejected" ? XCircle : step.state === "completed" ? CheckCircle : Clock3;
+
+        const circleClass =
+          step.state === "completed"
+            ? "border-emerald-400/30 bg-emerald-400/15 text-emerald-300"
+            : step.state === "current"
+            ? "border-[#7d86ff] bg-[#5964ff]/15 text-[#8f98ff]"
+            : step.state === "rejected"
+            ? "border-rose-400/30 bg-rose-500/15 text-rose-300"
+            : "border-white/10 bg-white/5 text-white/30";
+
+        const labelClass =
+          step.state === "completed"
+            ? "text-emerald-200"
+            : step.state === "current"
+            ? "text-white"
+            : step.state === "rejected"
+            ? "text-rose-300"
+            : "text-white/40";
 
         return (
-          <div key={step.label} className="flex shrink-0 items-center gap-2">
-            <div
-              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border ${
-                active
-                  ? stepNumber === currentStep
-                    ? "border-[#7d86ff] bg-[#5964ff]/15 text-[#8f98ff]"
-                    : "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
-                  : "border-white/10 bg-white/5 text-white/25"
-              }`}
-            >
-              <Icon size={17} />
+          <div key={step.key} className="flex items-center gap-3">
+            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border ${circleClass}`}>
+              <Icon size={18} />
             </div>
-
-            {index !== steps.length - 1 && (
-              <div
-                className={`h-[2px] w-8 ${
-                  stepNumber < currentStep ? "bg-emerald-400/60" : "bg-white/10"
-                }`}
-              />
+            <span className={`text-sm font-semibold ${labelClass}`}>{step.label}</span>
+            {step.state === "current" && (
+              <span className="rounded-full border border-[#7d86ff]/40 bg-[#5964ff]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#b6bcff]">
+                {"●"}
+              </span>
             )}
           </div>
         );
