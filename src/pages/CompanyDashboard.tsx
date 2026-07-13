@@ -11,6 +11,8 @@ import {
   TrendingUp,
   Zap,
   ChevronRight,
+  Building2,
+  Clock,
 } from "lucide-react";
 
 import { useLanguage } from "../context/LanguageContext";
@@ -56,7 +58,12 @@ function isWithinLastDays(dateStr: string | null, days: number) {
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return false;
   const diffMs = Date.now() - date.getTime();
-  return diffMs >= 0 && diffMs <= days * 24 * 60 * 60 * 1000;
+  // appliedDate arrives as a date-only string (e.g. "2026-07-14"), which JS parses as UTC
+  // midnight - in timezones ahead of UTC that instant is still "in the future" for part of
+  // the day, making diffMs negative for an application from earlier today. A day of slack
+  // absorbs that without letting the upper bound drift.
+  const futureSlackMs = 24 * 60 * 60 * 1000;
+  return diffMs >= -futureSlackMs && diffMs <= days * 24 * 60 * 60 * 1000;
 }
 
 function CompanyDashboard() {
@@ -168,15 +175,70 @@ function CompanyDashboard() {
       .slice(0, 3);
   }, [applications]);
 
-  const highMatchAwaitingReview = applications.filter(
-    (a) => typeof a.matchPercent === "number" && a.matchPercent >= 70 && (a.status || "").toLowerCase() === "under review"
-  ).length;
+  const companyName = user?.name || "Your Company";
 
-  const applicationsThisWeek = applications.filter((a) => isWithinLastDays(a.appliedDate, 7)).length;
+  const applicationsToday = applications.filter((a) => isWithinLastDays(a.appliedDate, 1)).length;
 
-  const shortlistedAwaitingDecision = applications.filter(
-    (a) => (a.status || "").toLowerCase() === "shortlisted"
-  ).length;
+  const highScoreCandidatesCount = scoredApplications.filter((a) => a.matchPercent >= 85).length;
+
+  // "Waiting for review" = anything the company hasn't made a call on yet - mirrors
+  // CompanyApplications.tsx's deriveStage(), where only Shortlisted/Accepted/Rejected
+  // count as past the pending stage (Applied/AI Screening/Under Review all precede it).
+  const candidatesWaitingForReview = applications.filter((a) => {
+    const normalized = (a.status || "").toLowerCase();
+    return normalized !== "shortlisted" && normalized !== "accepted" && normalized !== "rejected";
+  }).length;
+
+  const lastUpdatedLabel = useMemo(() => {
+    const now = new Date();
+    return `${now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} · Last updated ${now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`;
+  }, []);
+
+  // Ordered so each entry's icon stays attached to its meaning even when earlier
+  // entries are skipped for lack of data (unlike indexing into a fixed-position array).
+  const aiInsights = useMemo(() => {
+    const insights: { icon: string; text: string }[] = [];
+
+    const topCandidate = topCandidates[0];
+    if (topCandidate) {
+      insights.push({
+        icon: "🎯",
+        text: `Review ${topCandidate.candidateName || "your top candidate"} — AI Match Score ${topCandidate.matchPercent}%.`,
+      });
+    }
+
+    if (applications.length > 0) {
+      const countByJob = new Map<string, number>();
+      for (const app of applications) {
+        const key = app.jobTitle || "Untitled Role";
+        countByJob.set(key, (countByJob.get(key) || 0) + 1);
+      }
+      let topJob: string | null = null;
+      let topCount = 0;
+      for (const [job, count] of countByJob) {
+        if (count > topCount) {
+          topJob = job;
+          topCount = count;
+        }
+      }
+      if (topJob) {
+        insights.push({ icon: "📊", text: `${topJob} position has the highest application rate.` });
+      }
+    }
+
+    if (highScoreCandidatesCount > 0) {
+      insights.push({
+        icon: "🌟",
+        text: `${highScoreCandidatesCount} candidate${highScoreCandidatesCount === 1 ? " is a strong match" : "s are strong matches"} for your open positions.`,
+      });
+    }
+
+    if (avgMatchScore !== null) {
+      insights.push({ icon: "📈", text: `Average AI Match Score across candidates is ${avgMatchScore}%.` });
+    }
+
+    return insights.slice(0, 4);
+  }, [topCandidates, applications, highScoreCandidatesCount, avgMatchScore]);
 
   return (
     <div
@@ -193,26 +255,62 @@ function CompanyDashboard() {
 
           <div className="relative z-10">
             <div
-              className={`mb-8 flex flex-col gap-5 lg:mb-10 lg:flex-row lg:items-start ${
+              className={`mb-6 flex flex-col gap-3 lg:flex-row lg:items-start ${
                 isRTL ? "lg:justify-between" : "lg:justify-between"
               }`}
             >
               <div className={isRTL ? "text-right" : "text-left"}>
                 <h1 className="text-3xl font-extrabold tracking-tight text-white md:text-4xl">
-                  {page.title}
+                  {page.welcome}, {companyName} {page.teamSuffix} 👋
                 </h1>
-                <p className="mt-2 text-[15px] text-white/65 md:text-base">
-                  {page.subtitle}
+                <p className="mt-2 text-[15px] font-semibold text-white/70 md:text-base">
+                  {page.summary.title}
                 </p>
+                <div className="mt-2 flex flex-col gap-1">
+                  <p className="flex items-center gap-2 text-sm text-white/70">
+                    <span className="text-emerald-400">✓</span>
+                    {applicationsToday} {page.summary.newApplications}
+                  </p>
+                  <p className="flex items-center gap-2 text-sm text-white/70">
+                    <span className="text-emerald-400">✓</span>
+                    {candidatesWaitingForReview} {page.summary.candidatesWaitingReview}
+                  </p>
+                  <p className="flex items-center gap-2 text-sm text-white/70">
+                    <span className="text-emerald-400">✓</span>
+                    {page.summary.avgMatch}: {avgMatchScore !== null ? `${avgMatchScore}%` : page.summary.notAvailable}
+                  </p>
+                </div>
               </div>
 
-              <button
-                onClick={() => navigate("/post-job")}
-                className="inline-flex items-center gap-2 self-start rounded-2xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-5 py-3.5 text-sm font-bold text-white shadow-[0_14px_35px_rgba(99,102,241,0.35)] transition hover:scale-[1.02]"
-              >
-                <Plus size={18} />
-                {page.quickActions.postJob}
-              </button>
+              <div className="inline-flex items-center gap-2 self-start rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-medium text-white/45 lg:self-auto">
+                <Clock size={14} />
+                {lastUpdatedLabel}
+              </div>
+            </div>
+
+            <div className="mb-8 grid grid-cols-2 gap-4 lg:mb-10 lg:grid-cols-4">
+              {[
+                { label: page.quickActions.postJob, icon: Plus, route: "/post-job", primary: true },
+                { label: page.quickActions.viewApplications, icon: FileText, route: "/company-applications", primary: false },
+                { label: page.quickActions.viewCandidates, icon: Users, route: "/company-applications", primary: false },
+                { label: page.quickActions.editProfile, icon: Building2, route: "/company-profile", primary: false },
+              ].map((action) => {
+                const ActionIcon = action.icon;
+                return (
+                  <button
+                    key={action.label}
+                    onClick={() => navigate(action.route)}
+                    className={
+                      action.primary
+                        ? "inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-4 py-3.5 text-sm font-bold text-white shadow-[0_14px_35px_rgba(99,102,241,0.35)] transition hover:scale-[1.02]"
+                        : "inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3.5 text-sm font-bold text-white/80 transition hover:-translate-y-0.5 hover:bg-white/[0.08] hover:text-white"
+                    }
+                  >
+                    <ActionIcon size={17} />
+                    <span className="truncate">{action.label}</span>
+                  </button>
+                );
+              })}
             </div>
 
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
@@ -369,7 +467,7 @@ function CompanyDashboard() {
                   {recentApplications.map((app) => (
                     <div
                       key={app.id}
-                      className="rounded-[22px] border border-white/10 bg-white/[0.045] p-4 transition hover:bg-white/[0.065]"
+                      className="rounded-[22px] border border-white/10 bg-white/[0.045] p-4 transition hover:-translate-y-0.5 hover:bg-white/[0.065]"
                     >
                       <div className="mb-3 flex items-start justify-between gap-3">
                         <div className={isRTL ? "text-right" : "text-left"}>
@@ -386,11 +484,22 @@ function CompanyDashboard() {
                         </div>
                       </div>
 
-                      <span
-                        className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClass(app.status)}`}
-                      >
-                        {app.status || "Under Review"}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClass(app.status)}`}
+                        >
+                          {app.status || "Under Review"}
+                        </span>
+
+                        {typeof app.matchPercent === "number" && (
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${getMatchTier(app.matchPercent).bg} ${getMatchTier(app.matchPercent).text} ${getMatchTier(app.matchPercent).border}`}
+                          >
+                            <Star size={11} />
+                            {app.matchPercent}% Match
+                          </span>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -412,7 +521,7 @@ function CompanyDashboard() {
 
                 <div className={isRTL ? "text-right" : "text-left"}>
                   <h2 className="text-2xl font-bold text-white">
-                    {page.insights.title}
+                    🤖 {page.insights.title}
                   </h2>
                   <p className="mt-1 text-sm text-white/55">
                     {page.insights.subtitle}
@@ -420,56 +529,33 @@ function CompanyDashboard() {
                 </div>
               </div>
 
-              {/* grid-cols-1 (not bare "grid") - see ExternalJobsPage.tsx's identical fix: the
-                  implicit single column otherwise sizes to its widest child's content instead
-                  of the container's width, causing overflow on mobile. */}
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                <div className="rounded-[22px] border border-white/10 bg-white/[0.045] p-5 transition hover:bg-white/[0.065]">
-                  <div className="mb-3 flex items-center gap-2 text-white/75">
-                    <span className="text-base">💡</span>
-                    <h3 className="text-lg font-semibold text-white/85">
-                      {page.insights.tip}
-                    </h3>
-                  </div>
-                  <p className="text-[15px] leading-7 text-white/58">
-                    {highMatchAwaitingReview > 0
-                      ? `${highMatchAwaitingReview} candidate${highMatchAwaitingReview === 1 ? " is" : "s are"} highly matched and still under review.`
-                      : "No highly matched candidates are currently awaiting review."}
-                  </p>
+              {!loading && aiInsights.length === 0 && (
+                <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-6 text-center text-sm text-white/50">
+                  {page.insights.none ||
+                    "Not enough hiring data yet — insights will appear here once you start receiving applications."}
                 </div>
+              )}
 
-                <div className="rounded-[22px] border border-white/10 bg-white/[0.045] p-5 transition hover:bg-white/[0.065]">
-                  <div className="mb-3 flex items-center gap-2 text-white/75">
-                    <span className="text-base">📈</span>
-                    <h3 className="text-lg font-semibold text-white/85">
-                      {page.insights.trend}
-                    </h3>
-                  </div>
-                  <p className="text-[15px] leading-7 text-white/58">
-                    {applicationsThisWeek > 0
-                      ? `${applicationsThisWeek} new application${applicationsThisWeek === 1 ? "" : "s"} received in the last 7 days.`
-                      : "No new applications received in the last 7 days."}
-                  </p>
+              {aiInsights.length > 0 && (
+                // grid-cols-1 (not bare "grid") - see ExternalJobsPage.tsx's identical fix: the
+                // implicit single column otherwise sizes to its widest child's content instead
+                // of the container's width, causing overflow on mobile.
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {aiInsights.map((insight, index) => (
+                    <div
+                      key={index}
+                      className="flex items-start gap-3 rounded-[22px] border border-white/10 bg-white/[0.045] p-5 transition hover:-translate-y-0.5 hover:bg-white/[0.065]"
+                    >
+                      <span className="text-xl leading-none">{insight.icon}</span>
+                      <p className="text-[15px] leading-7 text-white/75">{insight.text}</p>
+                    </div>
+                  ))}
                 </div>
-
-                <div className="rounded-[22px] border border-white/10 bg-white/[0.045] p-5 transition hover:bg-white/[0.065]">
-                  <div className="mb-3 flex items-center gap-2 text-white/75">
-                    <span className="text-base">⚡</span>
-                    <h3 className="text-lg font-semibold text-white/85">
-                      {page.insights.action}
-                    </h3>
-                  </div>
-                  <p className="text-[15px] leading-7 text-white/58">
-                    {shortlistedAwaitingDecision > 0
-                      ? `${shortlistedAwaitingDecision} shortlisted candidate${shortlistedAwaitingDecision === 1 ? " is" : "s are"} awaiting a final decision.`
-                      : "No shortlisted candidates are awaiting a final decision."}
-                  </p>
-                </div>
-              </div>
+              )}
             </div>
 
             <div className="mt-6 grid gap-5 xl:grid-cols-3">
-              <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(135deg,rgba(34,211,238,0.09),rgba(255,255,255,0.03))] p-5">
+              <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(135deg,rgba(34,211,238,0.09),rgba(255,255,255,0.03))] p-5 transition hover:-translate-y-1 hover:border-white/20">
                 <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500/12 text-cyan-300">
                   <Zap size={20} />
                 </div>
@@ -482,7 +568,7 @@ function CompanyDashboard() {
                 </p>
               </div>
 
-              <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(135deg,rgba(139,92,246,0.09),rgba(255,255,255,0.03))] p-5">
+              <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(135deg,rgba(139,92,246,0.09),rgba(255,255,255,0.03))] p-5 transition hover:-translate-y-1 hover:border-white/20">
                 <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-500/12 text-violet-300">
                   <Users size={20} />
                 </div>
@@ -495,7 +581,7 @@ function CompanyDashboard() {
                 </p>
               </div>
 
-              <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(135deg,rgba(16,185,129,0.09),rgba(255,255,255,0.03))] p-5">
+              <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(135deg,rgba(16,185,129,0.09),rgba(255,255,255,0.03))] p-5 transition hover:-translate-y-1 hover:border-white/20">
                 <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/12 text-emerald-300">
                   <BriefcaseBusiness size={20} />
                 </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Building2,
   Users,
@@ -15,11 +16,16 @@ import {
   GitFork,
   CalendarDays,
   Tag,
+  Lock,
+  LogOut,
+  X,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
-import { apiFetch } from "../utils/api";
+import { apiFetch, ApiError } from "../utils/api";
 
 type BackendApplicant = {
   matchPercent: number | null;
@@ -33,8 +39,9 @@ function withProtocol(url: string) {
 }
 
 function CompanyProfile() {
+  const navigate = useNavigate();
   const { language } = useLanguage();
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
   const t = translations[language];
   const c = t.companyProfilePage;
   const isRTL = language === "ar" || language === "he";
@@ -42,6 +49,20 @@ function CompanyProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [changePasswordError, setChangePasswordError] = useState("");
+  const [changePasswordSuccess, setChangePasswordSuccess] = useState(false);
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const [companyData, setCompanyData] = useState({
     companyName: user?.name || c.defaultCompanyName,
@@ -152,7 +173,99 @@ function CompanyProfile() {
     }
   };
 
+  const closeChangePasswordModal = () => {
+    setShowChangePasswordModal(false);
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmNewPassword("");
+    setChangePasswordError("");
+    setChangePasswordSuccess(false);
+  };
+
+  const handleChangePassword = async () => {
+    setChangePasswordError("");
+
+    if (!currentPassword) {
+      setChangePasswordError(c.currentPasswordRequired || "Please enter your current password.");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setChangePasswordError(c.passwordLength || "New password must be at least 6 characters.");
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setChangePasswordError(c.passwordsDontMatch || "New passwords do not match.");
+      return;
+    }
+
+    setIsChangingPassword(true);
+
+    try {
+      await apiFetch("/api/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      setChangePasswordSuccess(true);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+    } catch (err) {
+      setChangePasswordError(
+        err instanceof ApiError ? err.message : c.changePasswordError || "Could not change your password. Please try again."
+      );
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false);
+    setDeletePassword("");
+    setDeleteConfirmText("");
+    setDeleteError("");
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user?.id) return;
+
+    setDeleteError("");
+
+    if (!deletePassword) {
+      setDeleteError(c.deletePasswordRequired || "Please enter your current password.");
+      return;
+    }
+
+    if (deleteConfirmText !== "DELETE") {
+      setDeleteError(c.deleteConfirmTextMismatch || "Please type DELETE to confirm.");
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      await apiFetch(`/api/users/${user.id}`, {
+        method: "DELETE",
+        body: JSON.stringify({ currentPassword: deletePassword }),
+      });
+      logout();
+      navigate("/login");
+    } catch (err) {
+      setDeleteError(
+        err instanceof ApiError ? err.message : c.deleteError || "Could not delete your account. Please try again."
+      );
+      setIsDeleting(false);
+    }
+  };
+
   return (
+    <>
     <div
       dir={isRTL ? "rtl" : "ltr"}
       className={`w-full min-h-screen px-6 md:px-10 lg:px-14 py-8 text-white ${
@@ -523,8 +636,287 @@ function CompanyProfile() {
             </div>
           </div>
         </div>
+
+        <div className="mt-8 rounded-[28px] border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-xl">
+          <h3 className="mb-6 text-2xl font-bold">{c.accountSettings || "Account Settings"}</h3>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+              <div className={`mb-2 flex items-center gap-2 text-sm text-white/60 ${isRTL ? "flex-row-reverse" : ""}`}>
+                <Mail size={16} />
+                {c.accountEmail || "Email"}
+              </div>
+              <p className="break-all text-lg font-medium">{user?.email || ""}</p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+              <div className={`mb-2 flex items-center gap-2 text-sm text-white/60 ${isRTL ? "flex-row-reverse" : ""}`}>
+                <Lock size={16} />
+                {c.changePassword || "Change Password"}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setChangePasswordError("");
+                  setChangePasswordSuccess(false);
+                  setShowChangePasswordModal(true);
+                }}
+                className="rounded-xl border border-violet-400/30 bg-violet-500/10 px-4 py-2.5 text-sm font-semibold text-violet-200 transition hover:bg-violet-500/20"
+              >
+                {c.changePassword || "Change Password"}
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-6 border-t border-white/10 pt-6">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className={`inline-flex items-center gap-2 rounded-xl border border-rose-400/30 bg-rose-500/10 px-5 py-2.5 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/20 ${
+                isRTL ? "flex-row-reverse" : ""
+              }`}
+            >
+              <LogOut size={16} />
+              {t.common.logout}
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-8 rounded-[28px] border border-rose-500/30 bg-rose-500/[0.04] p-8 shadow-2xl backdrop-blur-xl">
+          <div className={`mb-4 flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+            <AlertTriangle size={22} className="text-rose-400" />
+            <h3 className="text-2xl font-bold text-rose-300">{c.dangerZone || "Danger Zone"}</h3>
+          </div>
+
+          <p className="mb-6 text-base leading-7 text-white/70">
+            {c.dangerZoneWarning ||
+              "Permanently delete your company account and all associated data. This action cannot be undone."}
+          </p>
+
+          <button
+            type="button"
+            onClick={() => {
+              setDeleteError("");
+              setDeletePassword("");
+              setDeleteConfirmText("");
+              setShowDeleteModal(true);
+            }}
+            className={`inline-flex items-center gap-2 rounded-xl border border-rose-500/50 bg-rose-500/10 px-5 py-2.5 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/20 ${
+              isRTL ? "flex-row-reverse" : ""
+            }`}
+          >
+            <Trash2 size={16} />
+            {c.deleteAccount || "Delete My Account"}
+          </button>
+        </div>
       </div>
     </div>
+
+    {showChangePasswordModal && (
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(1,4,19,0.72)] px-4 backdrop-blur-md"
+        onClick={() => !isChangingPassword && closeChangePasswordModal()}
+      >
+        <div
+          className="relative w-full max-w-[480px] rounded-[28px] border border-white/10 bg-[#181b4a] p-8 text-white shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {!isChangingPassword && (
+            <button
+              type="button"
+              onClick={closeChangePasswordModal}
+              className={`absolute top-5 text-white/50 transition hover:text-white ${
+                isRTL ? "left-5" : "right-5"
+              }`}
+            >
+              <X size={22} />
+            </button>
+          )}
+
+          <div className="mb-5 flex justify-center">
+            <div className="flex h-[70px] w-[70px] items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/30">
+              <Lock size={30} />
+            </div>
+          </div>
+
+          <h2 className="mb-2 text-center text-2xl font-bold">
+            {c.changePassword || "Change Password"}
+          </h2>
+
+          {changePasswordSuccess ? (
+            <>
+              <p className="mb-6 text-center text-white/70">
+                {c.changePasswordSuccess || "Your password has been updated."}
+              </p>
+              <button
+                type="button"
+                onClick={closeChangePasswordModal}
+                className="w-full rounded-xl bg-gradient-to-r from-violet-500 to-indigo-500 px-5 py-3 text-base font-bold text-white transition hover:opacity-90"
+              >
+                {t.common.close || "Close"}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="mb-6 text-center text-white/70">
+                {c.changePasswordSubtitle || "Enter your current password and choose a new one."}
+              </p>
+
+              <div className="mb-4 space-y-4">
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder={c.currentPassword || "Current Password"}
+                  className="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-white outline-none placeholder:text-white/40"
+                  disabled={isChangingPassword}
+                />
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder={c.newPassword || "New Password"}
+                  className="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-white outline-none placeholder:text-white/40"
+                  disabled={isChangingPassword}
+                />
+                <input
+                  type="password"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  placeholder={c.confirmNewPassword || "Confirm New Password"}
+                  className="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-white outline-none placeholder:text-white/40"
+                  disabled={isChangingPassword}
+                />
+              </div>
+
+              {changePasswordError && (
+                <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                  {changePasswordError}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4 max-[420px]:grid-cols-1">
+                <button
+                  type="button"
+                  onClick={closeChangePasswordModal}
+                  disabled={isChangingPassword}
+                  className="rounded-xl border border-white/15 bg-transparent px-5 py-3 text-base font-bold text-white transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {t.common.cancel || "Cancel"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleChangePassword}
+                  disabled={isChangingPassword}
+                  className="rounded-xl bg-gradient-to-r from-violet-500 to-indigo-500 px-5 py-3 text-base font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isChangingPassword
+                    ? c.changingPassword || "Changing..."
+                    : c.saveChanges || "Save Changes"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    )}
+
+    {showDeleteModal && (
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(1,4,19,0.72)] px-4 backdrop-blur-md"
+        onClick={() => !isDeleting && closeDeleteModal()}
+      >
+        <div
+          className="relative w-full max-w-[520px] rounded-[28px] border border-rose-500/30 bg-[#181b4a] p-8 text-white shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {!isDeleting && (
+            <button
+              type="button"
+              onClick={closeDeleteModal}
+              className={`absolute top-5 text-white/50 transition hover:text-white ${
+                isRTL ? "left-5" : "right-5"
+              }`}
+            >
+              <X size={22} />
+            </button>
+          )}
+
+          <div className="mb-5 flex justify-center">
+            <div className="flex h-[70px] w-[70px] items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 shadow-lg shadow-rose-500/30">
+              <Trash2 size={30} />
+            </div>
+          </div>
+
+          <h2 className="mb-3 text-center text-2xl font-bold text-rose-300">
+            {c.deleteConfirmTitle || "Delete your company account?"}
+          </h2>
+
+          <p className="mb-6 text-center text-sm leading-6 text-white/70">
+            {c.deleteConfirmExplanation ||
+              "This will permanently delete your company profile, every job you've posted, and every application submitted to those jobs. Candidate accounts and their other applications are not affected. This action cannot be undone."}
+          </p>
+
+          <div className="mb-4 space-y-4">
+            <div>
+              <label className="mb-2 block text-sm text-white/60">
+                {c.currentPassword || "Current Password"}
+              </label>
+              <input
+                type="password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                placeholder={c.currentPassword || "Current Password"}
+                className="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-white outline-none placeholder:text-white/40"
+                disabled={isDeleting}
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm text-white/60">
+                {c.deleteConfirmTypeLabel || "Type DELETE to confirm"}
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="DELETE"
+                className="w-full rounded-xl border border-rose-500/20 bg-white/10 px-4 py-3 text-white outline-none placeholder:text-white/30"
+                disabled={isDeleting}
+              />
+            </div>
+          </div>
+
+          {deleteError && (
+            <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+              {deleteError}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4 max-[420px]:grid-cols-1">
+            <button
+              type="button"
+              onClick={closeDeleteModal}
+              disabled={isDeleting}
+              className="rounded-xl border border-white/15 bg-transparent px-5 py-3 text-base font-bold text-white transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {t.common.cancel || "Cancel"}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDeleteAccount}
+              disabled={isDeleting || deleteConfirmText !== "DELETE" || !deletePassword}
+              className="rounded-xl bg-gradient-to-r from-rose-500 to-red-600 px-5 py-3 text-base font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {isDeleting ? c.deleting || "Deleting..." : c.permanentlyDeleteAccount || "Permanently Delete Account"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
