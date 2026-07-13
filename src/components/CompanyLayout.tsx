@@ -30,36 +30,40 @@ function CompanyLayout({ children }: CompanyLayoutProps) {
       <CompanySidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
 
       <div
-        className="min-h-screen transition-all duration-300 max-[980px]:ml-0 max-[980px]:mr-0"
+        className="min-h-screen transition-all duration-300 max-[980px]:!ml-0 max-[980px]:!mr-0"
         style={isRTL ? { marginRight: `${sidebarWidth}px` } : { marginLeft: `${sidebarWidth}px` }}
       >
         <header
-          className={`fixed top-0 z-40 flex h-[78px] items-center justify-between border-b border-white/10 bg-[rgba(10,14,50,0.88)] px-6 backdrop-blur-[14px] transition-all duration-300 max-[980px]:left-0 max-[980px]:right-0 ${isRTL ? "left-0" : "right-0"}`}
+          className={`fixed top-0 z-40 flex h-[78px] items-center justify-between border-b border-white/10 bg-[rgba(10,14,50,0.88)] px-6 backdrop-blur-[14px] transition-all duration-300 max-[980px]:!left-0 max-[980px]:!right-0 ${isRTL ? "left-0" : "right-0"}`}
           style={isRTL ? { right: `${sidebarWidth}px` } : { left: `${sidebarWidth}px` }}
         >
-          <div className={`flex items-center gap-4`}>
+          <div className={`flex min-w-0 items-center gap-4`}>
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="flex h-[42px] w-[42px] items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-[#cfd3f6] transition hover:bg-white/[0.08] hover:text-white"
+              className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-[#cfd3f6] transition hover:bg-white/[0.08] hover:text-white"
             >
               <ArrowLeft size={20} className={isRTL ? "rotate-180" : ""} />
             </button>
-            <div className={`flex h-[46px] w-[430px] max-w-full items-center gap-3 rounded-[16px] border border-white/10 bg-white/[0.04] px-4 text-[#8d94bd] transition focus-within:border-[#7f4cff] focus-within:bg-white/[0.06]`}>
-              <Search size={18} />
+            {/* Hidden below max-[980px] (same breakpoint the sidebar itself already collapses
+                at) - see CandidateLayout.tsx's identical fix: a fixed w-[430px] with no
+                shrinking ancestor was pushing the notification bell/avatar cluster far past the
+                right edge of the screen on mobile. */}
+            <div className="flex h-[46px] w-[430px] max-w-full min-w-0 items-center gap-3 rounded-[16px] border border-white/10 bg-white/[0.04] px-4 text-[#8d94bd] transition focus-within:border-[#7f4cff] focus-within:bg-white/[0.06] max-[980px]:hidden">
+              <Search size={18} className="shrink-0" />
               <input
                 type="text"
                 placeholder={t?.companySidebar?.searchPlaceholder || "Search candidates..."}
-                className={`w-full bg-transparent text-[15px] text-white outline-none placeholder:text-[#8d94bd] ${isRTL ? "text-right" : "text-left"}`}
+                className={`w-full min-w-0 bg-transparent text-[15px] text-white outline-none placeholder:text-[#8d94bd] ${isRTL ? "text-right" : "text-left"}`}
               />
             </div>
           </div>
 
-          <div className={`flex items-center gap-4`}>
+          <div className={`flex shrink-0 items-center gap-4`}>
             <button
               type="button"
               onClick={() => navigate("/company-notifications")}
-              className="relative flex h-[44px] w-[44px] items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-[#e2e6ff] transition hover:bg-white/[0.08] hover:text-white"
+              className="relative flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-[#e2e6ff] transition hover:bg-white/[0.08] hover:text-white"
             >
               <Bell size={20} />
               {unreadCount > 0 && (
@@ -68,9 +72,9 @@ function CompanyLayout({ children }: CompanyLayoutProps) {
                 </span>
               )}
             </button>
-            <div className="h-9 w-px bg-white/10" />
-            <div className={`flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2`}>
-              <div className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-[16px] font-bold text-white shadow-[0_8px_18px_rgba(127,76,255,0.35)]">
+            <div className="h-9 w-px shrink-0 bg-white/10 max-[560px]:hidden" />
+            <div className={`flex shrink-0 items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 max-[560px]:hidden`}>
+              <div className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-[16px] font-bold text-white shadow-[0_8px_18px_rgba(127,76,255,0.35)]">
                 {companyName.charAt(0).toUpperCase()}
               </div>
               <div className={isRTL ? "text-right" : "text-left"}>

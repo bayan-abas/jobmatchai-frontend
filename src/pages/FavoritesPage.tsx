@@ -63,17 +63,20 @@ function FavoritesPage() {
       <div className="mx-auto w-full max-w-[1080px]">
         <section className="mb-8">
           <div className="mb-6 flex items-start gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
               <Bookmark size={26} />
             </div>
-            <div className={isRTL ? "text-right" : "text-left"}>
+            <div className={`min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
               <h1 className="text-[42px] font-extrabold leading-tight text-white">{f.title}</h1>
               <p className="mt-2 text-[17px] text-[#aeb4d6]">{f.subtitle}</p>
             </div>
           </div>
         </section>
 
-        <section className="grid gap-5">
+        {/* grid-cols-1 (not bare "grid") - see ExternalJobsPage.tsx's identical fix: a bare
+            grid's single implicit column sizes to its widest child's content, letting a wide
+            job card overflow past this section at any viewport. */}
+        <section className="grid grid-cols-1 gap-5">
           {loading && (
             <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-6 py-12 text-center text-white/65">
               {f.loading}

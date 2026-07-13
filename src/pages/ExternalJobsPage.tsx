@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Globe2, Search, DollarSign, SlidersHorizontal } from "lucide-react";
+import { Globe2, Search, DollarSign, SlidersHorizontal, Loader2 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import ExternalJobCard, { type ExternalJobData, type MatchInfo } from "../components/ExternalJobCard";
 import { inferIndustry, extractSalaryNumber, INDUSTRY_KEYS } from "../utils/jobInference";
-import { apiFetch } from "../utils/api";
+import { apiFetch, apiFetchStream } from "../utils/api";
 import { ISRAELI_CITIES } from "../utils/israeliCities";
 import { ISRAELI_REGIONS, getRegionForLocation, type IsraeliRegion } from "../utils/israeliRegions";
 
@@ -74,45 +74,61 @@ function ExternalJobsPage() {
     }
 
     const externalJobIds = jobs.map((job) => job.id);
-    let cancelled = false;
+    const controller = new AbortController();
+
+    // Fresh job list / language change -> start clean instead of carrying over stale entries
+    // from a previous stream (e.g. a job that's no longer in the current filtered set).
+    setHasAnalysis(null);
+    setMatchScores(new Map());
     setMatchScoresLoading(true);
 
-    apiFetch(`/api/external-jobs/match-scores`, {
-      method: "POST",
-      body: JSON.stringify({ email: identity.email, externalJobIds, language }),
-    })
-      .then((data: {
-        hasAnalysis: boolean;
-        matches: { jobId: number; matchPercent: number | null; matchReason?: string; fieldRelated?: boolean | null }[];
-      }) => {
-        if (cancelled) return;
-        setHasAnalysis(Boolean(data.hasAnalysis));
-
-        const nextScores = new Map<number, MatchScoreEntry>();
-        (data.matches || []).forEach((match) => {
-          nextScores.set(match.jobId, {
-            matchPercent: match.matchPercent,
-            matchReason: match.matchReason || "",
-            // A missing key (older API responses) defaults to true; an explicit null is the
-            // backend's "couldn't compute this" sentinel and must stay null, not collapse to true.
-            fieldRelated: match.fieldRelated === undefined ? true : match.fieldRelated,
-          });
-        });
-        setMatchScores(nextScores);
-      })
-      .catch((error) => {
-        console.error(error);
-        if (!cancelled) {
+    apiFetchStream(
+      "/api/external-jobs/match-scores/stream",
+      { method: "POST", body: JSON.stringify({ email: identity.email, externalJobIds, language }) },
+      (evt) => {
+        if (evt.event === "no-analysis") {
           setHasAnalysis(false);
-          setMatchScores(new Map());
+          setMatchScoresLoading(false);
+          return;
         }
-      })
-      .finally(() => {
-        if (!cancelled) setMatchScoresLoading(false);
-      });
+
+        if (evt.event === "score") {
+          const match = evt.data as {
+            jobId: number;
+            matchPercent: number | null;
+            matchReason?: string;
+            fieldRelated?: boolean | null;
+          };
+          setHasAnalysis(true);
+          // Per-card progressive update: each "score" event updates just that one job's entry,
+          // so a job that's already resolved shows its real percentage immediately instead of
+          // waiting for every other job in the batch to finish too.
+          setMatchScores((prev) => {
+            const next = new Map(prev);
+            next.set(match.jobId, {
+              matchPercent: match.matchPercent,
+              matchReason: match.matchReason || "",
+              fieldRelated: match.fieldRelated === undefined ? true : match.fieldRelated,
+            });
+            return next;
+          });
+          return;
+        }
+
+        if (evt.event === "done") {
+          setMatchScoresLoading(false);
+        }
+      },
+      controller.signal
+    ).catch((error) => {
+      if (controller.signal.aborted) return;
+      console.error(error);
+      setHasAnalysis(false);
+      setMatchScoresLoading(false);
+    });
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [jobs, language]);
 
@@ -199,11 +215,19 @@ function ExternalJobsPage() {
 
   const getMatchInfo = (job: ExternalJobData): MatchInfo => {
     if (!isLoggedIn) return { status: "loggedOut", percent: 0 };
-    if (matchScoresLoading || hasAnalysis === null) return { status: "loading", percent: 0 };
+    if (hasAnalysis === null) return { status: "loading", percent: 0 };
     if (!hasAnalysis) return { status: "noAnalysis", percent: 0 };
 
+    // Checked before matchScoresLoading (unlike the old all-or-nothing version) - this job's
+    // own entry may already have arrived over the stream even while other jobs in the batch
+    // are still being scored, and it should show its real result immediately rather than
+    // waiting for the whole batch.
     const entry = matchScores.get(job.id);
-    if (!entry) return { status: "noAnalysis", percent: 0 };
+    if (!entry) {
+      return matchScoresLoading
+        ? { status: "loading", percent: 0 }
+        : { status: "error", percent: 0, reason: p.matchScoreUnavailable || "Couldn't compute a match for this job. Please refresh." };
+    }
 
     if (entry.fieldRelated === null) {
       return { status: "error", percent: 0, reason: entry.matchReason };
@@ -279,10 +303,10 @@ function ExternalJobsPage() {
       <div className="mx-auto w-full max-w-[1080px]">
         <section className="mb-8">
           <div className="mb-6 flex items-start gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
               <Globe2 size={26} />
             </div>
-            <div className={isRTL ? "text-right" : "text-left"}>
+            <div className={`min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
               <h1 className="text-[42px] font-extrabold leading-tight text-white">{p.title}</h1>
               <p className="mt-2 text-[17px] text-[#aeb4d6]">{p.subtitle}</p>
             </div>
@@ -302,7 +326,10 @@ function ExternalJobsPage() {
               <h3 className="text-[18px] font-extrabold text-white">{t.jobMatches.smartFilters}</h3>
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-3">
+            {/* grid-cols-1 below (not bare "grid") - same overflow bug as the job-card list
+                further down this page: the implicit single column otherwise sizes to its
+                widest child's content instead of the container's width. */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div
                 className={`flex items-center gap-3 rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 lg:col-span-3 ${
                   isRTL ? "flex-row-reverse" : ""
@@ -403,10 +430,29 @@ function ExternalJobsPage() {
           </div>
         </section>
 
-        <section className="grid gap-5">
+        {/* grid-cols-1 (not bare "grid") is load-bearing here, not cosmetic - a bare grid's
+            single implicit column sizes to its widest child's own content width instead of the
+            container's width, so a job card with enough fixed-width content (e.g. the actions
+            column) can overflow past this section's actual boundary at ANY viewport size,
+            including desktop. minmax(0,1fr) via grid-cols-1 is what makes children actually
+            shrink to fit instead. Found live: articles were rendering ~150-750px wider than
+            their grid parent at every tested viewport (375/768/1440px). */}
+        <section className="grid grid-cols-1 gap-5">
           {loading && (
             <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-6 py-12 text-center text-white/65">
               {p.loading}
+            </div>
+          )}
+
+          {/* Job cards render immediately once the list loads (each one starts as its own
+              "Calculating match..." ring - see ExternalJobCard) - this banner is purely an
+              extra reassurance that the AI matching pass itself is genuinely still working,
+              since scoring dozens of jobs can take a while even though results stream in
+              progressively rather than all at once. */}
+          {!loading && isLoggedIn && matchScoresLoading && (
+            <div className="flex items-center gap-3 rounded-[20px] border border-cyan-400/20 bg-cyan-400/[0.06] px-5 py-4 text-[14px] text-cyan-100">
+              <Loader2 size={18} className="shrink-0 animate-spin text-cyan-300" />
+              <span>{p.aiAnalysisInProgress}</span>
             </div>
           )}
 

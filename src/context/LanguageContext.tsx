@@ -16,8 +16,18 @@ function applyDirection(lang: Language) {
   document.documentElement.lang = lang;
 }
 
-// Set direction from saved preference before any component renders
-const _initialLang = (localStorage.getItem("jobmatch_language") as Language | null) || "en";
+const VALID_LANGUAGES: Language[] = ["en", "ar", "he"];
+
+// Set direction from saved preference before any component renders. Validated against the real
+// union (not just cast) - a corrupted/stale/tampered localStorage value would otherwise become
+// the app's `language`, and every page that does `translations[language]` with no `|| translations.en`
+// fallback would crash with "Cannot read properties of undefined" on first render.
+function readStoredLanguage(): Language {
+  const stored = localStorage.getItem("jobmatch_language");
+  return (VALID_LANGUAGES as string[]).includes(stored ?? "") ? (stored as Language) : "en";
+}
+
+const _initialLang = readStoredLanguage();
 applyDirection(_initialLang);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {

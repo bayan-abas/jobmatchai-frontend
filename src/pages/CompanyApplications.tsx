@@ -5,6 +5,8 @@ import { translations } from "../translations";
 import { apiFetch, ApiError } from "../utils/api";
 import { getMatchTier, getMatchLabel, getRecommendation } from "../utils/matchScore";
 import CandidateAiSummaryModal from "../components/CandidateAiSummaryModal";
+import AcceptApplicationModal, { type ContactMethod } from "../components/AcceptApplicationModal";
+import RejectApplicationModal from "../components/RejectApplicationModal";
 import {
   ArrowLeft,
   FileText,
@@ -47,6 +49,10 @@ type ApplicationItem = {
   status: string;
   viewedByCompany: boolean;
   preInterviewAnswers: Record<string, string>;
+  contactMethod: string | null;
+  contactMethodOther: string | null;
+  contactMessage: string | null;
+  rejectionReason: string | null;
 };
 
 type BackendApplicant = {
@@ -60,7 +66,11 @@ type BackendApplicant = {
   matchPercent: number | null;
   matchLabel: string | null;
   viewedByCompany?: boolean;
+  rejectionReason?: string | null;
   preInterviewAnswers?: Record<string, string>;
+  contactMethod?: string | null;
+  contactMethodOther?: string | null;
+  contactMessage?: string | null;
 };
 
 function deriveFit(match: number | null): FitLevel | null {
@@ -103,6 +113,28 @@ function deriveStep(stage: ApplicationStage): number {
   return 1;
 }
 
+// Reuses acceptApplicationModal's translations - same fixed vocabulary the company just chose
+// from in AcceptApplicationModal, echoed back here so they can confirm what was sent.
+function contactMethodLabel(t: any, method: string | null, other: string | null): string {
+  const m = t.acceptApplicationModal || {};
+  switch (method) {
+    case "phone_call":
+      return m.phoneCall || "Phone call";
+    case "email":
+      return m.email || "Email";
+    case "whatsapp":
+      return m.whatsapp || "WhatsApp";
+    case "linkedin":
+      return m.linkedin || "LinkedIn";
+    case "in_person_meeting":
+      return m.inPersonMeeting || "In-person meeting";
+    case "other":
+      return other || m.other || "Other";
+    default:
+      return "";
+  }
+}
+
 function mapApplicant(item: BackendApplicant): ApplicationItem {
   const match = typeof item.matchPercent === "number" ? item.matchPercent : null;
   const stage = deriveStage(item.status);
@@ -121,6 +153,10 @@ function mapApplicant(item: BackendApplicant): ApplicationItem {
     status: item.status || "Under Review",
     viewedByCompany: Boolean(item.viewedByCompany),
     preInterviewAnswers: item.preInterviewAnswers || {},
+    contactMethod: item.contactMethod ?? null,
+    contactMethodOther: item.contactMethodOther ?? null,
+    contactMessage: item.contactMessage ?? null,
+    rejectionReason: item.rejectionReason ?? null,
   };
 }
 
@@ -148,6 +184,15 @@ function CompanyApplications() {
 
   const [showContactModal, setShowContactModal] = useState(false);
   const [messageText, setMessageText] = useState("");
+
+  // The application being accepted - opens AcceptApplicationModal to collect the required
+  // contact method (and optional message) BEFORE the status actually changes, instead of
+  // accepting immediately and leaving those fields empty.
+  const [acceptTarget, setAcceptTarget] = useState<ApplicationItem | null>(null);
+
+  // Same pattern for rejection - a rejection reason is mandatory, company-written feedback,
+  // so RejectApplicationModal collects it before the status actually changes.
+  const [rejectTarget, setRejectTarget] = useState<ApplicationItem | null>(null);
 
   const [showInterviewModal, setShowInterviewModal] = useState(false);
   const [interviewDate, setInterviewDate] = useState("");
@@ -249,35 +294,79 @@ function CompanyApplications() {
     return page.tabs?.[stage] || stage;
   };
 
-  const applyStatusUpdate = async (id: number, status: "Accepted" | "Rejected") => {
-    try {
-      const data = await apiFetch(`/api/applications/${id}/status`, {
-        method: "PUT",
-        body: JSON.stringify({ status }),
-      });
+  const applyStatusUpdate = async (
+    id: number,
+    status: "Accepted" | "Rejected",
+    extra?:
+      | { contactMethod: ContactMethod; contactMethodOther: string; contactMessage: string }
+      | { rejectionReason: string }
+  ) => {
+    const contact = extra && "contactMethod" in extra ? extra : undefined;
+    const rejection = extra && "rejectionReason" in extra ? extra : undefined;
 
-      if (!data.success) return;
+    const data = await apiFetch(`/api/applications/${id}/status`, {
+      method: "PUT",
+      body: JSON.stringify({
+        status,
+        contactMethod: contact?.contactMethod,
+        contactMethodOther: contact?.contactMethodOther,
+        contactMessage: contact?.contactMessage,
+        rejectionReason: rejection?.rejectionReason,
+      }),
+    });
 
-      const patch = { status, stage: "Decided" as ApplicationStage, currentStep: 5 };
-
-      setApplications((prev) =>
-        prev.map((app) => (app.id === id ? { ...app, ...patch } : app))
-      );
-
-      setSelectedApplication((prev) =>
-        prev && prev.id === id ? { ...prev, ...patch } : prev
-      );
-    } catch {
-      // Leave state untouched on failure so the UI reflects the real backend state.
+    if (!data.success) {
+      throw new Error(data.message || "Could not update application status.");
     }
+
+    const patch = {
+      status,
+      stage: "Decided" as ApplicationStage,
+      currentStep: 5,
+      contactMethod: contact?.contactMethod ?? null,
+      contactMethodOther: contact?.contactMethod === "other" ? contact.contactMethodOther : null,
+      contactMessage: contact?.contactMessage || null,
+      rejectionReason: rejection?.rejectionReason ?? null,
+    };
+
+    setApplications((prev) =>
+      prev.map((app) => (app.id === id ? { ...app, ...patch } : app))
+    );
+
+    setSelectedApplication((prev) =>
+      prev && prev.id === id ? { ...prev, ...patch } : prev
+    );
   };
 
+  // Opens AcceptApplicationModal instead of accepting immediately - contact method is required
+  // for an acceptance, so the status change itself is deferred until the modal collects it.
   const handleAccept = (id: number) => {
-    applyStatusUpdate(id, "Accepted");
+    const app = applications.find((item) => item.id === id) ?? null;
+    setAcceptTarget(app);
   };
 
+  const handleConfirmAccept = async (
+    contactMethod: ContactMethod,
+    contactMethodOther: string,
+    contactMessage: string
+  ) => {
+    if (!acceptTarget) return;
+    await applyStatusUpdate(acceptTarget.id, "Accepted", { contactMethod, contactMethodOther, contactMessage });
+    setAcceptTarget(null);
+  };
+
+  // Opens RejectApplicationModal instead of rejecting immediately - a rejection reason is
+  // mandatory, company-written feedback, so the status change itself is deferred until the
+  // modal collects it.
   const handleReject = (id: number) => {
-    applyStatusUpdate(id, "Rejected");
+    const app = applications.find((item) => item.id === id) ?? null;
+    setRejectTarget(app);
+  };
+
+  const handleConfirmReject = async (rejectionReason: string) => {
+    if (!rejectTarget) return;
+    await applyStatusUpdate(rejectTarget.id, "Rejected", { rejectionReason });
+    setRejectTarget(null);
   };
 
   const applyAiMatchScore = (id: number, matchScore: number, matchLabel: string) => {
@@ -349,11 +438,11 @@ function CompanyApplications() {
             </button>
 
             <div className="mb-8 flex items-start gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500/15 text-orange-300 shadow-[0_10px_30px_rgba(249,115,22,0.15)]">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-500/15 text-orange-300 shadow-[0_10px_30px_rgba(249,115,22,0.15)]">
                 <FileText size={28} />
               </div>
 
-              <div className={isRTL ? "text-right" : "text-left"}>
+              <div className={`min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
                 <h1 className="text-4xl font-extrabold tracking-tight text-white">
                   {page.title || "Applications"}
                 </h1>
@@ -467,7 +556,7 @@ function CompanyApplications() {
                           </span>
                         </div>
 
-                        <p className="text-[18px] text-white/70">{app.email}</p>
+                        <p className="break-all text-[18px] text-white/70">{app.email}</p>
 
                         <p className="mt-2 text-sm text-white/45">
                           {page.appliedFor || "Applied for"} {app.jobTitle} •{" "}
@@ -780,6 +869,34 @@ function CompanyApplications() {
                     </div>
                   </div>
                 )}
+
+                {selectedApplication.status === "Accepted" && selectedApplication.contactMethod && (
+                  <div className="rounded-[28px] border border-emerald-400/20 bg-emerald-500/[0.06] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
+                    <h2 className="mb-4 text-[20px] font-extrabold">
+                      {page.contactInfoTitle || "Contact info sent to candidate"}
+                    </h2>
+                    <p className="text-[15px] leading-6 text-white/70">
+                      <span className="font-semibold text-white">{page.contactMethodLabel || "Contact method"}: </span>
+                      {contactMethodLabel(t, selectedApplication.contactMethod, selectedApplication.contactMethodOther)}
+                    </p>
+                    {selectedApplication.contactMessage && (
+                      <p className="mt-3 whitespace-pre-line text-[15px] leading-6 text-white/70">
+                        {selectedApplication.contactMessage}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {selectedApplication.status === "Rejected" && selectedApplication.rejectionReason && (
+                  <div className="rounded-[28px] border border-rose-400/20 bg-rose-500/[0.06] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
+                    <h2 className="mb-4 text-[20px] font-extrabold">
+                      {page.rejectionReasonTitle || "Reason for rejection sent to candidate"}
+                    </h2>
+                    <p className="whitespace-pre-line text-[15px] leading-6 text-white/70">
+                      {selectedApplication.rejectionReason}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -993,6 +1110,32 @@ function CompanyApplications() {
             onScoreReady={(matchScore, matchLabel) => applyAiMatchScore(aiSummaryApplication.id, matchScore, matchLabel)}
           />
         )}
+
+        {/* Rendered as a sibling of the list/detail ternary above (like aiSummaryApplication's
+            modal just above), not nested inside the detail-view branch - handleAccept/handleReject
+            are called from the LIST view's per-row buttons, so a modal that only existed inside
+            the detail branch never rendered no matter what the user clicked. */}
+        {acceptTarget && (
+          <AcceptApplicationModal
+            candidateName={acceptTarget.name}
+            jobTitle={acceptTarget.jobTitle}
+            t={t}
+            isRTL={isRTL}
+            onConfirm={handleConfirmAccept}
+            onCancel={() => setAcceptTarget(null)}
+          />
+        )}
+
+        {rejectTarget && (
+          <RejectApplicationModal
+            candidateName={rejectTarget.name}
+            jobTitle={rejectTarget.jobTitle}
+            t={t}
+            isRTL={isRTL}
+            onConfirm={handleConfirmReject}
+            onCancel={() => setRejectTarget(null)}
+          />
+        )}
       </div>
     </div>
   );
@@ -1071,16 +1214,16 @@ function ApplicationSteps({
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-w-0 items-center gap-2 overflow-x-auto">
       {steps.map((step, index) => {
         const stepNumber = index + 1;
         const Icon = step.icon;
         const active = stepNumber <= currentStep;
 
         return (
-          <div key={step.label} className="flex items-center gap-2">
+          <div key={step.label} className="flex shrink-0 items-center gap-2">
             <div
-              className={`flex h-11 w-11 items-center justify-center rounded-full border ${
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border ${
                 active
                   ? stepNumber === currentStep
                     ? "border-[#7d86ff] bg-[#5964ff]/15 text-[#8f98ff]"

@@ -12,14 +12,16 @@ import {
   Eye,
   Star,
   CheckCircle2,
+  XCircle,
   Clock3,
+  Phone,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { apiFetch, ApiError } from "../utils/api";
 
-type FilterType = "all" | "active" | "completed";
+type FilterType = "all" | "active" | "accepted";
 type ProgressStep = "applied" | "ai" | "review" | "shortlisted" | "final";
 
 type BackendApplication = {
@@ -37,6 +39,10 @@ type BackendApplication = {
   interviewScore?: number | string;
   score?: number | string;
   viewedByCompany?: boolean;
+  contactMethod?: string | null;
+  contactMethodOther?: string | null;
+  contactMessage?: string | null;
+  rejectionReason?: string | null;
 };
 
 type ApplicationItem = {
@@ -49,7 +55,7 @@ type ApplicationItem = {
   score?: string;
   pending?: string;
   progress: number;
-  status: "active" | "completed";
+  status: "active" | "accepted" | "rejected";
   reviewStatus: string;
   about: string;
   requirements: string[];
@@ -59,7 +65,39 @@ type ApplicationItem = {
   preInterviewText?: string;
   currentStep: ProgressStep;
   viewedByCompany: boolean;
+  // How the company will reach out, set only once the application is accepted - see
+  // ApplicationController#updateStatus on the backend. contactMethodOther holds the company's
+  // own text when contactMethod is "other"; contactMessage is their optional note (e.g. date of
+  // contact, next steps, interview/onboarding instructions).
+  contactMethod: string | null;
+  contactMethodOther: string | null;
+  contactMessage: string | null;
+  // Mandatory, company-written feedback set only when the application is rejected - preserved
+  // exactly as written, never AI-generated or a generic message. See
+  // ApplicationController#updateStatus on the backend.
+  rejectionReason: string | null;
 };
+
+// Mirrors ApplicationController.CONTACT_METHOD_LABELS on the backend - keep in sync.
+function getContactMethodLabel(t: any, contactMethod: string | null, contactMethodOther: string | null): string {
+  const c = t.applicationsPage;
+  switch (contactMethod) {
+    case "phone_call":
+      return c.contactMethodPhoneCall || "Phone call";
+    case "email":
+      return c.contactMethodEmail || "Email";
+    case "whatsapp":
+      return c.contactMethodWhatsapp || "WhatsApp";
+    case "linkedin":
+      return c.contactMethodLinkedin || "LinkedIn";
+    case "in_person_meeting":
+      return c.contactMethodInPerson || "In-person meeting";
+    case "other":
+      return contactMethodOther || c.contactMethodOther || "Other";
+    default:
+      return "";
+  }
+}
 
 function toPercent(value: unknown, fallback = "80%") {
   if (value === null || value === undefined || value === "") return fallback;
@@ -132,6 +170,12 @@ function getCurrentStepFromStatus(status: string): ProgressStep {
 function mapBackendApplication(app: BackendApplication): ApplicationItem {
   const reviewStatus = normalizeStatus(app.status);
   const scoreValue = app.interviewScore ?? app.score;
+  // A terminal outcome (rejected or a final accept decision) means the workflow has stopped -
+  // no future stage, including "Pre-interview pending", is still outstanding, regardless of
+  // whether a score happens to be missing. Without this, every application with no score
+  // (which is all of them today - the backend has no interviewScore/score field yet) showed
+  // "Pre-interview pending" even after being rejected.
+  const isTerminal = reviewStatus === "Rejected" || reviewStatus === "Final Decision";
 
   return {
     id: app.id ?? app.jobId ?? Math.floor(Math.random() * 100000),
@@ -141,11 +185,19 @@ function mapBackendApplication(app: BackendApplication): ApplicationItem {
     location: app.location ?? "Not specified",
     date: app.appliedDate ?? app.date ?? "Not specified",
     score: scoreValue !== undefined && scoreValue !== null ? toPercent(scoreValue) : undefined,
-    pending: scoreValue === undefined || scoreValue === null ? "Pre-interview pending" : undefined,
+    pending:
+      !isTerminal && (scoreValue === undefined || scoreValue === null)
+        ? "Pre-interview pending"
+        : undefined,
     progress: getProgressFromStatus(reviewStatus),
-    status: reviewStatus === "Final Decision" || reviewStatus === "Rejected" ? "completed" : "active",
+    status:
+      reviewStatus === "Rejected" ? "rejected" : reviewStatus === "Final Decision" ? "accepted" : "active",
     reviewStatus,
     viewedByCompany: Boolean(app.viewedByCompany),
+    contactMethod: app.contactMethod ?? null,
+    contactMethodOther: app.contactMethodOther ?? null,
+    contactMessage: app.contactMessage ?? null,
+    rejectionReason: app.rejectionReason ?? null,
     about: "Application details are loaded from the backend. More job information can be connected later from the jobs table.",
     requirements: [],
     skills: [],
@@ -154,7 +206,9 @@ function mapBackendApplication(app: BackendApplication): ApplicationItem {
     preInterviewText:
       scoreValue !== undefined && scoreValue !== null
         ? "Pre-interview score is available for this application."
-        : "Pre-interview has not been completed yet. Assessment will appear here once available.",
+        : isTerminal
+          ? undefined
+          : "Pre-interview has not been completed yet. Assessment will appear here once available.",
     currentStep: getCurrentStepFromStatus(reviewStatus),
   };
 }
@@ -227,11 +281,18 @@ function Applications() {
 
         setCandidateEmail(email);
 
-        const url = email
-          ? `/api/applications/candidate/${encodeURIComponent(email)}`
-          : `/api/applications/all`;
+        // No "/all" fallback when email isn't known yet - the backend endpoint that used to
+        // back that fallback returned every candidate's applications system-wide with no
+        // per-user filtering, and there's nothing useful to show this candidate without their
+        // own email anyway.
+        if (!email) {
+          setApplications([]);
+          return;
+        }
 
-        const data: BackendApplication[] = await apiFetch(url);
+        const data: BackendApplication[] = await apiFetch(
+          `/api/applications/candidate/${encodeURIComponent(email)}`
+        );
         setApplications(data.map(mapBackendApplication));
       } catch (err) {
         console.error(err);
@@ -436,28 +497,46 @@ function Applications() {
     }
   };
 
+  // The final stage's label/icon must reflect the ACTUAL outcome - both "Final Decision"
+  // (accepted) and "Rejected" share the same step index/progress value (see
+  // getCurrentStepFromStatus/getProgressFromStatus), so without this the timeline's last step
+  // showed "Accepted" with a checkmark even for a rejected application.
+  const isSelectedRejected = selectedApplication?.reviewStatus === "Rejected";
+
   const steps = [
     { key: "applied", label: t.applicationsPage.applied || "Applied", icon: Send },
     { key: "ai", label: t.applicationsPage.aiScreening, icon: Brain },
     { key: "review", label: t.applicationsPage.underReview, icon: Eye },
     { key: "shortlisted", label: t.applicationsPage.shortlisted, icon: Star },
-    { key: "final", label: t.applicationsPage.accepted || "Final Decision", icon: CheckCircle2 },
+    {
+      key: "final",
+      label: isSelectedRejected
+        ? t.applicationsPage.rejected || "Rejected"
+        : t.applicationsPage.accepted || "Final Decision",
+      icon: isSelectedRejected ? XCircle : CheckCircle2,
+    },
   ] as const;
 
   const getCurrentStepIndex = (step: ProgressStep) =>
     steps.findIndex((item) => item.key === step);
 
-  const renderStep = (index: number, progress: number) => {
+  const renderStep = (index: number, progress: number, rejected: boolean) => {
     const done = index < progress;
     const current = index === progress;
+    // The last dot represents the terminal outcome, not just "another completed stage" -
+    // showing it as a checkmark for a rejected application would contradict the status badge
+    // shown right next to it.
+    const isRejectedFinalDot = current && index === 5 && rejected;
     const icons = ["✈", "✦", "◉", "☆", "✓"];
-    const icon = icons[index - 1];
+    const icon = isRejectedFinalDot ? "✕" : icons[index - 1];
 
     return (
       <div key={index} className="flex items-center">
         <div
           className={`flex h-[42px] w-[42px] items-center justify-center rounded-full border text-[15px] transition ${
-            done
+            isRejectedFinalDot
+              ? "border-rose-400 bg-rose-500/20 text-rose-300 shadow-[0_0_20px_rgba(244,63,94,0.25)]"
+              : done
               ? "border-cyan-400/30 bg-cyan-400/15 text-cyan-300"
               : current
               ? "border-indigo-400 bg-indigo-500/20 text-indigo-300 shadow-[0_0_20px_rgba(99,102,241,0.25)]"
@@ -498,11 +577,11 @@ function Applications() {
               </div>
 
               <div className={`mb-6 flex items-start gap-4 ${isRTL ? "text-right" : ""}`}>
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#22d3ee] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#22d3ee] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
                   <FileText size={26} />
                 </div>
 
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   <h1 className="text-[42px] font-extrabold leading-tight text-white">
                     {t.applicationsPage.title}
                   </h1>
@@ -524,7 +603,7 @@ function Applications() {
                   </div>
 
                   <div
-                    className={`inline-flex w-fit rounded-[20px] border border-white/10 bg-[#141845] p-1.5 ${
+                    className={`inline-flex w-fit flex-wrap rounded-[20px] border border-white/10 bg-[#141845] p-1.5 ${
                       isRTL ? "self-end lg:self-auto" : ""
                     }`}
                   >
@@ -534,7 +613,7 @@ function Applications() {
                     <button onClick={() => setFilter("active")} className={filterButtonClass("active")}>
                       {t.common.active}
                     </button>
-                    <button onClick={() => setFilter("completed")} className={filterButtonClass("completed")}>
+                    <button onClick={() => setFilter("accepted")} className={filterButtonClass("accepted")}>
                       {t.applicationsPage.accepted}
                     </button>
                   </div>
@@ -544,7 +623,9 @@ function Applications() {
 
             {loading && (
               <div className="rounded-[30px] border border-white/10 bg-white/[0.05] px-8 py-12 text-center">
-                <h3 className="text-[24px] font-bold text-white">Loading applications...</h3>
+                <h3 className="text-[24px] font-bold text-white">
+                  {t.applicationsPage.loadingApplications || "Loading applications..."}
+                </h3>
               </div>
             )}
 
@@ -625,10 +706,32 @@ function Applications() {
                               {t.applicationsPage.appliedOn} {app.date}
                             </span>
                           </div>
+
+                          {app.status === "accepted" && app.contactMethod && (
+                            <div className="flex items-center gap-2 text-emerald-300">
+                              <Phone size={16} />
+                              <span>
+                                {t.applicationsPage.contactMethodLabel}:{" "}
+                                {getContactMethodLabel(t, app.contactMethod, app.contactMethodOther)}
+                              </span>
+                            </div>
+                          )}
                         </div>
 
+                        {app.status === "rejected" && app.rejectionReason && (
+                          <div className="mb-4 flex items-start gap-2 text-[#e6a3b3]">
+                            <XCircle size={16} className="mt-0.5 shrink-0" />
+                            <span className="line-clamp-2">
+                              <span className="font-semibold">{t.applicationsPage.rejectionReasonTitle}: </span>
+                              {app.rejectionReason}
+                            </span>
+                          </div>
+                        )}
+
                         <div className="flex flex-wrap items-center gap-2">
-                          {[1, 2, 3, 4, 5].map((step) => renderStep(step, app.progress))}
+                          {[1, 2, 3, 4, 5].map((step) =>
+                            renderStep(step, app.progress, app.status === "rejected")
+                          )}
                         </div>
                       </div>
 
@@ -768,7 +871,7 @@ function Applications() {
                           <span>
                             {selectedApplication.status === "active"
                               ? t.common.active
-                              : t.applicationsPage.accepted}
+                              : getReviewStatusLabel(selectedApplication.reviewStatus)}
                           </span>
                         </div>
                       </div>
@@ -834,6 +937,11 @@ function Applications() {
                   const currentIndex = getCurrentStepIndex(selectedApplication.currentStep);
                   const isDone = index < currentIndex;
                   const isCurrent = index === currentIndex;
+                  // The final step is the terminal outcome, not just "another completed stage" -
+                  // giving it the same badge color as the Rejected badge (rose) when rejected is
+                  // what keeps the badge, timeline, and stage label all representing the same
+                  // state instead of a rejected application ending on a green checkmark.
+                  const isRejectedFinalStep = isCurrent && step.key === "final" && isSelectedRejected;
 
                   return (
                     <div
@@ -843,7 +951,9 @@ function Applications() {
                       <div className="mb-4 flex items-center justify-center">
                         <div
                           className={`flex h-[72px] w-[72px] items-center justify-center rounded-[22px] border transition ${
-                            isDone
+                            isRejectedFinalStep
+                              ? "border-rose-400 bg-rose-500/18 text-rose-300 shadow-[0_0_18px_rgba(244,63,94,0.22)]"
+                              : isDone
                               ? "border-cyan-400/25 bg-cyan-400/12 text-cyan-300"
                               : isCurrent
                               ? "border-indigo-400 bg-indigo-500/18 text-indigo-300 shadow-[0_0_18px_rgba(99,102,241,0.22)]"
@@ -864,12 +974,46 @@ function Applications() {
                         </div>
                       )}
 
-                      <h3 className="text-[16px] font-bold text-white">{step.label}</h3>
+                      <h3
+                        className={`text-[16px] font-bold ${isRejectedFinalStep ? "text-rose-300" : "text-white"}`}
+                      >
+                        {step.label}
+                      </h3>
                     </div>
                   );
                 })}
               </div>
             </div>
+
+            {selectedApplication.reviewStatus === "Final Decision" && selectedApplication.contactMethod && (
+              <div className="rounded-[30px] border border-emerald-400/20 bg-emerald-500/[0.06] px-8 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+                <h2 className={`mb-4 flex items-center gap-2 text-[22px] font-extrabold text-white ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+                  <Phone size={20} className="text-emerald-300" />
+                  {t.applicationsPage.contactInfoTitle}
+                </h2>
+                <p className={`text-[15px] leading-7 text-[#c4cae9] ${isRTL ? "text-right" : ""}`}>
+                  <span className="font-semibold text-white">{t.applicationsPage.contactMethodLabel}: </span>
+                  {getContactMethodLabel(t, selectedApplication.contactMethod, selectedApplication.contactMethodOther)}
+                </p>
+                {selectedApplication.contactMessage && (
+                  <p className={`mt-3 whitespace-pre-line text-[15px] leading-7 text-[#c4cae9] ${isRTL ? "text-right" : ""}`}>
+                    {selectedApplication.contactMessage}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {selectedApplication.reviewStatus === "Rejected" && selectedApplication.rejectionReason && (
+              <div className="rounded-[30px] border border-rose-400/20 bg-rose-500/[0.06] px-8 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+                <h2 className={`mb-4 flex items-center gap-2 text-[22px] font-extrabold text-white ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+                  <XCircle size={20} className="text-rose-300" />
+                  {t.applicationsPage.rejectionReasonTitle}
+                </h2>
+                <p className={`whitespace-pre-line text-[15px] leading-7 text-[#c4cae9] ${isRTL ? "text-right" : ""}`}>
+                  {selectedApplication.rejectionReason}
+                </p>
+              </div>
+            )}
           </section>
         )}
       </div>

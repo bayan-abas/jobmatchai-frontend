@@ -15,6 +15,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { apiFetch, ApiError } from "../utils/api";
+import EmailVerificationModal from "../components/EmailVerificationModal";
 
 function CompanyRegisterPage() {
   const navigate = useNavigate();
@@ -40,6 +41,19 @@ function CompanyRegisterPage() {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  const [pendingRegistration, setPendingRegistration] = useState<null | {
+    companyName: string;
+    email: string;
+    password: string;
+    phone: string;
+    location: string;
+    industry: string;
+    companySize: string;
+    website: string;
+    description: string;
+  }>(null);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
 
   const industries = [
     "Technology",
@@ -145,65 +159,98 @@ function CompanyRegisterPage() {
       return;
     }
 
-try {
-  const data = await apiFetch("/api/users/register", {
-    method: "POST",
-    body: JSON.stringify({
-      name: cleanCompanyName,
-      email: cleanEmail,
-      password: cleanPassword,
-      role: "company",
-    }),
-  });
+    try {
+      await apiFetch("/api/auth/send-verification-code", {
+        method: "POST",
+        body: JSON.stringify({ email: cleanEmail }),
+      });
 
-  if (!data.success) {
-    setError(data.message || "Registration failed.");
-    return;
-  }
-
-  const loginData = await apiFetch("/api/users/login", {
-    method: "POST",
-    body: JSON.stringify({
-      email: cleanEmail,
-      password: cleanPassword,
-    }),
-  });
-
-  if (!loginData.success) {
-    setError(
-      loginData.message ||
-        "Registration succeeded, but automatic login failed. Please log in."
-    );
-    return;
-  }
-
-  login(loginData.token, loginData.user);
-
-  try {
-    await apiFetch(`/api/users/${loginData.user.id}`, {
-      method: "PUT",
-      body: JSON.stringify({
+      setPendingRegistration({
+        companyName: cleanCompanyName,
+        email: cleanEmail,
+        password: cleanPassword,
         phone: cleanPhone,
         location: cleanLocation,
         industry,
         companySize,
         website: cleanWebsite,
-        companyDescription: cleanDescription,
+        description: cleanDescription,
+      });
+      setShowVerificationModal(true);
+    } catch (error) {
+      console.error(error);
+      setError(
+        error instanceof ApiError
+          ? error.message
+          : t?.verificationModal?.sendCodeFailed || "Couldn't send a verification code. Please try again."
+      );
+    }
+  };
+
+  const handleVerifyAndRegister = async (code: string) => {
+    if (!pendingRegistration) return;
+    const { companyName, email, password, phone, location, industry, companySize, website, description } =
+      pendingRegistration;
+
+    const data = await apiFetch("/api/users/register", {
+      method: "POST",
+      body: JSON.stringify({
+        name: companyName,
+        email,
+        password,
+        role: "company",
+        phone,
+        verificationCode: code,
       }),
     });
-  } catch (profileError) {
-    console.error(profileError);
-  }
 
-  setSuccess(tr.success);
+    if (!data.success) {
+      throw new Error(data.message || "Registration failed.");
+    }
 
-  setTimeout(() => {
-    navigate("/company-dashboard");
-  }, 900);
-} catch (error) {
-  console.error(error);
-  setError(error instanceof ApiError ? error.message : "Server connection failed.");
-}
+    const loginData = await apiFetch("/api/users/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!loginData.success) {
+      throw new Error(
+        loginData.message || "Registration succeeded, but automatic login failed. Please log in."
+      );
+    }
+
+    login(loginData.token, loginData.user);
+
+    try {
+      await apiFetch(`/api/users/${loginData.user.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          phone,
+          location,
+          industry,
+          companySize,
+          website,
+          companyDescription: description,
+        }),
+      });
+    } catch (profileError) {
+      console.error(profileError);
+    }
+
+    setShowVerificationModal(false);
+    setSuccess(tr.success);
+
+    setTimeout(() => {
+      navigate("/company-dashboard");
+    }, 900);
+  };
+
+  const handleResendCode = async () => {
+    if (!pendingRegistration) return;
+    await apiFetch("/api/auth/send-verification-code", {
+      method: "POST",
+      body: JSON.stringify({ email: pendingRegistration.email }),
+    });
   };
 
   const inputClass = `w-full rounded-2xl border border-white/10 bg-white/5 ${
@@ -477,6 +524,17 @@ try {
           </div>
         </div>
       </div>
+
+      {showVerificationModal && pendingRegistration && (
+        <EmailVerificationModal
+          email={pendingRegistration.email}
+          t={t}
+          isRTL={isRTL}
+          onVerify={handleVerifyAndRegister}
+          onResend={handleResendCode}
+          onClose={() => setShowVerificationModal(false)}
+        />
+      )}
     </div>
   );
 }

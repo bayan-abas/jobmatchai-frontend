@@ -1,4 +1,17 @@
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string;
+// A forgotten VITE_API_BASE_URL at build time (e.g. left unset in a hosting provider's env
+// config) previously made every fetch silently target "undefined/api/..." with no clear signal
+// pointing at the misconfiguration - every API call would just fail. Falling back to localhost
+// keeps local dev working exactly as before (matching .env.example's documented default), and
+// logging loudly for any other case is what makes a misconfigured production build fail obviously
+// instead of looking like a generic "network error" everywhere in the app.
+const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
+if (!rawApiBaseUrl) {
+  console.error(
+    "VITE_API_BASE_URL is not set - falling back to http://localhost:8080. " +
+      "Set it in your .env (see .env.example) before deploying."
+  );
+}
+export const API_BASE_URL = rawApiBaseUrl || "http://localhost:8080";
 
 type TokenGetter = () => string | null;
 
@@ -80,6 +93,76 @@ export async function apiFetchBlob(path: string): Promise<Blob> {
   }
 
   return response.blob();
+}
+
+export type SseEvent = { event: string; data: any };
+
+// Native EventSource can't send an Authorization header, so it can't be used against a
+// JWT-protected endpoint (the exact same limitation that broke the "View CV" button's
+// window.open() call earlier - see apiFetchBlob above). fetch() CAN send custom headers, so
+// this reads the response body as a stream and manually parses SSE frames
+// ("event: name\ndata: json\n\n", blank-line-delimited) instead of relying on EventSource.
+export async function apiFetchStream(
+  path: string,
+  options: RequestInit,
+  onEvent: (evt: SseEvent) => void,
+  signal?: AbortSignal
+): Promise<void> {
+  const token = getToken();
+  const headers = new Headers(options.headers || {});
+  headers.set("Accept", "text/event-stream");
+
+  if (!headers.has("Content-Type") && options.body) {
+    headers.set("Content-Type", "application/json");
+  }
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers, signal });
+
+  if (response.status === 401) {
+    confirmSessionExpired();
+  }
+  if (!response.ok || !response.body) {
+    throw new ApiError(`Request failed with status ${response.status}`, response.status);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    buffer += decoder.decode(value, { stream: true });
+
+    let frameEnd;
+    while ((frameEnd = buffer.indexOf("\n\n")) !== -1) {
+      const frame = buffer.slice(0, frameEnd);
+      buffer = buffer.slice(frameEnd + 2);
+
+      let eventName = "message";
+      let dataLine = "";
+      for (const line of frame.split("\n")) {
+        if (line.startsWith("event:")) {
+          eventName = line.slice(6).trim();
+        } else if (line.startsWith("data:")) {
+          dataLine += line.slice(5).trim();
+        }
+      }
+
+      if (dataLine) {
+        try {
+          onEvent({ event: eventName, data: JSON.parse(dataLine) });
+        } catch {
+          // Malformed frame - skip rather than crash the whole stream over one bad event.
+        }
+      }
+    }
+  }
 }
 
 export class ApiError extends Error {

@@ -23,6 +23,7 @@ import { getRingColor } from "../utils/jobInference";
 import { formatSalary } from "../utils/formatSalary";
 import SkillExplanationModal from "../components/SkillExplanationModal";
 import PreInterviewModal from "../components/PreInterviewModal";
+import ApplicationSuccessModal from "../components/ApplicationSuccessModal";
 import { apiFetch } from "../utils/api";
 
 type JobType = "internal" | "external";
@@ -41,6 +42,33 @@ type JobData = {
   sourceUrl?: string;
   applyUrl?: string;
 };
+
+// AI-generated reformatting of an external job's full description for display only - never a
+// match-scoring input (that always reads job.description directly, in full). Every field is ""
+// or [] rather than invented when the posting itself doesn't mention it - see
+// OpenAICVAnalysisService#summarizeJobDescription on the backend.
+type AboutSummary = {
+  roleOverview?: string;
+  responsibilities?: string[];
+  requiredQualifications?: string[];
+  preferredQualifications?: string[];
+  experienceLevel?: string;
+  workArrangement?: string;
+  importantConditions?: string[];
+};
+
+function isAboutSummaryUsable(summary: AboutSummary | null): boolean {
+  if (!summary) return false;
+  return Boolean(
+    summary.roleOverview ||
+      summary.responsibilities?.length ||
+      summary.requiredQualifications?.length ||
+      summary.preferredQualifications?.length ||
+      summary.experienceLevel ||
+      summary.workArrangement ||
+      summary.importantConditions?.length
+  );
+}
 
 // "error" = the AI couldn't compute this job's match at all (a transient failure, never
 // cached by the backend) - distinct from "noScore", which is a real AI verdict that this
@@ -97,6 +125,7 @@ function JobDetailsPage() {
   const [job, setJob] = useState<JobData | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
+  const [aboutSummary, setAboutSummary] = useState<AboutSummary | null>(null);
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [matchStatus, setMatchStatus] = useState<MatchStatus>("loading");
@@ -107,22 +136,27 @@ function JobDetailsPage() {
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
   const [applyMessage, setApplyMessage] = useState("");
   const [showPreInterviewModal, setShowPreInterviewModal] = useState(false);
+  const [showApplySuccessModal, setShowApplySuccessModal] = useState(false);
 
   useEffect(() => {
     if (!jobId) return;
 
     setLoading(true);
     setFetchError("");
+    setAboutSummary(null);
 
     const url =
       jobType === "external"
-        ? `/api/external-jobs/${jobId}`
+        ? `/api/external-jobs/${jobId}?language=${encodeURIComponent(language)}`
         : `/api/jobs/${jobId}`;
 
     apiFetch(url)
-      .then((data: { success: boolean; job?: JobData }) => {
+      .then((data: { success: boolean; job?: JobData; aboutSummary?: AboutSummary }) => {
         if (data.success && data.job) {
           setJob(data.job);
+          // Only meaningful for external jobs - internal job descriptions are short/curated
+          // and keep showing the raw text as-is (see the "About the role" render below).
+          setAboutSummary(data.aboutSummary || null);
         } else {
           setJob(null);
           setFetchError(d.jobNotFound);
@@ -134,7 +168,7 @@ function JobDetailsPage() {
       })
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobType, jobId]);
+  }, [jobType, jobId, language]);
 
   useEffect(() => {
     if (!job || !jobId) return;
@@ -271,7 +305,7 @@ function JobDetailsPage() {
       .then((data) => {
         if (data.success) {
           setAppliedJobIds((prev) => [...new Set([...prev, job.id])]);
-          setApplyMessage("Application submitted successfully.");
+          setShowApplySuccessModal(true);
         } else {
           setApplyMessage(data.message || "Could not submit application.");
         }
@@ -388,9 +422,92 @@ function JobDetailsPage() {
                   <Zap size={20} className="text-[#facc15]" />
                   {d.aboutRole}
                 </h2>
-                <p className="whitespace-pre-line leading-7 text-[#c4cae9]">
-                  {job.description || "-"}
-                </p>
+                {jobType === "external" && isAboutSummaryUsable(aboutSummary) ? (
+                  <div className="space-y-5">
+                    {aboutSummary?.roleOverview && (
+                      <p className="whitespace-pre-line leading-7 text-[#c4cae9]">
+                        {aboutSummary.roleOverview}
+                      </p>
+                    )}
+
+                    {(aboutSummary?.experienceLevel || aboutSummary?.workArrangement) && (
+                      <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-[#c4cae9]">
+                        {aboutSummary?.experienceLevel && (
+                          <span>
+                            <span className="font-semibold text-white/80">{d.experienceLevel}:</span>{" "}
+                            {aboutSummary.experienceLevel}
+                          </span>
+                        )}
+                        {aboutSummary?.workArrangement && (
+                          <span>
+                            <span className="font-semibold text-white/80">{d.workArrangement}:</span>{" "}
+                            {aboutSummary.workArrangement}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {!!aboutSummary?.responsibilities?.length && (
+                      <div>
+                        <h3 className="mb-2 text-sm font-bold text-white/80">{d.responsibilities}</h3>
+                        <ul className="space-y-2 text-[#c4cae9]">
+                          {aboutSummary.responsibilities.map((item) => (
+                            <li key={item} className="flex gap-2">
+                              <CheckCircle2 size={15} className="mt-1 shrink-0 text-emerald-300" />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {!!aboutSummary?.requiredQualifications?.length && (
+                      <div>
+                        <h3 className="mb-2 text-sm font-bold text-white/80">{d.requiredQualifications}</h3>
+                        <ul className="space-y-2 text-[#c4cae9]">
+                          {aboutSummary.requiredQualifications.map((item) => (
+                            <li key={item} className="flex gap-2">
+                              <CheckCircle2 size={15} className="mt-1 shrink-0 text-emerald-300" />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {!!aboutSummary?.preferredQualifications?.length && (
+                      <div>
+                        <h3 className="mb-2 text-sm font-bold text-white/80">{d.preferredQualifications}</h3>
+                        <ul className="space-y-2 text-[#c4cae9]">
+                          {aboutSummary.preferredQualifications.map((item) => (
+                            <li key={item} className="flex gap-2">
+                              <CheckCircle2 size={15} className="mt-1 shrink-0 text-cyan-300" />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {!!aboutSummary?.importantConditions?.length && (
+                      <div>
+                        <h3 className="mb-2 text-sm font-bold text-white/80">{d.importantConditions}</h3>
+                        <ul className="space-y-2 text-[#c4cae9]">
+                          {aboutSummary.importantConditions.map((item) => (
+                            <li key={item} className="flex gap-2">
+                              <AlertTriangle size={15} className="mt-1 shrink-0 text-amber-300" />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="whitespace-pre-line leading-7 text-[#c4cae9]">
+                    {job.description || "-"}
+                  </p>
+                )}
               </div>
 
               {requirements.length > 0 && (
@@ -608,6 +725,8 @@ function JobDetailsPage() {
                       ? d.matchScoreLoading
                       : matchStatus === "loggedOut"
                       ? d.loginToSeeMatch
+                      : matchStatus === "noAnalysis"
+                      ? d.noAnalysisCaption
                       : d.noScoreAvailable}
                   </p>
 
@@ -692,6 +811,14 @@ function JobDetailsPage() {
                   <h2 className="mb-4 text-[18px] font-extrabold text-white">{d.fitBreakdown}</h2>
                   <div className="space-y-4">
                     {[
+                      // fieldRelevancePercent carries the single largest weight (25%) in the
+                      // actual score - it was missing from this list entirely, while
+                      // languageMatchPercent below always has a value (the backend defaults it
+                      // to a reasonable score rather than null even with no language
+                      // requirement). For a sparse job posting where skills/experience/education/
+                      // certification all come back null, that left ONLY the language bar
+                      // visible, making the score look language-driven when it never was.
+                      { label: d.fieldMatch, value: matchDetail.fieldRelevancePercent },
                       { label: d.skillsMatch, value: matchDetail.skillsMatchPercent },
                       { label: d.experienceMatch, value: matchDetail.experienceMatchPercent },
                       { label: d.educationMatch, value: matchDetail.educationMatchPercent },
@@ -747,6 +874,17 @@ function JobDetailsPage() {
           isSubmitting={applying}
           onCancel={() => setShowPreInterviewModal(false)}
           onSubmit={handleSubmitApplication}
+        />
+      )}
+
+      {showApplySuccessModal && job && (
+        <ApplicationSuccessModal
+          jobTitle={job.title || ""}
+          companyName={job.companyName || ""}
+          copy={d.applySuccessModal}
+          isRTL={isRTL}
+          onClose={() => setShowApplySuccessModal(false)}
+          onViewApplications={() => navigate("/applications")}
         />
       )}
     </div>

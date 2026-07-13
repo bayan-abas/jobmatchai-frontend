@@ -283,7 +283,7 @@ function ProfilePage() {
         <div className="mx-auto w-full max-w-[1080px]">
           <section className="mb-8">
             <div
-              className={`mb-5 flex items-center justify-between`}
+              className={`mb-5 flex flex-wrap items-center justify-between gap-3`}
             >
               <button
                 type="button"
@@ -327,11 +327,11 @@ function ProfilePage() {
             <div
               className={`mb-6 flex items-start gap-4`}
             >
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#22d3ee] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#22d3ee] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
                 <User size={26} />
               </div>
 
-              <div className={isRTL ? "text-right" : "text-left"}>
+              <div className={`min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
                 <h1 className="text-[42px] font-extrabold leading-tight text-white">
                   {t.profilePage.title}
                 </h1>
@@ -348,20 +348,26 @@ function ProfilePage() {
                 }`}
               >
                 <div
-                  className={`flex items-center gap-4`}
+                  className={`flex min-w-0 items-center gap-4`}
                 >
-                  <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[16px] bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-white shadow-[0_10px_24px_rgba(127,76,255,0.28)]">
+                  <div className="flex h-[48px] w-[48px] shrink-0 items-center justify-center rounded-[16px] bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-white shadow-[0_10px_24px_rgba(127,76,255,0.28)]">
                     <Crown size={22} />
                   </div>
 
-                  <div>
+                  <div className="min-w-0">
                     <h3 className="text-[20px] font-extrabold text-white">
-                      {t.profilePage.currentPlanFree || "Current Plan: Free"}
+                      {user?.premium
+                        ? t.profilePage.currentPlanPremium || "Current Plan: Premium"
+                        : t.profilePage.currentPlanFree || "Current Plan: Free"}
                     </h3>
 
                     <p className="mt-1 text-[15px] text-[#aeb4d6]">
-                      {applicationsCount} {t.profilePage.of || "of"} {FREE_PLAN_LIMIT}{" "}
-                      {t.profilePage.applicationsUsedThisMonth || "applications used this month"}
+                      {user?.premium
+                        ? t.profilePage.unlimitedApplicationsText ||
+                          "Unlimited applications and full AI features"
+                        : `${applicationsCount} ${t.profilePage.of || "of"} ${FREE_PLAN_LIMIT} ${
+                            t.profilePage.applicationsUsedThisMonth || "applications used this month"
+                          }`}
                     </p>
                   </div>
                 </div>
@@ -369,10 +375,12 @@ function ProfilePage() {
                 <button
                   type="button"
                   onClick={() => navigate("/payment")}
-                  className={`inline-flex items-center gap-3 rounded-[16px] bg-gradient-to-r from-[#a855f7] to-[#7f4cff] px-6 py-3 text-[15px] font-bold text-white transition hover:opacity-90`}
+                  className={`inline-flex shrink-0 items-center gap-3 rounded-[16px] bg-gradient-to-r from-[#a855f7] to-[#7f4cff] px-6 py-3 text-[15px] font-bold text-white transition hover:opacity-90`}
                 >
                   <Crown size={18} />
-                  {t.profilePage.upgradePremium || "Upgrade to Premium"}
+                  {user?.premium
+                    ? t.profilePage.manageSubscription || "Manage Subscription"
+                    : t.profilePage.upgradePremium || "Upgrade to Premium"}
                 </button>
               </div>
             </div>
@@ -463,7 +471,7 @@ function ProfilePage() {
                     <Mail size={18} />
                     <span className="text-[15px]">{t.common.email}</span>
                   </div>
-                  <p className="text-[18px] font-semibold text-white">
+                  <p className="break-all text-[18px] font-semibold text-white">
                     {userEmail}
                   </p>
                 </div>

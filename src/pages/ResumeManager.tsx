@@ -52,6 +52,7 @@ function ResumeManager() {
   const [progress, setProgress] = useState(0);
   const [analysisStep, setAnalysisStep] = useState("");
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastCounterRef = useRef(0);
 
@@ -132,6 +133,9 @@ function ResumeManager() {
         }
       } catch (error) {
         console.error("Failed to fetch current CV:", error);
+        showToast("error", r.errorLoadFailed || "Could not load your resume. Please refresh the page.");
+      } finally {
+        setInitialLoading(false);
       }
     };
 
@@ -305,7 +309,7 @@ function ResumeManager() {
                 <FileText size={26} />
               </div>
 
-              <div className={`flex-1 ${isRTL ? "text-right" : "text-left"}`}>
+              <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
                 <h1 className="text-[42px] font-extrabold leading-tight text-white">
                   {r.title}
                 </h1>
@@ -399,15 +403,22 @@ function ResumeManager() {
                   {r.uploadText}
                 </p>
 
-                {!fileName && (
-                  <button
-                    onClick={handleChoose}
-                    disabled={isUploading}
-                    className="mt-8 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#7f4cff] to-[#6366f1] px-8 py-3 font-semibold text-white transition hover:scale-[1.03] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isUploading && <Loader2 size={16} className="animate-spin" />}
-                    {isUploading ? r.uploading : r.chooseFile}
-                  </button>
+                {initialLoading ? (
+                  <div className="mt-8 flex items-center gap-2 text-[#b8bddb]">
+                    <Loader2 size={18} className="animate-spin" />
+                    <span>{r.loadingResume || "Loading your resume..."}</span>
+                  </div>
+                ) : (
+                  !fileName && (
+                    <button
+                      onClick={handleChoose}
+                      disabled={isUploading}
+                      className="mt-8 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#7f4cff] to-[#6366f1] px-8 py-3 font-semibold text-white transition hover:scale-[1.03] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isUploading && <Loader2 size={16} className="animate-spin" />}
+                      {isUploading ? r.uploading : r.chooseFile}
+                    </button>
+                  )
                 )}
 
                 <p className="mt-6 text-sm text-[#8f96c2]">
@@ -451,7 +462,7 @@ function ResumeManager() {
                       <CheckCircle2 size={24} />
                     </div>
 
-                    <div className={`flex-1 ${isRTL ? "text-right" : "text-left"}`}>
+                    <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
                       <div className="mb-2 flex flex-wrap items-center gap-3">
                         <h2 className="text-[22px] font-extrabold text-white">
                           {r.resumeUploaded}
@@ -525,6 +536,10 @@ function ResumeManager() {
 
                   <p className="mt-3 text-[15px] text-[#b8bddb]">
                     {analysisStep}
+                  </p>
+
+                  <p className="mt-2 text-[13px] text-[#8f95c2]">
+                    {r.analysisMayTakeAMoment}
                   </p>
 
                   <div className="mt-6 h-3 w-full max-w-[520px] overflow-hidden rounded-full bg-white/10">

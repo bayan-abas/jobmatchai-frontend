@@ -65,6 +65,7 @@ function CompanyJobPostings() {
   const [applications, setApplications] = useState<BackendApplication[]>([]);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
   const [deleteJobModal, setDeleteJobModal] = useState<JobItem | null>(null);
@@ -141,9 +142,10 @@ function CompanyJobPostings() {
       }));
 
       setJobs(formattedJobs);
+      setLoadError("");
     } catch (error) {
       console.error(error);
-      alert("Failed to load jobs from server.");
+      setLoadError(page.loadJobsError || "Failed to load jobs from server.");
     } finally {
       setLoading(false);
     }
@@ -326,11 +328,16 @@ function CompanyJobPostings() {
 
         {loading ? (
           <div className="rounded-[28px] border border-white/10 bg-[rgba(48,46,108,0.72)] p-8 text-center text-white/70">
-            Loading jobs...
+            {page.loadingJobs || "Loading jobs..."}
+          </div>
+        ) : loadError ? (
+          <div className="rounded-[28px] border border-rose-400/30 bg-rose-400/10 p-8 text-center text-rose-200">
+            {loadError}
           </div>
         ) : jobs.length === 0 ? (
           <div className="rounded-[28px] border border-white/10 bg-[rgba(48,46,108,0.72)] p-8 text-center text-white/70">
-            No jobs found. Post your first job.
+            <p className="font-semibold text-white">{page.noJobs || "No job postings yet"}</p>
+            <p className="mt-1 text-white/60">{page.noJobsText || "Create your first job post to start receiving candidates."}</p>
           </div>
         ) : (
           <div className="space-y-6">

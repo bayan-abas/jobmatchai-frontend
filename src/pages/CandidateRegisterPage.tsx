@@ -19,6 +19,7 @@ import { apiFetch, ApiError } from "../utils/api";
 import { ISRAELI_CITIES } from "../utils/israeliCities";
 import { JOB_TITLES, EXPERIENCE_OPTIONS, ALL_SKILLS } from "../utils/candidateOptions";
 import SearchableSelect from "../components/SearchableSelect";
+import EmailVerificationModal from "../components/EmailVerificationModal";
 
 function CandidateRegisterPage() {
   const navigate = useNavigate();
@@ -45,6 +46,21 @@ function CandidateRegisterPage() {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  // Holds everything handleVerifyAndRegister needs once the modal's code is confirmed - the
+  // account isn't created until then, so this is the only place these cleaned-up values live
+  // between "send code" and "verify code" (two separate render cycles apart).
+  const [pendingRegistration, setPendingRegistration] = useState<null | {
+    fullName: string;
+    email: string;
+    password: string;
+    phone: string;
+    location: string;
+    currentTitle: string;
+    experience: string;
+    summary: string;
+  }>(null);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
 
 
 
@@ -158,90 +174,122 @@ function CandidateRegisterPage() {
       return;
     }
     const candidateSummary =
-  cleanSummary ||
-  t?.candidateRegisterPage?.defaultSummary ||
-  "Passionate professional looking for great opportunities and continuous growth.";
+      cleanSummary ||
+      t?.candidateRegisterPage?.defaultSummary ||
+      "Passionate professional looking for great opportunities and continuous growth.";
 
-try {
-  const data = await apiFetch("/api/users/register", {
-    method: "POST",
-    body: JSON.stringify({
-      name: cleanFullName,
-      email: cleanEmail,
-      password: cleanPassword,
-      role: "candidate",
-    }),
-  });
+    try {
+      await apiFetch("/api/auth/send-verification-code", {
+        method: "POST",
+        body: JSON.stringify({ email: cleanEmail }),
+      });
 
-  if (!data.success) {
-    setError(data.message || "Registration failed.");
-    return;
-  }
-
-  const loginData = await apiFetch("/api/users/login", {
-    method: "POST",
-    body: JSON.stringify({
-      email: cleanEmail,
-      password: cleanPassword,
-    }),
-  });
-
-  if (!loginData.success) {
-    setError(
-      loginData.message ||
-        "Registration succeeded, but automatic login failed. Please log in."
-    );
-    return;
-  }
-
-  login(loginData.token, loginData.user);
-
-  try {
-    await apiFetch(`/api/users/${loginData.user.id}`, {
-      method: "PUT",
-      body: JSON.stringify({
+      setPendingRegistration({
+        fullName: cleanFullName,
+        email: cleanEmail,
+        password: cleanPassword,
         phone: cleanPhone,
         location: cleanLocation,
         currentTitle,
-        yearsOfExperience: experience,
-        skills: skills.join(", "),
-        professionalSummary: candidateSummary,
+        experience,
+        summary: candidateSummary,
+      });
+      setShowVerificationModal(true);
+    } catch (error) {
+      console.error(error);
+      setError(
+        error instanceof ApiError
+          ? error.message
+          : t?.verificationModal?.sendCodeFailed || "Couldn't send a verification code. Please try again."
+      );
+    }
+  };
+
+  // Runs only once the modal confirms the code is correct - this is the exact same
+  // register -> login -> profile PUT -> resume upload -> navigate sequence the account
+  // creation flow always used, just gated behind a valid verificationCode now.
+  const handleVerifyAndRegister = async (code: string) => {
+    if (!pendingRegistration) return;
+    const { fullName, email, password, phone, location, currentTitle, experience, summary } = pendingRegistration;
+
+    const data = await apiFetch("/api/users/register", {
+      method: "POST",
+      body: JSON.stringify({
+        name: fullName,
+        email,
+        password,
+        role: "candidate",
+        phone,
+        verificationCode: code,
       }),
     });
-  } catch (profileError) {
-    console.error(profileError);
-  }
 
-  if (resumeFile) {
-    try {
-      const resumeFormData = new FormData();
-      resumeFormData.append("file", resumeFile);
-      resumeFormData.append("language", language);
-      await apiFetch("/api/cv/upload", {
-        method: "POST",
-        body: resumeFormData,
-      });
-    } catch (resumeError) {
-      // Resume upload is optional at registration - don't block account creation over it,
-      // but don't pretend it succeeded either (the "Upload Resume (Optional)" UI previously
-      // only ever stored the file name, never actually sent the file to the backend).
-      console.error(resumeError);
+    if (!data.success) {
+      throw new Error(data.message || "Registration failed.");
     }
-  }
 
-  setSuccess(
-    t?.candidateRegisterPage?.success ||
-      "Candidate account created successfully!"
-  );
+    const loginData = await apiFetch("/api/users/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
 
-  setTimeout(() => {
-    navigate("/candidate-dashboard");
-  }, 900);
+    if (!loginData.success) {
+      throw new Error(
+        loginData.message || "Registration succeeded, but automatic login failed. Please log in."
+      );
+    }
 
-} catch (error) {
-  console.error(error);
-  setError(error instanceof ApiError ? error.message : "Server connection failed.");
-}
+    login(loginData.token, loginData.user);
+
+    try {
+      await apiFetch(`/api/users/${loginData.user.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          phone,
+          location,
+          currentTitle,
+          yearsOfExperience: experience,
+          skills: skills.join(", "),
+          professionalSummary: summary,
+        }),
+      });
+    } catch (profileError) {
+      console.error(profileError);
+    }
+
+    if (resumeFile) {
+      try {
+        const resumeFormData = new FormData();
+        resumeFormData.append("file", resumeFile);
+        resumeFormData.append("language", language);
+        await apiFetch("/api/cv/upload", {
+          method: "POST",
+          body: resumeFormData,
+        });
+      } catch (resumeError) {
+        // Resume upload is optional at registration - don't block account creation over it,
+        // but don't pretend it succeeded either (the "Upload Resume (Optional)" UI previously
+        // only ever stored the file name, never actually sent the file to the backend).
+        console.error(resumeError);
+      }
+    }
+
+    setShowVerificationModal(false);
+    setSuccess(
+      t?.candidateRegisterPage?.success || "Candidate account created successfully!"
+    );
+
+    setTimeout(() => {
+      navigate("/candidate-dashboard");
+    }, 900);
+  };
+
+  const handleResendCode = async () => {
+    if (!pendingRegistration) return;
+    await apiFetch("/api/auth/send-verification-code", {
+      method: "POST",
+      body: JSON.stringify({ email: pendingRegistration.email }),
+    });
   };
 
   const inputClass = `w-full rounded-2xl border border-white/10 bg-white/5 ${
@@ -667,6 +715,17 @@ try {
           </div>
         </div>
       </div>
+
+      {showVerificationModal && pendingRegistration && (
+        <EmailVerificationModal
+          email={pendingRegistration.email}
+          t={t}
+          isRTL={isRTL}
+          onVerify={handleVerifyAndRegister}
+          onResend={handleResendCode}
+          onClose={() => setShowVerificationModal(false)}
+        />
+      )}
     </div>
   );
 }

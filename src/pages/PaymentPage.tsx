@@ -6,6 +6,8 @@ import {
   CheckCircle2,
   CreditCard,
   ShieldCheck,
+  AlertTriangle,
+  X,
 } from "lucide-react";
 import { useState } from "react";
 import { useLanguage } from "../context/LanguageContext";
@@ -20,44 +22,43 @@ function PaymentPage() {
   const t = translations[language];
   const isRTL = language === "ar" || language === "he";
 
-  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [isActivating, setIsActivating] = useState(false);
   const [error, setError] = useState("");
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelError, setCancelError] = useState("");
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   const monthlyPrice = 9.99;
 
+  // Demo/development mode: activates Premium immediately with no card and no Stripe
+  // checkout. Swap this back to /api/payments/create-checkout-session (and remove the
+  // refreshUser call in favor of the redirect) once real Stripe payments are wired up.
   const handleSubscribe = async () => {
     setError("");
-    setIsRedirecting(true);
+    setIsActivating(true);
 
     try {
-      const data = await apiFetch("/api/payments/create-checkout-session", {
-        method: "POST",
-      });
-      window.location.href = data.url;
+      await apiFetch("/api/payments/demo/activate-premium", { method: "POST" });
+      await refreshUser();
     } catch (err) {
-      setIsRedirecting(false);
       setError(
         err instanceof ApiError
           ? err.message
-          : "Could not start checkout. Please try again."
+          : "Could not activate Premium. Please try again."
       );
+    } finally {
+      setIsActivating(false);
     }
   };
 
   const handleCancelSubscription = async () => {
     setCancelError("");
-
-    if (!window.confirm(t.paymentPage.cancelConfirm)) {
-      return;
-    }
-
     setIsCancelling(true);
 
     try {
-      await apiFetch("/api/payments/cancel-subscription", { method: "POST" });
+      await apiFetch("/api/payments/demo/cancel-premium", { method: "POST" });
       await refreshUser();
+      setShowCancelModal(false);
     } catch (err) {
       setCancelError(
         err instanceof ApiError
@@ -70,6 +71,7 @@ function PaymentPage() {
   };
 
   return (
+    <>
     <div
       dir={isRTL ? "rtl" : "ltr"}
       className={`min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(86,45,255,0.16),transparent_24%),radial-gradient(circle_at_bottom_right,rgba(32,146,255,0.13),transparent_22%),linear-gradient(135deg,#0a0d2e_0%,#101548_45%,#181b58_100%)] px-4 py-10 lg:px-8 ${
@@ -117,7 +119,7 @@ function PaymentPage() {
 
               <button
                 type="button"
-                onClick={handleCancelSubscription}
+                onClick={() => setShowCancelModal(true)}
                 disabled={isCancelling}
                 className="rounded-[18px] border border-red-400/30 bg-red-500/10 px-8 py-4 text-[16px] font-bold text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
               >
@@ -131,11 +133,11 @@ function PaymentPage() {
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.08fr_0.92fr]">
             <section className="rounded-[32px] border border-white/10 bg-[rgba(44,45,95,0.94)] p-8 shadow-[0_20px_60px_rgba(0,0,0,0.28)]">
               <div className="mb-8 flex items-start gap-4">
-                <div className="flex h-[74px] w-[74px] items-center justify-center rounded-[24px] bg-gradient-to-br from-[#8b5cf6] to-[#d946ef] text-white shadow-[0_20px_40px_rgba(168,85,247,0.35)]">
+                <div className="flex h-[74px] w-[74px] shrink-0 items-center justify-center rounded-[24px] bg-gradient-to-br from-[#8b5cf6] to-[#d946ef] text-white shadow-[0_20px_40px_rgba(168,85,247,0.35)]">
                   <Crown size={30} />
                 </div>
 
-                <div>
+                <div className="min-w-0">
                   <h1 className="text-[34px] font-extrabold leading-tight text-white">
                     {t.paymentPage.title}
                   </h1>
@@ -159,7 +161,7 @@ function PaymentPage() {
                     </p>
                   </div>
 
-                  <div className="rounded-[22px] border border-white/10 bg-white/[0.05] px-5 py-4 text-left">
+                  <div className={`rounded-[22px] border border-white/10 bg-white/[0.05] px-5 py-4 ${isRTL ? "text-right" : "text-left"}`}>
                     <p className="text-[14px] text-[#b9c0ea]">
                       {t.paymentPage.price}
                     </p>
@@ -197,11 +199,11 @@ function PaymentPage() {
                 <button
                   type="button"
                   onClick={handleSubscribe}
-                  disabled={isRedirecting}
+                  disabled={isActivating}
                   className="mt-2 w-full rounded-[18px] bg-gradient-to-r from-[#8b5cf6] to-[#d946ef] px-6 py-4 text-[17px] font-bold text-white shadow-[0_16px_35px_rgba(168,85,247,0.35)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {isRedirecting
-                    ? t.paymentPage.redirecting || "Redirecting to Stripe..."
+                  {isActivating
+                    ? t.paymentPage.activating
                     : `${t.paymentPage.pay} $${monthlyPrice}`}
                 </button>
 
@@ -333,6 +335,73 @@ function PaymentPage() {
         )}
       </div>
     </div>
+
+    {showCancelModal && (
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(1,4,19,0.72)] px-4 backdrop-blur-md"
+        onClick={() => !isCancelling && setShowCancelModal(false)}
+      >
+        <div
+          className="relative w-full max-w-[480px] rounded-[30px] border border-[rgba(255,166,64,0.3)] bg-[linear-gradient(180deg,#09152f_0%,#0d1730_100%)] p-8 text-white shadow-[0_30px_80px_rgba(0,0,0,0.55)]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {!isCancelling && (
+            <button
+              type="button"
+              onClick={() => setShowCancelModal(false)}
+              className={`absolute top-5 text-[#9aa4cf] transition hover:text-white ${
+                isRTL ? "left-5" : "right-5"
+              }`}
+            >
+              <X size={22} />
+            </button>
+          )}
+
+          <div className="mb-5 flex justify-center">
+            <div className="flex h-[78px] w-[78px] items-center justify-center rounded-[24px] bg-gradient-to-br from-[#f59e0b] to-[#ea580c] shadow-[0_18px_40px_rgba(245,158,11,0.35)]">
+              <AlertTriangle size={34} />
+            </div>
+          </div>
+
+          <h2 className="mb-2 text-center text-[24px] font-extrabold">
+            {t.paymentPage.cancelModalTitle || "Cancel Premium subscription?"}
+          </h2>
+
+          <p className="mb-6 text-center text-[16px] text-[#aeb4d6]">
+            {t.paymentPage.cancelConfirm}
+          </p>
+
+          {cancelError && (
+            <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+              {cancelError}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4 max-[420px]:grid-cols-1">
+            <button
+              type="button"
+              onClick={() => setShowCancelModal(false)}
+              disabled={isCancelling}
+              className="rounded-[14px] border border-white/15 bg-transparent px-5 py-3 text-[16px] font-bold text-white transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {t.paymentPage.keepPremium || "Keep Premium"}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCancelSubscription}
+              disabled={isCancelling}
+              className="rounded-[14px] bg-gradient-to-r from-[#f59e0b] to-[#ea580c] px-5 py-3 text-[16px] font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isCancelling
+                ? t.paymentPage.cancelling
+                : t.paymentPage.cancelSubscription}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 

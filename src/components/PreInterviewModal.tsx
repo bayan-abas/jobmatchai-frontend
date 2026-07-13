@@ -26,7 +26,7 @@ function PreInterviewModal({ jobTitle, isSubmitting, onCancel, onSubmit }: PreIn
       onClick={onCancel}
     >
       <div
-        className="relative w-full max-w-[560px] rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,#09152f_0%,#0d1730_100%)] p-8 text-white shadow-[0_30px_80px_rgba(0,0,0,0.55)]"
+        className="relative max-h-[85vh] w-full max-w-[560px] overflow-y-auto rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,#09152f_0%,#0d1730_100%)] p-8 text-white shadow-[0_30px_80px_rgba(0,0,0,0.55)]"
         onClick={(e) => e.stopPropagation()}
       >
         <button

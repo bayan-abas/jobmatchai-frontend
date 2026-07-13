@@ -1,4 +1,5 @@
-import { Building2, MapPin, BriefcaseBusiness, Wallet, ExternalLink, CalendarDays, Sparkles, Bookmark } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Building2, MapPin, BriefcaseBusiness, Wallet, ExternalLink, CalendarDays, Sparkles, Bookmark, UploadCloud } from "lucide-react";
 import { getRingColor } from "../utils/jobInference";
 import { formatSalary } from "../utils/formatSalary";
 
@@ -47,6 +48,7 @@ type ExternalJobCardProps = {
 };
 
 function ExternalJobCard({ job, matchInfo, t, isRTL, onViewDetails, isSaved, onToggleSave }: ExternalJobCardProps) {
+  const navigate = useNavigate();
   const p = t.externalJobsPage;
   const ringColor = getRingColor(
     matchInfo.status === "scored" || matchInfo.status === "noScore" || matchInfo.status === "error"
@@ -117,14 +119,33 @@ function ExternalJobCard({ job, matchInfo, t, isRTL, onViewDetails, isSaved, onT
 
           {matchInfo.status === "error" && (
             <span className="mt-2 max-w-[110px] text-center text-[11px] font-medium text-amber-300/80">
-              Couldn't compute - refresh to retry
+              {p.matchScoreErrorRetry || "Couldn't compute - refresh to retry"}
             </span>
+          )}
+
+          {/* No CVAnalysis for this candidate - the backend already refuses to compute or
+              show a percentage in this case (hasAnalysis=false), so this is purely making
+              that existing, correct "no score without a CV" behavior visible instead of a
+              bare "?" with no explanation - same message + CTA pattern already used on the
+              internal Job Matches page and the job details page. */}
+          {matchInfo.status === "noAnalysis" && (
+            <div className="mt-2 flex max-w-[150px] flex-col items-center gap-2 text-center">
+              <span className="text-[11px] font-medium text-white/50">{p.noAnalysisMessage}</span>
+              <button
+                type="button"
+                onClick={() => navigate("/resume-manager")}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#7c88ff]/30 bg-[#7c88ff]/15 px-3 py-1.5 text-[11px] font-semibold text-[#c4b5fd] transition hover:bg-[#7c88ff]/25"
+              >
+                <UploadCloud size={13} />
+                {p.uploadCvButton}
+              </button>
+            </div>
           )}
         </div>
 
         <div className="min-w-0 flex-1">
           <div className={`mb-3 flex flex-wrap items-center gap-3 ${isRTL ? "md:flex-row-reverse" : ""}`}>
-            <h3 className="text-2xl font-bold text-white">{job.title || "Untitled Job"}</h3>
+            <h3 className="min-w-0 break-words text-2xl font-bold text-white">{job.title || "Untitled Job"}</h3>
             {job.type && (
               <span className="rounded-full bg-violet-500/15 px-3 py-1 text-xs font-semibold text-violet-300">
                 {job.type}

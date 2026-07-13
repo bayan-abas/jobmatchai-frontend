@@ -250,8 +250,11 @@ function PublicJobsPage() {
           </div>
         )}
 
+        {/* grid-cols-1 (not bare "grid") below - see ExternalJobsPage.tsx's identical fix: a
+            bare grid's single implicit column sizes to its widest child's content, letting a
+            wide job card overflow past this section at any viewport. */}
         {!loading && (
-        <section className="grid gap-5">
+        <section className="grid grid-cols-1 gap-5">
           {filteredJobs.map((job) => (
             <div
               key={job.id}

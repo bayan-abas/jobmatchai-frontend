@@ -298,7 +298,9 @@ function CompanyDashboard() {
                             `/company-applications?jobId=${candidate.jobId}&jobTitle=${encodeURIComponent(candidate.jobTitle || "")}`
                           )
                         }
-                        className="flex w-full items-center justify-between gap-4 rounded-[24px] border border-white/10 bg-white/[0.045] px-4 py-4 text-left transition hover:bg-white/[0.07]"
+                        className={`flex w-full items-center justify-between gap-4 rounded-[24px] border border-white/10 bg-white/[0.045] px-4 py-4 transition hover:bg-white/[0.07] ${
+                          isRTL ? "text-right" : "text-left"
+                        }`}
                       >
                         <div className="flex min-w-0 items-center gap-4">
                           <div
@@ -418,7 +420,10 @@ function CompanyDashboard() {
                 </div>
               </div>
 
-              <div className="grid gap-4 lg:grid-cols-3">
+              {/* grid-cols-1 (not bare "grid") - see ExternalJobsPage.tsx's identical fix: the
+                  implicit single column otherwise sizes to its widest child's content instead
+                  of the container's width, causing overflow on mobile. */}
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                 <div className="rounded-[22px] border border-white/10 bg-white/[0.045] p-5 transition hover:bg-white/[0.065]">
                   <div className="mb-3 flex items-center gap-2 text-white/75">
                     <span className="text-base">💡</span>

@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
+  AlertTriangle,
   ArrowLeft,
   Bell,
   Briefcase,
@@ -9,6 +10,7 @@ import {
   MessageSquare,
   Crown,
   Trash2,
+  XCircle,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
@@ -24,7 +26,7 @@ type BackendNotification = {
   read: boolean;
 };
 
-const JOB_TYPES = new Set(["JOB_MATCH_HIGH", "SAVED_JOB_UPDATED"]);
+const JOB_TYPES = new Set(["JOB_MATCH_HIGH"]);
 const APPLICATION_TYPES = new Set([
   "APPLICATION_SUBMITTED",
   "APPLICATION_REMOVED",
@@ -46,6 +48,12 @@ function getPresentation(type: string) {
   }
   if (type === "PREMIUM_ACTIVATED") {
     return { icon: <Crown size={22} />, iconBg: "from-[#8b5cf6] to-[#d946ef]", kind: "premium" as const };
+  }
+  if (type === "PREMIUM_CANCELLED") {
+    return { icon: <XCircle size={22} />, iconBg: "from-slate-500 to-slate-600", kind: "premiumCancelled" as const };
+  }
+  if (type === "PREMIUM_PAYMENT_FAILED") {
+    return { icon: <AlertTriangle size={22} />, iconBg: "from-rose-500 to-red-600", kind: "premiumPaymentFailed" as const };
   }
   return { icon: <TrendingUp size={22} />, iconBg: "from-[#f6c453] to-[#f59e0b]", kind: "tip" as const };
 }
@@ -178,7 +186,7 @@ function NotificationsPage() {
               <Bell size={26} />
             </div>
 
-            <div className={`flex-1 ${isRTL ? "text-right" : "text-left"}`}>
+            <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
               <h1 className="text-[42px] font-extrabold leading-tight text-white">
                 {t.notificationsPage.title}
               </h1>
@@ -195,13 +203,13 @@ function NotificationsPage() {
               }`}
             >
               <div
-                className={`flex items-center gap-4`}
+                className={`flex min-w-0 items-center gap-4`}
               >
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#5e66ff1f] text-[#7c88ff]">
                   <Bell size={24} />
                 </div>
 
-                <div className={isRTL ? "text-right" : "text-left"}>
+                <div className={`min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
                   <h3 className="text-[20px] font-extrabold text-white">
                     {t.notificationsPage.notificationCenter}
                   </h3>
@@ -275,13 +283,13 @@ function NotificationsPage() {
                       {presentation.icon}
                     </div>
 
-                    <div className={`flex-1 ${isRTL ? "text-right" : "text-left"}`}>
+                    <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
                       <div
                         className={`mb-3 flex flex-wrap items-center gap-3 ${
                           isRTL ? "" : ""
                         }`}
                       >
-                        <h2 className="text-[22px] font-extrabold text-white">
+                        <h2 className="min-w-0 break-words text-[22px] font-extrabold text-white">
                           {item.title}
                         </h2>
 

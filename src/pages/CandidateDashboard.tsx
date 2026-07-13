@@ -7,6 +7,7 @@ import { computeProfileCompleteness } from "./ProfilePage";
 import { getRingColor } from "../utils/jobInference";
 import { apiFetch } from "../utils/api";
 import { FREE_PLAN_LIMIT } from "../utils/applicationLimit";
+import LoadingScreen from "../components/LoadingScreen";
 import {
   BriefcaseBusiness,
   Globe2,
@@ -62,6 +63,10 @@ type BackendJob = {
   companyName?: string;
   location?: string;
   remote?: boolean;
+};
+
+type BackendExternalJob = {
+  id?: number;
 };
 
 type MatchScoreEntry = {
@@ -137,13 +142,18 @@ function CandidateDashboard() {
 
   const [topMatches, setTopMatches] = useState<MatchItem[]>([]);
   const [applications, setApplications] = useState<RecentApplication[]>([]);
-  const [jobsCount, setJobsCount] = useState("0");
+  // Count of jobs (internal + external) the candidate actually MATCHES - not the total number
+  // of jobs available. See fetchDashboardData below for the "matched" definition (fieldRelated
+  // && matchPercent !== null), kept consistent with JobMatches.tsx's own "scored" status.
+  const [matchedJobsCount, setMatchedJobsCount] = useState("0");
   const [applicationsCount, setApplicationsCount] = useState("0");
   const [applicationsThisMonth, setApplicationsThisMonth] = useState(0);
   const [interviewsCount, setInterviewsCount] = useState("0");
   const [profileScore, setProfileScore] = useState(0);
   const [jobStats, setJobStats] = useState({ internal: 0, external: 0, total: 0 });
   const [recentlyViewed, setRecentlyViewed] = useState<RecentlyViewedItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const recentlyViewedScrollRef = useRef<HTMLDivElement>(null);
 
   const scrollRecentlyViewed = (direction: -1 | 1) => {
@@ -159,21 +169,33 @@ function CandidateDashboard() {
 
   useEffect(() => {
     const fetchDashboardData = async () => {
+      // Reset before fetching so a failure partway through (or switching accounts
+      // without a full page reload) never leaves a previous session's match scores
+      // visible on screen.
+      setTopMatches([]);
+      setApplications([]);
+      setMatchedJobsCount("0");
+      setLoading(true);
+      setError("");
       try {
-        const [jobsData, appsData, cvText]: [BackendJob[], BackendApplication[], string] =
-          await Promise.all([
-            apiFetch(`/api/jobs/all`).catch(() => []),
-            userEmail
-              ? apiFetch(
-                  `/api/applications/candidate/${encodeURIComponent(userEmail)}`
-                ).catch(() => [])
-              : Promise.resolve([]),
-            userEmail
-              ? apiFetch(`/api/cv/current`).catch(() => "")
-              : Promise.resolve(""),
-          ]);
+        const [jobsData, appsData, cvText, externalJobsData]: [
+          BackendJob[],
+          BackendApplication[],
+          string,
+          BackendExternalJob[],
+        ] = await Promise.all([
+          apiFetch(`/api/jobs/all`).catch(() => []),
+          userEmail
+            ? apiFetch(
+                `/api/applications/candidate/${encodeURIComponent(userEmail)}`
+              ).catch(() => [])
+            : Promise.resolve([]),
+          userEmail
+            ? apiFetch(`/api/cv/current`).catch(() => "")
+            : Promise.resolve(""),
+          apiFetch(`/api/external-jobs/all`).catch(() => []),
+        ]);
 
-        setJobsCount(String(jobsData.length));
         setApplicationsCount(String(appsData.length));
 
         const currentMonthPrefix = new Date().toISOString().slice(0, 7);
@@ -235,16 +257,70 @@ function CandidateDashboard() {
               }),
             });
 
-            (matchData.matches || []).forEach((match) => {
-              matchByJobId.set(match.jobId, {
-                matchPercent: match.matchPercent,
-                fieldRelated: match.fieldRelated !== false,
+            // Explicit gate (not just "trust matches is empty") so a candidate with no
+            // CVAnalysis never sees a score here even if some future backend change or
+            // caching bug lets a non-empty matches array slip through.
+            if (matchData.hasAnalysis) {
+              (matchData.matches || []).forEach((match) => {
+                matchByJobId.set(match.jobId, {
+                  matchPercent: match.matchPercent,
+                  fieldRelated: match.fieldRelated !== false,
+                });
               });
-            });
+            }
           } catch {
             // keep matchByJobId empty, same as the previous !matchRes.ok fallback
           }
         }
+
+        const externalJobIds = externalJobsData
+          .map((job) => job.id)
+          .filter((id): id is number => typeof id === "number");
+
+        const externalMatchByJobId = new Map<number, MatchScoreEntry>();
+
+        if (userEmail && externalJobIds.length > 0) {
+          try {
+            const extMatchData: {
+              hasAnalysis: boolean;
+              matches: { jobId: number; matchPercent: number | null; fieldRelated?: boolean }[];
+            } = await apiFetch(`/api/external-jobs/match-scores`, {
+              method: "POST",
+              body: JSON.stringify({
+                email: userEmail,
+                externalJobIds,
+                language,
+              }),
+            });
+
+            if (extMatchData.hasAnalysis) {
+              (extMatchData.matches || []).forEach((match) => {
+                externalMatchByJobId.set(match.jobId, {
+                  matchPercent: match.matchPercent,
+                  fieldRelated: match.fieldRelated !== false,
+                });
+              });
+            }
+          } catch {
+            // keep externalMatchByJobId empty
+          }
+        }
+
+        // "Job Matches" = jobs (internal + external) the candidate actually matches, not the
+        // total number of jobs available - same "matched" definition already used to build
+        // topMatches below and by JobMatches.tsx's own "scored" status: a real, related score
+        // was computed for this job (fieldRelated && matchPercent !== null). Previously this
+        // reused jobsData.length (every internal job, matched or not), which was why the
+        // dashboard's "Job Matches" tile always showed the exact same number as "Internal Jobs".
+        const matchedInternalCount = jobIdsFromJobs.filter((id) => {
+          const entry = matchByJobId.get(id);
+          return Boolean(entry && entry.fieldRelated && entry.matchPercent !== null);
+        }).length;
+        const matchedExternalCount = externalJobIds.filter((id) => {
+          const entry = externalMatchByJobId.get(id);
+          return Boolean(entry && entry.fieldRelated && entry.matchPercent !== null);
+        }).length;
+        setMatchedJobsCount(String(matchedInternalCount + matchedExternalCount));
 
         const jobsWithScores = jobsData
           .filter((job) => {
@@ -295,6 +371,9 @@ function CandidateDashboard() {
         );
       } catch (error) {
         console.error("Dashboard fetch error:", error);
+        setError(t.dashboard.loadError || "We couldn't load your dashboard data. Please try refreshing the page.");
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -327,7 +406,7 @@ function CandidateDashboard() {
     () => [
       {
         icon: <BriefcaseBusiness size={22} />,
-        value: jobsCount,
+        value: matchedJobsCount,
         label: t.dashboard.stats.jobMatches,
         iconBg: "bg-[#5e66ff1f]",
         iconColor: "text-[#7c88ff]",
@@ -357,10 +436,14 @@ function CandidateDashboard() {
         onClick: () => navigate("/profile"),
       },
     ],
-    [jobsCount, applicationsCount, interviewsCount, profileScore, navigate, t]
+    [matchedJobsCount, applicationsCount, interviewsCount, profileScore, navigate, t]
   );
 
   const profilePercent = profileScore;
+
+  if (loading) {
+    return <LoadingScreen message={t.dashboard.loadingMessage || "Loading your dashboard..."} />;
+  }
 
   return (
     <div
@@ -385,11 +468,11 @@ function CandidateDashboard() {
           </div>
 
           <div className="mb-6 flex items-start gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
               <Sparkles size={26} />
             </div>
 
-            <div className={isRTL ? "text-right" : "text-left"}>
+            <div className={`min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
               <h1 className="text-[42px] font-extrabold leading-tight text-white">
                 {`${t.dashboard.welcome}, ${userName}`} 👋
               </h1>
@@ -399,6 +482,12 @@ function CandidateDashboard() {
             </div>
           </div>
         </section>
+
+        {error && (
+          <div className="mb-6 rounded-2xl border border-rose-400/30 bg-rose-400/10 px-5 py-4 text-rose-200">
+            {error}
+          </div>
+        )}
 
         <section className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {stats.map((stat) => (
@@ -464,12 +553,12 @@ function CandidateDashboard() {
 
         <section className="mb-8 grid grid-cols-1 gap-6 xl:grid-cols-[1.25fr_0.95fr]">
           <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
-            <div className="mb-6 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#5e66ff1f] text-[#7c88ff]">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#5e66ff1f] text-[#7c88ff]">
                   <BriefcaseBusiness size={22} />
                 </div>
-                <div className={isRTL ? "text-right" : "text-left"}>
+                <div className={`min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
                   <h3 className="text-[22px] font-extrabold text-white">
                     {t.dashboard.topMatches.title}
                   </h3>
@@ -482,7 +571,7 @@ function CandidateDashboard() {
               <button
                 type="button"
                 onClick={() => navigate("/job-matches")}
-                className="inline-flex items-center gap-2 text-[15px] font-semibold text-[#dbe2ff] transition hover:text-white"
+                className="inline-flex shrink-0 items-center gap-2 text-[15px] font-semibold text-[#dbe2ff] transition hover:text-white"
               >
                 {t.dashboard.topMatches.viewAll}
                 <ChevronRight size={18} className={isRTL ? "rotate-180" : ""} />
@@ -492,7 +581,7 @@ function CandidateDashboard() {
             <div className="space-y-5">
               {topMatches.length === 0 ? (
                 <div className="rounded-[28px] border border-white/10 bg-[rgba(50,52,108,0.78)] px-5 py-8 text-center text-white/60">
-                  No job matches yet.
+                  {t.dashboard.noMatchesYet || "No job matches yet."}
                 </div>
               ) : (
                 topMatches.map((job) => (
@@ -564,12 +653,12 @@ function CandidateDashboard() {
           </div>
 
           <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
-            <div className="mb-6 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#22d3ee1f] text-[#67e8f9]">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#22d3ee1f] text-[#67e8f9]">
                   <FileText size={22} />
                 </div>
-                <div className={isRTL ? "text-right" : "text-left"}>
+                <div className={`min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
                   <h3 className="text-[22px] font-extrabold text-white">
                     {t.dashboard.applications.title}
                   </h3>
@@ -582,7 +671,7 @@ function CandidateDashboard() {
               <button
                 type="button"
                 onClick={() => navigate("/applications")}
-                className="inline-flex items-center gap-2 text-[15px] font-semibold text-[#dbe2ff] transition hover:text-white"
+                className="inline-flex shrink-0 items-center gap-2 text-[15px] font-semibold text-[#dbe2ff] transition hover:text-white"
               >
                 {t.dashboard.applications.viewAll}
                 <ChevronRight size={18} className={isRTL ? "rotate-180" : ""} />
@@ -660,12 +749,12 @@ function CandidateDashboard() {
 
         {recentlyViewed.length > 0 && (
           <section className="mb-8 rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
-            <div className="mb-5 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#a855f71f] text-[#d8b4fe]">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex min-w-0 items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#a855f71f] text-[#d8b4fe]">
                   <CalendarDays size={22} />
                 </div>
-                <div className={isRTL ? "text-right" : "text-left"}>
+                <div className={`min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
                   <h3 className="text-[22px] font-extrabold text-white">
                     {t.dashboard.recentlyViewed.title}
                   </h3>
@@ -808,37 +897,53 @@ function CandidateDashboard() {
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-[640px]">
               <div className="mb-4 inline-flex items-center rounded-full border border-[#c084fc]/20 bg-[#c084fc]/10 px-3 py-1 text-[13px] font-semibold text-[#e9c7ff]">
-                {t.dashboard.plan.free}
+                {user?.premium
+                  ? t.dashboard.plan.premium || "Premium Plan"
+                  : t.dashboard.plan.free}
               </div>
 
-              <h3 className="text-[28px] font-extrabold text-white">
-                {usedApplications} of {FREE_PLAN_LIMIT} applications used
-              </h3>
+              {user?.premium ? (
+                <>
+                  <h3 className="text-[28px] font-extrabold text-white">
+                    {t.dashboard.plan.unlimitedApplications || "Unlimited applications"}
+                  </h3>
+                  <p className="mt-2 text-[16px] leading-7 text-[#b9c0ea]">
+                    {t.dashboard.plan.premiumText ||
+                      "You have full access to every premium career tool."}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-[28px] font-extrabold text-white">
+                    {usedApplications} of {FREE_PLAN_LIMIT} applications used
+                  </h3>
 
-              <p className="mt-2 text-[16px] leading-7 text-[#b9c0ea]">
-                {t.dashboard.plan.remaining}{" "}
-                <span className="font-bold text-white">
-                  {remainingApplications}
-                </span>{" "}
-                {t.dashboard.plan.upgradeText}
-              </p>
+                  <p className="mt-2 text-[16px] leading-7 text-[#b9c0ea]">
+                    {t.dashboard.plan.remaining}{" "}
+                    <span className="font-bold text-white">
+                      {remainingApplications}
+                    </span>{" "}
+                    {t.dashboard.plan.upgradeText}
+                  </p>
 
-              <div className="mt-5 flex items-center gap-3">
-                <span className="text-[14px] font-semibold text-white/80">
-                  {t.dashboard.plan.monthlyUsage}
-                </span>
+                  <div className="mt-5 flex items-center gap-3">
+                    <span className="text-[14px] font-semibold text-white/80">
+                      {t.dashboard.plan.monthlyUsage}
+                    </span>
 
-                <span className="rounded-full bg-white/8 px-3 py-1 text-[13px] font-semibold text-white/70">
-                  {usagePercent}%
-                </span>
-              </div>
+                    <span className="rounded-full bg-white/8 px-3 py-1 text-[13px] font-semibold text-white/70">
+                      {usagePercent}%
+                    </span>
+                  </div>
 
-              <div className="mt-3 h-[10px] w-full max-w-[420px] overflow-hidden rounded-full bg-white/10">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-[#8b5cf6] via-[#a855f7] to-[#ec4899] transition-all duration-700"
-                  style={{ width: `${usagePercent}%` }}
-                />
-              </div>
+                  <div className="mt-3 h-[10px] w-full max-w-[420px] overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-[#8b5cf6] via-[#a855f7] to-[#ec4899] transition-all duration-700"
+                      style={{ width: `${usagePercent}%` }}
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="flex flex-col items-stretch gap-3 sm:w-auto sm:min-w-[240px]">
@@ -847,7 +952,9 @@ function CandidateDashboard() {
                 onClick={() => navigate("/payment")}
                 className="rounded-[16px] bg-gradient-to-r from-[#8b5cf6] to-[#d946ef] px-6 py-3 text-[15px] font-semibold text-white shadow-[0_10px_30px_rgba(168,85,247,0.35)] transition hover:scale-[1.02]"
               >
-                {t.dashboard.plan.upgradeButton}
+                {user?.premium
+                  ? t.dashboard.plan.manageButton || "Manage Subscription"
+                  : t.dashboard.plan.upgradeButton}
               </button>
             </div>
           </div>

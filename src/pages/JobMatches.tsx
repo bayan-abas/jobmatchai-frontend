@@ -35,6 +35,7 @@ import { apiFetch } from "../utils/api";
 import { FREE_PLAN_LIMIT } from "../utils/applicationLimit";
 import LoadingScreen from "../components/LoadingScreen";
 import PreInterviewModal from "../components/PreInterviewModal";
+import ApplicationSuccessModal from "../components/ApplicationSuccessModal";
 
 type BackendJob = {
   id?: number;
@@ -94,6 +95,7 @@ function JobMatches() {
   const [appliedJobIds, setAppliedJobIds] = useState<number[]>([]);
   const [monthlyApplicationsCount, setMonthlyApplicationsCount] = useState(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [justAppliedJob, setJustAppliedJob] = useState<Job | null>(null);
   const [pendingApplyJob, setPendingApplyJob] = useState<Job | null>(null);
   const [matchScores, setMatchScores] = useState<Map<number, MatchScoreEntry>>(new Map());
   const [hasAnalysis, setHasAnalysis] = useState<boolean | null>(null);
@@ -113,7 +115,7 @@ function JobMatches() {
 
   const { language } = useLanguage();
   const { user } = useAuth();
-  const t = translations[language];
+  const t = translations[language] || translations.en;
   const isRTL = language === "ar" || language === "he";
 
   const readCandidateIdentity = () => ({
@@ -436,6 +438,10 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
     };
   };
 
+  // Deliberately does NOT filter by match score/minMatch - every job passing the other filters
+  // stays visible as a card (including a genuine "not a field match" or still-loading one) so the
+  // candidate can keep browsing everything. minMatch only narrows the count below (see
+  // matchingJobsCount), never which cards render - see matchingJobsCount's comment for why.
   const filteredJobs = useMemo(() => {
     const filtered = jobs.filter((job) => {
       const matchesIndustry = !industry || job.industry === industry;
@@ -447,10 +453,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
       // made this filter pass almost everything regardless of slider position.
       const matchesSalary = jobSalary === 0 ? true : jobSalary >= minSalary * 1000;
 
-      const info = getMatchInfo(job);
-      const matchesScore = info.status === "scored" ? info.percent >= minMatch : true;
-
-      return matchesIndustry && matchesLevel && matchesSalary && matchesScore;
+      return matchesIndustry && matchesLevel && matchesSalary;
     });
 
     return [...filtered].sort((a, b) => {
@@ -461,7 +464,20 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
       return scoreB - scoreA;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobs, industry, seniority, minSalary, minMatch, matchScores, hasAnalysis, matchScoresLoading]);
+  }, [jobs, industry, seniority, minSalary, matchScores, hasAnalysis, matchScoresLoading]);
+
+  // The headline count candidates actually care about: of the jobs currently shown (after
+  // industry/seniority/salary), how many are REAL matches - the AI gave this job a genuine
+  // field-related score, and that score clears the Min Match slider. A "noScore" (unrelated
+  // field), still-"loading", or "error" card stays visible for browsing (see filteredJobs above)
+  // but must never count as a "match" here regardless of the slider position.
+  const matchingJobsCount = useMemo(() => {
+    return filteredJobs.filter((job) => {
+      const info = getMatchInfo(job);
+      return info.status === "scored" && info.percent >= minMatch;
+    }).length;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredJobs, minMatch, matchScores, hasAnalysis, matchScoresLoading]);
 
   const activeFiltersCount =
     (industry ? 1 : 0) +
@@ -588,7 +604,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
         if (data.success) {
           setAppliedJobIds((prev) => [...new Set([...prev, job.id as number])]);
           setMonthlyApplicationsCount((prev) => prev + 1);
-          setApplyMessage("Application submitted successfully.");
+          setJustAppliedJob(job);
         } else if (data.message && data.message.includes("free plan limit")) {
           setPendingApplyJob(null);
           setShowUpgradeModal(true);
@@ -872,7 +888,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
           <>
             <section className="mb-8">
               <div
-                className={`mb-5 flex items-center gap-3 ${
+                className={`mb-5 flex flex-wrap items-center gap-3 ${
                   isRTL ? "flex-row-reverse justify-end" : "justify-start"
                 }`}
               >
@@ -900,11 +916,11 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
               </div>
 
               <div className="mb-6 flex items-start gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
                   <BriefcaseBusiness size={26} />
                 </div>
 
-                <div>
+                <div className="min-w-0">
                   <h1 className="text-[42px] font-extrabold leading-tight text-white">
                     {t.jobMatches.title}
                   </h1>
@@ -928,16 +944,16 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
 
               <div className="mb-5 overflow-visible rounded-[28px] border border-white/10 bg-white/[0.05] px-5 py-5 shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
                 <div
-                  className={`flex items-start justify-between gap-4 ${
+                  className={`flex flex-wrap items-start justify-between gap-4 ${
                     isRTL ? "flex-row-reverse" : ""
                   }`}
                 >
-                  <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#5e66ff1f] text-[#7c88ff]">
+                  <div className={`flex min-w-0 items-center gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#5e66ff1f] text-[#7c88ff]">
                       <SlidersHorizontal size={24} />
                     </div>
 
-                    <div className={isRTL ? "text-right" : "text-left"}>
+                    <div className={`min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
                       <h3 className="text-[20px] font-extrabold text-white">
                         {t.jobMatches.smartFilters}
                       </h3>
@@ -1173,7 +1189,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
               </div>
 
               <p className={`text-[15px] text-[#aeb4d6] ${isRTL ? "text-right" : "text-left"}`}>
-                {filteredJobs.length} {t.jobMatches.jobsMatchCriteria}
+                {matchingJobsCount} {t.jobMatches.jobsMatchCriteria}
               </p>
             </section>
 
@@ -1226,6 +1242,17 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
             isSubmitting={applyingJobId === pendingApplyJob.id}
             onCancel={() => setPendingApplyJob(null)}
             onSubmit={handleSubmitApplication}
+          />
+        )}
+
+        {justAppliedJob && (
+          <ApplicationSuccessModal
+            jobTitle={justAppliedJob.title}
+            companyName={justAppliedJob.company}
+            copy={t.jobDetails.applySuccessModal}
+            isRTL={isRTL}
+            onClose={() => setJustAppliedJob(null)}
+            onViewApplications={() => navigate("/applications")}
           />
         )}
 
