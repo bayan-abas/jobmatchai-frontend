@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { apiFetch, setAuthTokenGetter, setUnauthorizedHandler } from "../utils/api";
+import { clearMatchScoreSession } from "../utils/matchScoreSession";
 
 export type Role = "candidate" | "company";
 
@@ -77,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     sessionStorage.removeItem(TOKEN_STORAGE_KEY);
     STRAY_LOCAL_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
+    clearMatchScoreSession();
   };
 
   useEffect(() => {

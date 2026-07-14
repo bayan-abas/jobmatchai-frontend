@@ -6,6 +6,7 @@ import { translations } from "../translations";
 import { computeProfileCompleteness } from "./ProfilePage";
 import { getRingColor } from "../utils/jobInference";
 import { apiFetch } from "../utils/api";
+import { getSessionMatches } from "../utils/matchScoreSession";
 import { FREE_PLAN_LIMIT } from "../utils/applicationLimit";
 import LoadingScreen from "../components/LoadingScreen";
 import {
@@ -245,26 +246,21 @@ function CandidateDashboard() {
 
         if (userEmail && combinedJobIds.length > 0) {
           try {
-            const matchData: {
-              hasAnalysis: boolean;
-              matches: { jobId: number; matchPercent: number | null; fieldRelated?: boolean }[];
-            } = await apiFetch(`/api/jobs/match-scores`, {
-              method: "POST",
-              body: JSON.stringify({
-                email: userEmail,
-                jobIds: combinedJobIds,
-                language,
-              }),
-            });
+            // Session-scoped: the first time this tab session asks about these jobs, this
+            // computes real scores (one OpenAI call per unscored job) and caches the result for
+            // the rest of the session - see utils/matchScoreSession.ts. Every later call here,
+            // or from JobMatches (which shares this same cache), reuses it instead of
+            // recomputing, without ever falling back to a fake "0 matches".
+            const bucket = await getSessionMatches(userEmail, "internal", combinedJobIds, language);
 
-            // Explicit gate (not just "trust matches is empty") so a candidate with no
-            // CVAnalysis never sees a score here even if some future backend change or
-            // caching bug lets a non-empty matches array slip through.
-            if (matchData.hasAnalysis) {
-              (matchData.matches || []).forEach((match) => {
-                matchByJobId.set(match.jobId, {
-                  matchPercent: match.matchPercent,
-                  fieldRelated: match.fieldRelated !== false,
+            // Explicit gate (not just "trust entries is empty") so a candidate with no
+            // CVAnalysis never sees a score here even if some future backend change lets a
+            // non-empty entries object slip through.
+            if (bucket.hasAnalysis) {
+              Object.entries(bucket.entries).forEach(([jobId, entry]) => {
+                matchByJobId.set(Number(jobId), {
+                  matchPercent: entry.matchPercent,
+                  fieldRelated: entry.fieldRelated !== false,
                 });
               });
             }
@@ -281,23 +277,14 @@ function CandidateDashboard() {
 
         if (userEmail && externalJobIds.length > 0) {
           try {
-            const extMatchData: {
-              hasAnalysis: boolean;
-              matches: { jobId: number; matchPercent: number | null; fieldRelated?: boolean }[];
-            } = await apiFetch(`/api/external-jobs/match-scores`, {
-              method: "POST",
-              body: JSON.stringify({
-                email: userEmail,
-                externalJobIds,
-                language,
-              }),
-            });
+            // Session-scoped - see the internal-jobs getSessionMatches call above for why.
+            const extBucket = await getSessionMatches(userEmail, "external", externalJobIds, language);
 
-            if (extMatchData.hasAnalysis) {
-              (extMatchData.matches || []).forEach((match) => {
-                externalMatchByJobId.set(match.jobId, {
-                  matchPercent: match.matchPercent,
-                  fieldRelated: match.fieldRelated !== false,
+            if (extBucket.hasAnalysis) {
+              Object.entries(extBucket.entries).forEach(([jobId, entry]) => {
+                externalMatchByJobId.set(Number(jobId), {
+                  matchPercent: entry.matchPercent,
+                  fieldRelated: entry.fieldRelated !== false,
                 });
               });
             }

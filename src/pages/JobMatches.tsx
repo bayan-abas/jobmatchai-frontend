@@ -32,6 +32,7 @@ import {
 } from "../utils/jobInference";
 import { formatSalary } from "../utils/formatSalary";
 import { apiFetch } from "../utils/api";
+import { getSessionMatches } from "../utils/matchScoreSession";
 import { FREE_PLAN_LIMIT } from "../utils/applicationLimit";
 import LoadingScreen from "../components/LoadingScreen";
 import PreInterviewModal from "../components/PreInterviewModal";
@@ -222,39 +223,23 @@ function JobMatches() {
     let cancelled = false;
     setMatchScoresLoading(true);
 
-    apiFetch(`/api/jobs/match-scores`, {
-      method: "POST",
-      body: JSON.stringify({
-        email: identity.email,
-        jobIds,
-        language,
-      }),
-    })
-      .then((data: {
-        hasAnalysis: boolean;
-        matches: {
-          jobId: number;
-          fieldRelated?: boolean | null;
-          matchPercent: number | null;
-          matchReason: string;
-          matchedSkills?: string[];
-          missingSkills?: string[];
-        }[];
-      }) => {
+    // Session-scoped: shares the same cache as CandidateDashboard (see
+    // utils/matchScoreSession.ts), so if the dashboard already computed scores for these jobs
+    // this tab session, this resolves instantly from cache instead of re-running AI scoring.
+    getSessionMatches(identity.email, "internal", jobIds, language)
+      .then((bucket) => {
         if (cancelled) return;
 
-        setHasAnalysis(Boolean(data.hasAnalysis));
+        setHasAnalysis(bucket.hasAnalysis);
 
         const nextScores = new Map<number, MatchScoreEntry>();
-        (data.matches || []).forEach((match) => {
-          nextScores.set(match.jobId, {
-            matchPercent: match.matchPercent,
-            matchReason: match.matchReason,
-            matchedSkills: match.matchedSkills || [],
-            missingSkills: match.missingSkills || [],
-            // A missing key (older API responses) defaults to true; an explicit null is the
-            // backend's "couldn't compute this" sentinel and must stay null, not collapse to true.
-            fieldRelated: match.fieldRelated === undefined ? true : match.fieldRelated,
+        Object.entries(bucket.entries).forEach(([jobId, entry]) => {
+          nextScores.set(Number(jobId), {
+            matchPercent: entry.matchPercent,
+            matchReason: entry.matchReason || "",
+            matchedSkills: entry.matchedSkills || [],
+            missingSkills: entry.missingSkills || [],
+            fieldRelated: entry.fieldRelated === undefined ? true : entry.fieldRelated,
           });
         });
 
