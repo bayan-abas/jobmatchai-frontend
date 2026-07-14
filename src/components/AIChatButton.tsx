@@ -37,14 +37,12 @@ function AIChatButton() {
         clear: "محادثة جديدة",
         quickPrompts: isCompany
           ? [
-              "من هم أفضل المرشحين لدي؟",
-              "ما الطلبات التي يجب مراجعتها أولاً؟",
-              "ما الوظيفة التي حصلت على أكثر عدد من الطلبات؟",
-              "لخص طلباتي الأخيرة.",
-              "ما المرشحون الذين لديهم أعلى نسب تطابق؟",
-              "كيف يمكنني تحسين هذا الإعلان الوظيفي؟",
-              "ما المهارات الناقصة لدى المتقدمين؟",
-              "أظهر المرشحين بانتظار المراجعة.",
+              "أفضل المرشحين",
+              "مراجعة الطلبات",
+              "أكثر المتقدمين",
+              "تحسين الإعلان",
+              "مهارات ناقصة",
+              "قيد المراجعة",
             ]
           : ["شو أفضل الوظائف إلي؟", "كيف أحسن السيرة الذاتية؟", "كيف أزيد نسبة التطابق؟"],
         send: "إرسال",
@@ -68,14 +66,12 @@ function AIChatButton() {
         clear: "שיחה חדשה",
         quickPrompts: isCompany
           ? [
-              "מי המועמדים המובילים שלי?",
-              "אילו הגשות כדאי לבדוק קודם?",
-              "לאיזו משרה יש הכי הרבה הגשות?",
-              "סכם את ההגשות האחרונות שלי.",
-              "לאילו מועמדים יש את ציוני ההתאמה הגבוהים ביותר?",
-              "איך אפשר לשפר את מודעת המשרה הזו?",
-              "אילו כישורים חסרים למועמדים שלי?",
-              "הצג מועמדים הממתינים לבדיקה.",
+              "מועמדים מובילים",
+              "בדיקת הגשות",
+              "הכי הרבה הגשות",
+              "שיפור מודעת המשרה",
+              "כישורים חסרים",
+              "ממתינים לבדיקה",
             ]
           : ["אילו משרות הכי מתאימות לי?", "איך לשפר את קורות החיים?", "איך להעלות את אחוז ההתאמה?"],
         send: "שלח",
@@ -98,14 +94,12 @@ function AIChatButton() {
       clear: "New chat",
       quickPrompts: isCompany
         ? [
-            "Who are my top candidates?",
-            "Which applications should I review first?",
-            "Which job has the most applications?",
-            "Summarize my recent applications.",
-            "Which candidates have the highest match scores?",
-            "How can I improve this job posting?",
-            "What skills are missing from my applicants?",
-            "Show candidates waiting for review.",
+            "Top candidates",
+            "Review applications",
+            "Most applicants",
+            "Improve job post",
+            "Missing skills",
+            "Pending reviews",
           ]
         : ["What jobs fit me best?", "How can I improve my resume?", "How do I increase my match score?"],
       send: "Send",
