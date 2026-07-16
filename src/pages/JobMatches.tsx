@@ -34,7 +34,6 @@ import { formatSalary } from "../utils/formatSalary";
 import { apiFetch } from "../utils/api";
 import { getSessionMatches } from "../utils/matchScoreSession";
 import { FREE_PLAN_LIMIT } from "../utils/applicationLimit";
-import LoadingScreen from "../components/LoadingScreen";
 import PreInterviewModal from "../components/PreInterviewModal";
 import ApplicationSuccessModal from "../components/ApplicationSuccessModal";
 
@@ -626,7 +625,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
       <article
         key={`${job.title}-${job.company}-${index}`}
         onClick={() => job.id != null && navigate(`/job-details/internal/${job.id}`)}
-        className="group cursor-pointer rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)] transition hover:border-white/20 hover:bg-[rgba(50,52,108,0.96)]"
+        className="group cursor-pointer rounded-[28px] border border-white/10 bg-[rgba(48,46,108,0.72)] px-7 py-7 shadow-[0_10px_35px_rgba(0,0,0,0.16)] backdrop-blur-[10px] transition hover:bg-[rgba(54,52,118,0.84)]"
       >
         <div className="flex flex-col gap-6 md:flex-row md:items-center">
           <div className="flex flex-col items-center justify-center md:justify-start">
@@ -703,12 +702,12 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
             >
               <h2 className="text-[22px] font-extrabold text-white">{job.title}</h2>
 
-              <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-semibold text-emerald-300">
+              <span className="rounded-full bg-[rgba(38,199,132,0.14)] px-3 py-1 text-[12px] font-bold text-[#4ff0b2] border border-[rgba(79,240,178,0.18)]">
                 {t.jobMatches.statusActive || "Active"}
               </span>
 
               {fromSaved && (
-                <span className="rounded-full border border-[#8b5cf6]/30 bg-[#8b5cf6]/15 px-3 py-1 text-sm font-semibold text-[#c4b5fd]">
+                <span className="rounded-full bg-[rgba(147,117,255,0.12)] px-3 py-1 text-[12px] font-bold text-[#cbb8ff] border border-[rgba(203,184,255,0.14)]">
                   Saved
                 </span>
               )}
@@ -779,7 +778,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                   {matchedSkills.map((skill) => (
                     <span
                       key={skill}
-                      className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-semibold text-emerald-300"
+                      className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-300"
                     >
                       {skill}
                     </span>
@@ -788,7 +787,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                   {missingSkills.map((skill) => (
                     <span
                       key={skill}
-                      className="rounded-full border border-rose-400/20 bg-rose-400/10 px-3 py-1 text-sm font-semibold text-rose-300"
+                      className="rounded-full border border-rose-400/20 bg-rose-500/10 px-2.5 py-1 text-xs font-semibold text-rose-300"
                     >
                       {skill}
                     </span>
@@ -854,7 +853,18 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
   };
 
   if (loading) {
-    return <LoadingScreen message="Finding the best job matches for your profile..." />;
+    return (
+      <div
+        dir={isRTL ? "rtl" : "ltr"}
+        className="min-h-[calc(100vh-78px)] bg-[radial-gradient(circle_at_top_left,rgba(86,45,255,0.16),transparent_24%),radial-gradient(circle_at_bottom_right,rgba(32,146,255,0.13),transparent_22%),linear-gradient(135deg,#0a0d2e_0%,#101548_45%,#181b58_100%)] px-4 py-7 lg:px-8"
+      >
+        <div className="mx-auto w-full max-w-[1080px]">
+          <div className="rounded-[28px] border border-white/10 bg-[rgba(48,46,108,0.72)] p-8 text-center text-white/70">
+            {t.common?.loading || "Loading..."}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -880,11 +890,11 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                 <button
                   type="button"
                   onClick={() => navigate("/candidate-dashboard")}
-                  className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white ${
+                  className={`inline-flex items-center gap-3 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-6 py-3 text-[16px] font-semibold text-white/80 backdrop-blur-[8px] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-white ${
                     isRTL ? "flex-row-reverse" : ""
                   }`}
                 >
-                  <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
+                  <ArrowLeft size={18} className={isRTL ? "rotate-180" : ""} />
                   <span>{t.common?.back || "Back"}</span>
                 </button>
 
@@ -1190,11 +1200,11 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
               <button
                 type="button"
                 onClick={() => setShowSavedJobs(false)}
-                className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white ${
+                className={`inline-flex items-center gap-3 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-6 py-3 text-[16px] font-semibold text-white/80 backdrop-blur-[8px] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-white ${
                   isRTL ? "flex-row-reverse" : ""
                 }`}
               >
-                <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
+                <ArrowLeft size={18} className={isRTL ? "rotate-180" : ""} />
                 <span>{t.common?.back || "Back"}</span>
               </button>
             </div>
@@ -1211,9 +1221,9 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                 {savedJobs.map((job, index) => renderJobCard(job, index, true))}
               </section>
             ) : (
-              <div className="rounded-[30px] border border-white/10 bg-white/[0.05] px-7 py-10 text-center">
-                <p className="text-[18px] font-semibold text-white">No saved jobs yet</p>
-                <p className="mt-2 text-[#aeb4d6]">
+              <div className="rounded-[28px] border border-white/10 bg-[rgba(48,46,108,0.72)] p-8 text-center text-white/70">
+                <p className="font-semibold text-white">No saved jobs yet</p>
+                <p className="mt-1 text-white/60">
                   Save jobs from the matches list and they will appear here.
                 </p>
               </div>

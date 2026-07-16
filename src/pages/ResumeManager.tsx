@@ -296,9 +296,11 @@ function ResumeManager() {
           <div className="mb-5 flex items-center justify-start">
             <button
               onClick={() => window.history.back()}
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white"
+              className={`flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white ${
+                isRTL ? "flex-row-reverse" : ""
+              }`}
             >
-              <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
+              <ArrowLeft size={18} className={isRTL ? "rotate-180" : ""} />
               <span>{t.common.back}</span>
             </button>
           </div>
@@ -340,7 +342,7 @@ function ResumeManager() {
                   <button
                     onClick={handleChoose}
                     disabled={isUploading || isDeleting}
-                    className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#7f4cff] to-[#6366f1] px-5 py-2.5 text-sm font-semibold text-white transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-violet-500 to-indigo-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-500/20 transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isUploading ? (
                       <Loader2 size={16} className="animate-spin" />
@@ -354,7 +356,7 @@ function ResumeManager() {
                     <button
                       onClick={handleViewCV}
                       disabled={isAnalyzing || isDeleting}
-                      className="inline-flex items-center gap-2 rounded-full border border-violet-400/20 bg-violet-400/10 px-5 py-2.5 text-sm font-semibold text-violet-200 transition hover:bg-violet-400/15 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex items-center gap-2 rounded-[12px] border border-violet-400/30 bg-violet-500/10 px-3.5 py-2 text-sm font-semibold text-violet-200 transition hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <Eye size={16} />
                       {r.viewCV}
@@ -365,7 +367,7 @@ function ResumeManager() {
                     <button
                       onClick={handleAnalyze}
                       disabled={isAnalyzing || isDeleting}
-                      className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-5 py-2.5 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex items-center gap-2 rounded-[12px] border border-cyan-400/30 bg-cyan-500/10 px-3.5 py-2 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isAnalyzing ? (
                         <Loader2 size={16} className="animate-spin" />
@@ -389,7 +391,13 @@ function ResumeManager() {
           />
 
           <section className="space-y-5">
-            <article className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-7 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+            <article
+              className={`rounded-[28px] px-7 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.18)] ${
+                !initialLoading && !fileName
+                  ? "border border-dashed border-white/15 bg-white/[0.02]"
+                  : "border border-white/10 bg-white/[0.05]"
+              }`}
+            >
               <div className="flex flex-col items-center justify-center text-center">
                 <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-[28px] bg-gradient-to-br from-[#7f4cff33] to-[#38bdf833] text-[#d9dcff] shadow-[0_10px_30px_rgba(0,0,0,0.18)]">
                   <UploadCloud size={40} />
@@ -399,7 +407,7 @@ function ResumeManager() {
                   {r.uploadResume}
                 </h2>
 
-                <p className="mt-4 max-w-[620px] text-[18px] leading-8 text-[#b8bddb]">
+                <p className="mt-4 max-w-[620px] text-[18px] leading-8 text-white/50">
                   {r.uploadText}
                 </p>
 
@@ -413,7 +421,7 @@ function ResumeManager() {
                     <button
                       onClick={handleChoose}
                       disabled={isUploading}
-                      className="mt-8 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#7f4cff] to-[#6366f1] px-8 py-3 font-semibold text-white transition hover:scale-[1.03] disabled:cursor-not-allowed disabled:opacity-60"
+                      className="mt-8 inline-flex items-center gap-2 rounded-xl border border-violet-400/30 bg-violet-500/10 px-4 py-2 text-sm font-semibold text-violet-200 transition hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isUploading && <Loader2 size={16} className="animate-spin" />}
                       {isUploading ? r.uploading : r.chooseFile}
@@ -455,7 +463,7 @@ function ResumeManager() {
             </article>
 
             {fileName && (
-              <article className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)] transition hover:border-white/20 hover:bg-[rgba(50,52,108,0.96)]">
+              <article className="rounded-[28px] border border-white/10 bg-white/[0.045] p-6 shadow-[0_12px_35px_rgba(0,0,0,0.16)] transition hover:bg-white/[0.06]">
                 <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-start gap-4">
                     <div className="flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-[20px] bg-gradient-to-br from-emerald-500 to-cyan-500 text-white shadow-[0_10px_30px_rgba(0,0,0,0.18)]">
@@ -468,7 +476,7 @@ function ResumeManager() {
                           {r.resumeUploaded}
                         </h2>
 
-                        <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-semibold text-emerald-300">
+                        <span className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-3 py-1 text-sm font-semibold text-emerald-300">
                           {r.activeFile}
                         </span>
                       </div>
@@ -483,7 +491,7 @@ function ResumeManager() {
                     <button
                       onClick={handleViewCV}
                       disabled={isAnalyzing || isDeleting}
-                      className="inline-flex items-center gap-2 rounded-full border border-violet-400/20 bg-violet-400/10 px-5 py-2.5 text-sm font-semibold text-violet-200 transition hover:bg-violet-400/15 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex items-center gap-2 rounded-[12px] border border-violet-400/30 bg-violet-500/10 px-3.5 py-2 text-sm font-semibold text-violet-200 transition hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <Eye size={16} />
                       {r.viewCV}
@@ -492,7 +500,7 @@ function ResumeManager() {
                     <button
                       onClick={handleAnalyze}
                       disabled={isAnalyzing || isDeleting}
-                      className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-5 py-2.5 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex items-center gap-2 rounded-[12px] border border-cyan-400/30 bg-cyan-500/10 px-3.5 py-2 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isAnalyzing ? (
                         <Loader2 size={16} className="animate-spin" />
@@ -505,7 +513,7 @@ function ResumeManager() {
                     <button
                       onClick={handleDelete}
                       disabled={isAnalyzing || isDeleting}
-                      className="inline-flex items-center gap-2 rounded-full border border-rose-400/20 bg-rose-400/10 px-5 py-2.5 text-sm font-semibold text-rose-300 transition hover:bg-rose-400/15 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex items-center gap-2 rounded-[12px] bg-rose-500/20 px-3.5 py-2 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/30 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isDeleting ? (
                         <Loader2 size={16} className="animate-spin" />
@@ -520,7 +528,7 @@ function ResumeManager() {
             )}
 
             {isAnalyzing && (
-              <article className="rounded-[30px] border border-cyan-400/20 bg-[rgba(32,36,86,0.92)] px-7 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.20)]">
+              <article className="rounded-[28px] border border-cyan-400/20 bg-cyan-500/10 px-7 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
                 <div className="flex flex-col items-center text-center">
                   <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-cyan-400/10 text-cyan-300 shadow-[0_0_40px_rgba(34,211,238,0.15)]">
                     <Brain size={34} className="animate-pulse" />
@@ -576,7 +584,7 @@ function ResumeManager() {
                   </div>
                 </div>
 
-                <article className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-7 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+                <article className="rounded-[28px] border border-white/10 bg-white/[0.05] px-7 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
                   <div className="flex flex-col items-center justify-center text-center">
                     <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#5e66ff1f] text-[#7c88ff] shadow-[0_0_35px_rgba(127,76,255,0.18)]">
                       <Sparkles size={28} />
@@ -601,11 +609,11 @@ function ResumeManager() {
                     )}
 
                     <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-                      <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-sm font-semibold text-emerald-300">
+                      <div className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300">
                         {r.atsReadiness}: {analysis.atsReadiness}
                       </div>
                       {analysis.candidateField && (
-                        <div className="rounded-full border border-violet-400/20 bg-violet-400/10 px-4 py-2 text-sm font-semibold text-violet-300 capitalize">
+                        <div className="rounded-full border border-violet-400/20 bg-violet-500/10 px-4 py-2 text-sm font-semibold text-violet-300 capitalize">
                           {r.detectedField}: {analysis.candidateField}
                         </div>
                       )}
@@ -614,7 +622,7 @@ function ResumeManager() {
                 </article>
 
                 <div className="grid gap-5 lg:grid-cols-2">
-                  <article className="rounded-[28px] border border-emerald-400/15 bg-[rgba(44,45,95,0.9)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+                  <article className="rounded-[28px] border border-emerald-400/15 bg-white/[0.05] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
                     <div className={`mb-4 flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
                       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-400/10 text-emerald-300">
                         <BadgeCheck size={22} />
@@ -633,7 +641,7 @@ function ResumeManager() {
                     )}
                   </article>
 
-                  <article className="rounded-[28px] border border-amber-400/15 bg-[rgba(44,45,95,0.9)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+                  <article className="rounded-[28px] border border-amber-400/15 bg-white/[0.05] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
                     <div className={`mb-4 flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
                       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-400/10 text-amber-300">
                         <TrendingUp size={22} />
@@ -654,7 +662,7 @@ function ResumeManager() {
                 </div>
 
                 {analysis.missingKeywords.length > 0 && (
-                  <article className="rounded-[28px] border border-cyan-400/15 bg-[rgba(44,45,95,0.9)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+                  <article className="rounded-[28px] border border-cyan-400/15 bg-white/[0.05] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
                     <div className={`mb-4 flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
                       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-300">
                         <AlertCircle size={22} />
@@ -668,7 +676,7 @@ function ResumeManager() {
                       {analysis.missingKeywords.map((keyword, index) => (
                         <span
                           key={index}
-                          className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-semibold text-cyan-200"
+                          className="rounded-full border border-cyan-400/20 bg-cyan-500/10 px-3 py-1.5 text-sm font-semibold text-cyan-200"
                         >
                           {keyword}
                         </span>

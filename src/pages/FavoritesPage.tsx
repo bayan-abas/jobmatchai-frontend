@@ -84,13 +84,13 @@ function FavoritesPage() {
           )}
 
           {!loading && !email && (
-            <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-6 py-12 text-center text-white/65">
+            <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-10 text-center text-white/65">
               {f.loginRequired}
             </div>
           )}
 
           {!loading && email && rows.length === 0 && (
-            <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-6 py-12 text-center text-white/65">
+            <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-10 text-center text-white/65">
               {f.empty}
             </div>
           )}
@@ -144,7 +144,7 @@ function FavoritesPage() {
                       e.stopPropagation();
                       handleUnsave(row);
                     }}
-                    className="inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-full border border-rose-400/20 bg-rose-400/10 px-4 py-2 text-sm font-semibold text-rose-300 transition hover:bg-rose-400/20 md:self-center"
+                    className="inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-xl border border-rose-400/30 bg-rose-500/10 px-5 py-2.5 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/20 md:self-center"
                   >
                     <Trash2 size={16} />
                     {f.unsave}

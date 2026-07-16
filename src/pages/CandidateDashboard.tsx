@@ -8,7 +8,6 @@ import { getRingColor } from "../utils/jobInference";
 import { apiFetch } from "../utils/api";
 import { getSessionMatches } from "../utils/matchScoreSession";
 import { FREE_PLAN_LIMIT } from "../utils/applicationLimit";
-import LoadingScreen from "../components/LoadingScreen";
 import {
   BriefcaseBusiness,
   Globe2,
@@ -18,7 +17,6 @@ import {
   Sparkles,
   ChevronRight,
   ChevronLeft,
-  ArrowLeft,
   Building2,
   MapPin,
   Wifi,
@@ -428,42 +426,23 @@ function CandidateDashboard() {
 
   const profilePercent = profileScore;
 
-  if (loading) {
-    return <LoadingScreen message={t.dashboard.loadingMessage || "Loading your dashboard..."} />;
-  }
-
   return (
     <div
       dir={isRTL ? "rtl" : "ltr"}
-      className="min-h-[calc(100vh-78px)] bg-[radial-gradient(circle_at_top_left,rgba(86,45,255,0.16),transparent_24%),radial-gradient(circle_at_bottom_right,rgba(32,146,255,0.13),transparent_22%),linear-gradient(135deg,#0a0d2e_0%,#101548_45%,#181b58_100%)] px-4 py-7 lg:px-8"
+      className="min-h-screen w-full bg-[linear-gradient(135deg,#17184a_0%,#1a1b56_40%,#102a56_100%)] px-6 pb-10 pt-8 md:px-8 lg:px-10"
     >
-      <div className="mx-auto w-full max-w-[1250px]">
+      <div className="mx-auto w-full max-w-[1700px]">
         <section className="mb-8">
-          <div
-            className={`mb-5 flex items-center ${
-              isRTL ? "justify-end" : "justify-start"
-            }`}
-          >
-            <button
-              type="button"
-              onClick={() => navigate("/")}
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white"
-            >
-              <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
-              <span>{t.common.back}</span>
-            </button>
-          </div>
-
           <div className="mb-6 flex items-start gap-4">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
               <Sparkles size={26} />
             </div>
 
             <div className={`min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
-              <h1 className="text-[42px] font-extrabold leading-tight text-white">
+              <h1 className="text-3xl font-extrabold tracking-tight text-white md:text-4xl">
                 {`${t.dashboard.welcome}, ${userName}`} 👋
               </h1>
-              <p className="mt-2 text-[17px] text-[#aeb4d6]">
+              <p className="mt-2 text-[15px] font-semibold text-white/70 md:text-base">
                 {t.dashboard.subtitle}
               </p>
             </div>
@@ -482,26 +461,26 @@ function CandidateDashboard() {
               key={stat.label}
               type="button"
               onClick={stat.onClick}
-              className={`rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-6 py-6 text-inherit shadow-[0_18px_50px_rgba(0,0,0,0.16)] transition hover:border-white/20 hover:bg-[rgba(50,52,108,0.96)] ${
+              className={`group rounded-[28px] border border-white/10 bg-white/[0.05] p-5 text-inherit shadow-[0_10px_30px_rgba(0,0,0,0.14)] transition hover:-translate-y-1 hover:bg-white/[0.065] ${
                 stat.onClick ? "cursor-pointer" : "cursor-default"
               }`}
             >
-              <div className="mb-6 flex items-start justify-between">
+              <div className="mb-8 flex items-start justify-between">
                 <div
                   className={`flex h-12 w-12 items-center justify-center rounded-2xl ${stat.iconBg} ${stat.iconColor}`}
                 >
                   {stat.icon}
                 </div>
                 <ChevronRight
-                  size={20}
-                  className={`text-white/30 ${isRTL ? "rotate-180" : ""}`}
+                  size={18}
+                  className={`text-white/18 transition group-hover:text-white/35 ${isRTL ? "rotate-180" : ""}`}
                 />
               </div>
 
-              <h2 className="mb-1 text-[40px] font-extrabold leading-none text-white">
+              <div className="text-4xl font-extrabold text-white">
                 {stat.value}
-              </h2>
-              <p className="text-[15px] text-[#aeb4d6]">{stat.label}</p>
+              </div>
+              <p className="mt-1 text-[15px] text-white/60">{stat.label}</p>
             </button>
           ))}
         </section>
@@ -539,17 +518,17 @@ function CandidateDashboard() {
         </section>
 
         <section className="mb-8 grid grid-cols-1 gap-6 xl:grid-cols-[1.25fr_0.95fr]">
-          <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+          <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_12px_35px_rgba(0,0,0,0.14)] md:p-6">
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#5e66ff1f] text-[#7c88ff]">
-                  <BriefcaseBusiness size={22} />
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-500/12 text-indigo-300">
+                  <BriefcaseBusiness size={20} />
                 </div>
                 <div className={`min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
-                  <h3 className="text-[22px] font-extrabold text-white">
+                  <h3 className="text-2xl font-bold text-white">
                     {t.dashboard.topMatches.title}
                   </h3>
-                  <p className="mt-1 text-[15px] text-[#aeb4d6]">
+                  <p className="mt-1 text-sm text-white/55">
                     {t.dashboard.topMatches.subtitle}
                   </p>
                 </div>
@@ -558,20 +537,21 @@ function CandidateDashboard() {
               <button
                 type="button"
                 onClick={() => navigate("/job-matches")}
-                className="inline-flex shrink-0 items-center gap-2 text-[15px] font-semibold text-[#dbe2ff] transition hover:text-white"
+                className="inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-indigo-300 transition hover:text-indigo-200"
               >
                 {t.dashboard.topMatches.viewAll}
-                <ChevronRight size={18} className={isRTL ? "rotate-180" : ""} />
+                <ChevronRight size={16} className={isRTL ? "rotate-180" : ""} />
               </button>
             </div>
 
-            <div className="space-y-5">
-              {topMatches.length === 0 ? (
-                <div className="rounded-[28px] border border-white/10 bg-[rgba(50,52,108,0.78)] px-5 py-8 text-center text-white/60">
+            <div className="space-y-4">
+              {!loading && topMatches.length === 0 && (
+                <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-6 text-center text-sm text-white/50">
                   {t.dashboard.noMatchesYet || "No job matches yet."}
                 </div>
-              ) : (
-                topMatches.map((job) => (
+              )}
+
+              {topMatches.map((job) => (
                   <article
                     key={job.id}
                     onClick={() =>
@@ -579,7 +559,7 @@ function CandidateDashboard() {
                         state: { selectedJobTitle: job.title },
                       })
                     }
-                    className="group cursor-pointer rounded-[28px] border border-white/10 bg-[rgba(50,52,108,0.78)] px-5 py-5 transition hover:border-white/20 hover:bg-[rgba(56,58,118,0.95)]"
+                    className="group cursor-pointer rounded-[24px] border border-white/10 bg-white/[0.045] px-5 py-5 transition hover:bg-white/[0.07]"
                   >
                     <div className="flex flex-col gap-5 md:flex-row md:items-center">
                       <div className="flex flex-col items-center justify-center md:justify-start">
@@ -634,22 +614,21 @@ function CandidateDashboard() {
                       </div>
                     </div>
                   </article>
-                ))
-              )}
+              ))}
             </div>
           </div>
 
-          <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+          <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_12px_35px_rgba(0,0,0,0.14)] md:p-6">
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#22d3ee1f] text-[#67e8f9]">
-                  <FileText size={22} />
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cyan-500/12 text-cyan-300">
+                  <FileText size={20} />
                 </div>
                 <div className={`min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
-                  <h3 className="text-[22px] font-extrabold text-white">
+                  <h3 className="text-2xl font-bold text-white">
                     {t.dashboard.applications.title}
                   </h3>
-                  <p className="mt-1 text-[15px] text-[#aeb4d6]">
+                  <p className="mt-1 text-sm text-white/55">
                     {t.dashboard.applications.subtitle}
                   </p>
                 </div>
@@ -658,20 +637,21 @@ function CandidateDashboard() {
               <button
                 type="button"
                 onClick={() => navigate("/applications")}
-                className="inline-flex shrink-0 items-center gap-2 text-[15px] font-semibold text-[#dbe2ff] transition hover:text-white"
+                className="inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-cyan-300 transition hover:text-cyan-200"
               >
                 {t.dashboard.applications.viewAll}
-                <ChevronRight size={18} className={isRTL ? "rotate-180" : ""} />
+                <ChevronRight size={16} className={isRTL ? "rotate-180" : ""} />
               </button>
             </div>
 
             <div className="space-y-4">
-              {applications.length === 0 ? (
-                <div className="rounded-[26px] border border-white/10 bg-[rgba(50,52,108,0.78)] px-5 py-8 text-center text-white/60">
+              {!loading && applications.length === 0 && (
+                <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-6 text-center text-sm text-white/50">
                   No recent applications yet.
                 </div>
-              ) : (
-                applications.map((app) => (
+              )}
+
+              {applications.map((app) => (
                   <article
                     key={app.id}
                     onClick={() =>
@@ -679,7 +659,7 @@ function CandidateDashboard() {
                         state: { selectedApplicationId: app.id },
                       })
                     }
-                    className="group cursor-pointer rounded-[26px] border border-white/10 bg-[rgba(50,52,108,0.78)] px-5 py-5 transition hover:border-white/20 hover:bg-[rgba(56,58,118,0.95)]"
+                    className="group cursor-pointer rounded-[24px] border border-white/10 bg-white/[0.045] px-5 py-5 transition hover:bg-white/[0.07]"
                   >
                     <div className="flex items-start gap-4">
                       <ScoreRing value={app.percent} />
@@ -720,14 +700,13 @@ function CandidateDashboard() {
                       />
                     </div>
                   </article>
-                ))
-              )}
+              ))}
             </div>
 
             <button
               type="button"
               onClick={() => navigate("/applications")}
-              className="mt-6 w-full rounded-[18px] border border-white/10 bg-white/[0.04] py-3.5 text-center text-[16px] font-bold text-white/80 transition hover:bg-white/[0.08] hover:text-white"
+              className="mt-6 w-full rounded-2xl border border-white/10 bg-white/[0.03] py-3.5 text-sm font-bold text-white/70 transition hover:bg-white/[0.07] hover:text-white"
             >
               {t.dashboard.applications.viewAll}
             </button>
@@ -735,17 +714,17 @@ function CandidateDashboard() {
         </section>
 
         {recentlyViewed.length > 0 && (
-          <section className="mb-8 rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+          <section className="mb-8 rounded-[30px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_12px_35px_rgba(0,0,0,0.14)] md:p-6">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
               <div className="flex min-w-0 items-center gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#a855f71f] text-[#d8b4fe]">
-                  <CalendarDays size={22} />
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-violet-500/12 text-violet-300">
+                  <CalendarDays size={20} />
                 </div>
                 <div className={`min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
-                  <h3 className="text-[22px] font-extrabold text-white">
+                  <h3 className="text-2xl font-bold text-white">
                     {t.dashboard.recentlyViewed.title}
                   </h3>
-                  <p className="mt-1 text-[15px] text-[#aeb4d6]">
+                  <p className="mt-1 text-sm text-white/55">
                     {t.dashboard.recentlyViewed.subtitle}
                   </p>
                 </div>
@@ -787,7 +766,7 @@ function CandidateDashboard() {
                   key={`${item.jobType}-${item.jobId}`}
                   type="button"
                   onClick={() => navigate(`/job-details/${item.jobType}/${item.jobId}`)}
-                  className={`w-[260px] shrink-0 rounded-[22px] border border-white/10 bg-[rgba(50,52,108,0.78)] p-5 transition hover:border-white/20 hover:bg-[rgba(56,58,118,0.95)] ${
+                  className={`w-[260px] shrink-0 rounded-[22px] border border-white/10 bg-white/[0.045] p-5 transition hover:bg-white/[0.07] ${
                     isRTL ? "text-right" : "text-left"
                   }`}
                 >
@@ -805,12 +784,12 @@ function CandidateDashboard() {
                       {item.jobType === "external" ? t.jobDetails.externalJobBadge : t.jobDetails.internalJobBadge}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 text-[13px] text-[#aeb4d6]">
+                  <div className="flex items-center gap-2 text-[13px] text-white/55">
                     <Building2 size={14} />
                     <span className="truncate">{item.companyName || "Unknown Company"}</span>
                   </div>
                   {item.location && (
-                    <div className="mt-1 flex items-center gap-2 text-[13px] text-[#aeb4d6]">
+                    <div className="mt-1 flex items-center gap-2 text-[13px] text-white/55">
                       <MapPin size={14} />
                       <span className="truncate">{item.location}</span>
                     </div>
@@ -821,7 +800,7 @@ function CandidateDashboard() {
           </section>
         )}
 
-        <section className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-7 py-7 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+        <section className="rounded-[30px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_12px_35px_rgba(0,0,0,0.14)] md:p-6">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-5">
               <div
@@ -880,7 +859,7 @@ function CandidateDashboard() {
           </div>
         </section>
 
-        <section className="mt-6 rounded-[30px] border border-white/10 bg-[linear-gradient(135deg,rgba(32,35,88,0.96),rgba(49,37,98,0.96))] px-7 py-7 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+        <section className="mt-6 rounded-[30px] border border-white/10 bg-[linear-gradient(135deg,rgba(139,92,246,0.09),rgba(255,255,255,0.03))] p-5 shadow-[0_12px_35px_rgba(0,0,0,0.14)] md:p-6">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-[640px]">
               <div className="mb-4 inline-flex items-center rounded-full border border-[#c084fc]/20 bg-[#c084fc]/10 px-3 py-1 text-[13px] font-semibold text-[#e9c7ff]">

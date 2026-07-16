@@ -55,7 +55,7 @@ function SkillExplanationModal({ skillName, jobTitle, language, t, isRTL, onClos
       <div
         dir={isRTL ? "rtl" : "ltr"}
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[85vh] w-full max-w-[560px] overflow-y-auto rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.96)] p-7 shadow-[0_24px_90px_rgba(0,0,0,0.55)]"
+        className="max-h-[85vh] w-full max-w-[560px] overflow-y-auto rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,#09152f_0%,#0d1730_100%)] p-7 shadow-[0_30px_80px_rgba(0,0,0,0.55)]"
       >
         <div className={`mb-6 flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
           <h2 className="text-[24px] font-extrabold text-white">{skillName}</h2>
