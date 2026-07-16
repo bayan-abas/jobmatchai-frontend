@@ -7,6 +7,7 @@ type Language = "en" | "ar" | "he";
 const translations = {
   en: {
     home: "Home",
+    jobs: "Jobs",
     about: "About",
     how: "How It Works",
     features: "Features",
@@ -86,6 +87,7 @@ const translations = {
 
   ar: {
     home: "الرئيسية",
+    jobs: "الوظائف",
     about: "من نحن",
     how: "كيف يعمل",
     features: "المميزات",
@@ -164,6 +166,7 @@ const translations = {
 
   he: {
     home: "בית",
+    jobs: "משרות",
     about: "אודות",
     how: "איך זה עובד",
     features: "תכונות",
@@ -294,7 +297,7 @@ function HomePage() {
             onClick={() => navigate("/jobs")}
             className="rounded-[14px] px-5 py-2 text-sm font-semibold text-[#c9d6ed] transition hover:bg-white/10 hover:text-white"
           >
-            Jobs
+            {t.jobs}
           </button>
         </div>
 

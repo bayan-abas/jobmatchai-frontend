@@ -8,7 +8,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { useUnreadCount } from "../hooks/useUnreadCount";
-import { ArrowLeft, Search, Bell } from "lucide-react";
+import { Bell } from "lucide-react";
 
 type CandidateLayoutProps = { children: ReactNode };
 
@@ -36,34 +36,9 @@ function CandidateLayout({ children }: CandidateLayoutProps) {
         style={isRTL ? { marginRight: `${sidebarWidth}px` } : { marginLeft: `${sidebarWidth}px` }}
       >
         <header
-          className={`fixed top-0 z-40 flex h-[78px] items-center justify-between border-b border-white/10 bg-[rgba(10,14,50,0.88)] px-6 backdrop-blur-[14px] transition-all duration-300 max-[980px]:!left-0 max-[980px]:!right-0 ${isRTL ? "left-0" : "right-0"}`}
+          className={`fixed top-0 z-40 flex h-[78px] items-center justify-end border-b border-white/10 bg-[rgba(10,14,50,0.88)] px-6 backdrop-blur-[14px] transition-all duration-300 max-[980px]:!left-0 max-[980px]:!right-0 ${isRTL ? "left-0" : "right-0"}`}
           style={isRTL ? { right: `${sidebarWidth}px` } : { left: `${sidebarWidth}px` }}
         >
-          <div className={`flex min-w-0 items-center gap-4`}>
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-[#cfd3f6] transition hover:bg-white/[0.08] hover:text-white"
-            >
-              <ArrowLeft size={20} className={isRTL ? "rotate-180" : ""} />
-            </button>
-            {/* w-[430px] alone (even with max-w-full) doesn't shrink on narrow viewports - none
-                of its flex ancestors had min-w-0, so the browser's default "never shrink below
-                content size" flex behavior let this box push the notification bell/avatar
-                cluster far past the right edge of the screen on mobile. Hidden below the same
-                max-[980px] breakpoint the sidebar itself already collapses at, rather than
-                half-fixing it with a narrower fixed width that still risks overflowing on the
-                smallest phones. */}
-            <div className="flex h-[46px] w-[430px] max-w-full min-w-0 items-center gap-3 rounded-[16px] border border-white/10 bg-white/[0.04] px-4 text-[#8d94bd] transition focus-within:border-[#7f4cff] focus-within:bg-white/[0.06] max-[980px]:hidden">
-              <Search size={18} className="shrink-0" />
-              <input
-                type="text"
-                placeholder={t.dashboard.searchPlaceholder}
-                className={`w-full min-w-0 bg-transparent text-[15px] text-white outline-none placeholder:text-[#8d94bd] ${isRTL ? "text-right" : "text-left"}`}
-              />
-            </div>
-          </div>
-
           <div className={`flex shrink-0 items-center gap-4`}>
             <button
               type="button"
