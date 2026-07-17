@@ -288,11 +288,10 @@ function CompanyDashboard() {
               </div>
             </div>
 
-            <div className="mb-8 grid grid-cols-2 gap-4 lg:mb-10 lg:grid-cols-4">
+            <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3 lg:mb-10">
               {[
                 { label: page.quickActions.postJob, icon: Plus, route: "/post-job", primary: true },
                 { label: page.quickActions.viewApplications, icon: FileText, route: "/company-applications", primary: false },
-                { label: page.quickActions.viewCandidates, icon: Users, route: "/company-applications", primary: false },
                 { label: page.quickActions.editProfile, icon: Building2, route: "/company-profile", primary: false },
               ].map((action) => {
                 const ActionIcon = action.icon;
