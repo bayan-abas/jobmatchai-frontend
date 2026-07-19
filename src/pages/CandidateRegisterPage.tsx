@@ -353,7 +353,7 @@ function CandidateRegisterPage() {
           </div>
 
           <div className="p-6 sm:p-8 lg:p-10">
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <div className="mb-6 flex items-center justify-between gap-3">
               <button
                 onClick={() => navigate(-1)}
                 className="rounded-2xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
@@ -361,14 +361,14 @@ function CandidateRegisterPage() {
                 {t?.common?.back || "Back"}
               </button>
 
-              <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 p-1">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setLanguage("en")}
-                  className={`rounded-xl px-3 py-1.5 text-sm font-medium transition ${
+                  className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
                     language === "en"
-                      ? "bg-cyan-400 text-slate-950"
-                      : "text-white/70 hover:bg-white/10 hover:text-white"
+                      ? "bg-cyan-400 text-[#0f172a]"
+                      : "bg-white/5 text-white/75 hover:bg-white/10"
                   }`}
                 >
                   EN
@@ -376,10 +376,10 @@ function CandidateRegisterPage() {
                 <button
                   type="button"
                   onClick={() => setLanguage("ar")}
-                  className={`rounded-xl px-3 py-1.5 text-sm font-medium transition ${
+                  className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
                     language === "ar"
-                      ? "bg-cyan-400 text-slate-950"
-                      : "text-white/70 hover:bg-white/10 hover:text-white"
+                      ? "bg-cyan-400 text-[#0f172a]"
+                      : "bg-white/5 text-white/75 hover:bg-white/10"
                   }`}
                 >
                   AR
@@ -387,10 +387,10 @@ function CandidateRegisterPage() {
                 <button
                   type="button"
                   onClick={() => setLanguage("he")}
-                  className={`rounded-xl px-3 py-1.5 text-sm font-medium transition ${
+                  className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
                     language === "he"
-                      ? "bg-cyan-400 text-slate-950"
-                      : "text-white/70 hover:bg-white/10 hover:text-white"
+                      ? "bg-cyan-400 text-[#0f172a]"
+                      : "bg-white/5 text-white/75 hover:bg-white/10"
                   }`}
                 >
                   HE
@@ -398,7 +398,7 @@ function CandidateRegisterPage() {
               </div>
             </div>
 
-            <div className={isRTL ? "mb-8 text-right" : "mb-8 text-left"}>
+            <div className="mb-8">
               <h2 className="text-3xl font-extrabold text-white">
                 {t?.candidateRegisterPage?.title || "Create Candidate Account"}
               </h2>
@@ -558,7 +558,7 @@ function CandidateRegisterPage() {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="mb-2 block text-sm font-semibold text-white/70">
+                  <label className="mb-2 block text-sm font-medium text-white/75">
                     {t?.candidateRegisterPage?.skills || "Skills"}
                   </label>
 
@@ -587,7 +587,7 @@ function CandidateRegisterPage() {
                       {skills.map((skill) => (
                         <div
                           key={skill}
-                          className="flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/15"
+                          className="flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white/85"
                         >
                           <span>{skill}</span>
                           <button
@@ -624,7 +624,7 @@ function CandidateRegisterPage() {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="mb-2 block text-sm font-semibold text-white/70">
+                  <label className="mb-2 block text-sm font-medium text-white/75">
                     {t?.candidateRegisterPage?.uploadResume ||
                       "Upload Resume (Optional)"}
                   </label>
@@ -674,13 +674,13 @@ function CandidateRegisterPage() {
               </div>
 
               {error && (
-                <div className={`rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300 ${isRTL ? "text-right" : "text-left"}`}>
+                <div className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
                   {error}
                 </div>
               )}
 
               {success && (
-                <div className={`rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300 ${isRTL ? "text-right" : "text-left"}`}>
+                <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
                   {success}
                 </div>
               )}

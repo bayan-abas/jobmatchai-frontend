@@ -22,10 +22,10 @@ import {
   X,
   CheckCircle2,
   Zap,
+  Save,
   Plus,
   Lock,
   Loader2,
-  FileText,
 } from "lucide-react";
 
 export type ProfileCompletenessFields = {
@@ -267,11 +267,10 @@ function ProfilePage() {
     }
   };
 
-  // Borderless inline-edit input (Company Profile's nested field-card input recipe).
-  const fieldInputClass = "w-full rounded-xl bg-white/10 px-4 py-3 text-white outline-none";
-  // Bordered modal input (Company Profile's change-password/delete-account modal recipe).
-  const modalInputClass =
-    "w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-white outline-none placeholder:text-white/40";
+  const inputClass =
+    "w-full rounded-[14px] border border-white/10 bg-white/[0.05] px-4 py-3 text-[16px] text-white outline-none placeholder:text-[#8ea2c7]";
+  const textareaClass =
+    "w-full rounded-[14px] border border-white/10 bg-white/[0.05] px-4 py-3 text-[16px] text-white outline-none placeholder:text-[#8ea2c7] min-h-[130px] resize-none";
 
   return (
     <>
@@ -289,39 +288,34 @@ function ProfilePage() {
               <button
                 type="button"
                 onClick={() => navigate(-1)}
-                className={`flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white ${
-                  isRTL ? "flex-row-reverse" : ""
-                }`}
+                className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white`}
               >
-                <ArrowLeft size={18} className={isRTL ? "rotate-180" : ""} />
+                <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
                 <span>{t.common.back}</span>
               </button>
 
-              <button
-                type="button"
-                disabled={isSaving}
-                onClick={() => {
-                  if (isEditing) {
-                    handleSaveChanges();
-                  } else {
-                    setIsEditing(true);
-                  }
-                }}
-                className={`flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white transition disabled:opacity-60 ${
-                  isRTL ? "flex-row-reverse" : ""
-                } ${
-                  isEditing
-                    ? "rounded-lg bg-green-500 hover:bg-green-600 shadow-md"
-                    : "rounded-2xl bg-gradient-to-r from-violet-500 to-indigo-500 shadow-lg shadow-violet-500/20 hover:scale-[1.02]"
-                }`}
-              >
-                <Pencil size={16} />
-                {isSaving
-                  ? t.profilePage.saving || "Saving..."
-                  : isEditing
-                  ? t.profilePage.saveChanges
-                  : t.profilePage.editProfile}
-              </button>
+              {!isEditing ? (
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                  className={`inline-flex items-center gap-2 rounded-[16px] bg-gradient-to-r from-[#7f4cff] to-[#a855f7] px-6 py-3 text-[15px] font-semibold text-white shadow-[0_10px_24px_rgba(127,76,255,0.28)] transition hover:opacity-90`}
+                >
+                  <Pencil size={18} />
+                  {t.profilePage.editProfile}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSaveChanges}
+                  disabled={isSaving}
+                  className={`inline-flex items-center gap-2 rounded-[16px] bg-gradient-to-r from-[#22c55e] to-[#16a34a] px-6 py-3 text-[15px] font-semibold text-white shadow-[0_10px_24px_rgba(34,197,94,0.28)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60`}
+                >
+                  <Save size={18} />
+                  {isSaving
+                    ? t.profilePage.saving || "Saving..."
+                    : t.profilePage.saveChanges}
+                </button>
+              )}
             </div>
 
             {saveError && (
@@ -393,7 +387,7 @@ function ProfilePage() {
           </section>
 
           <section className="mb-8 grid grid-cols-1 gap-6 xl:grid-cols-[0.9fr_1.5fr]">
-            <div className="rounded-[28px] border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-xl">
+            <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] p-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
               <div className="flex flex-col items-center text-center">
                 <div className="mb-6 flex h-[96px] w-[96px] items-center justify-center rounded-[28px] bg-gradient-to-br from-[#6f6bff] to-[#a855f7] text-[44px] font-extrabold text-white shadow-[0_16px_30px_rgba(127,76,255,0.28)]">
                   {(userName.charAt(0) || "?").toUpperCase()}
@@ -444,70 +438,74 @@ function ProfilePage() {
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-white/10 bg-white/5 p-8 md:p-10 shadow-2xl backdrop-blur-xl">
-              <h2 className="mb-8 text-2xl font-bold text-white">
+            <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] p-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+              <h2 className="mb-8 text-[24px] font-extrabold text-white">
                 {t.profilePage.personalInfo}
               </h2>
 
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+              <div className="grid grid-cols-2 gap-x-10 gap-y-8 max-[760px]:grid-cols-1">
+                <div>
                   <div
-                    className={`mb-2 flex items-center gap-2 text-sm text-white/60 ${isRTL ? "flex-row-reverse" : ""}`}
+                    className={`mb-2 flex items-center gap-3 text-[#b7bedf]`}
                   >
-                    <User size={16} />
-                    {t.common.fullName}
+                    <User size={18} />
+                    <span className="text-[15px]">{t.common.fullName}</span>
                   </div>
                   {isEditing ? (
                     <input
                       value={userName}
                       onChange={(e) => setUserName(e.target.value)}
-                      className={fieldInputClass}
+                      className={inputClass}
                     />
                   ) : (
-                    <p className="text-lg font-medium text-white">
+                    <p className="text-[18px] font-semibold text-white">
                       {userName}
                     </p>
                   )}
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <div>
                   <div
-                    className={`mb-2 flex items-center gap-2 text-sm text-white/60 ${isRTL ? "flex-row-reverse" : ""}`}
+                    className={`mb-2 flex items-center gap-3 text-[#b7bedf]`}
                   >
-                    <Mail size={16} />
-                    {t.common.email}
+                    <Mail size={18} />
+                    <span className="text-[15px]">{t.common.email}</span>
                   </div>
-                  <p className="break-all text-lg font-medium text-white">
+                  <p className="break-all text-[18px] font-semibold text-white">
                     {userEmail}
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <div>
                   <div
-                    className={`mb-2 flex items-center gap-2 text-sm text-white/60 ${isRTL ? "flex-row-reverse" : ""}`}
+                    className={`mb-2 flex items-center gap-3 text-[#b7bedf]`}
                   >
-                    <Phone size={16} />
-                    {t.candidateRegisterPage.phone}
+                    <Phone size={18} />
+                    <span className="text-[15px]">
+                      {t.candidateRegisterPage.phone}
+                    </span>
                   </div>
                   {isEditing ? (
                     <input
                       value={userPhone}
                       onChange={(e) => setUserPhone(e.target.value)}
-                      className={fieldInputClass}
+                      className={inputClass}
                     />
                   ) : (
-                    <p className="text-lg font-medium text-white">
+                    <p className="text-[18px] font-semibold text-white">
                       {userPhone}
                     </p>
                   )}
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <div>
                   <div
-                    className={`mb-2 flex items-center gap-2 text-sm text-white/60 ${isRTL ? "flex-row-reverse" : ""}`}
+                    className={`mb-2 flex items-center gap-3 text-[#b7bedf]`}
                   >
-                    <MapPin size={16} />
-                    {t.candidateRegisterPage.location}
+                    <MapPin size={18} />
+                    <span className="text-[15px]">
+                      {t.candidateRegisterPage.location}
+                    </span>
                   </div>
                   {isEditing ? (
                     <SearchableSelect
@@ -515,21 +513,23 @@ function ProfilePage() {
                       onChange={setUserLocation}
                       options={ISRAELI_CITIES}
                       placeholder={t.candidateRegisterPage.location}
-                      className={fieldInputClass}
+                      className={inputClass}
                     />
                   ) : (
-                    <p className="text-lg font-medium text-white">
+                    <p className="text-[18px] font-semibold text-white">
                       {userLocation}
                     </p>
                   )}
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <div>
                   <div
-                    className={`mb-2 flex items-center gap-2 text-sm text-white/60 ${isRTL ? "flex-row-reverse" : ""}`}
+                    className={`mb-2 flex items-center gap-3 text-[#b7bedf]`}
                   >
-                    <Briefcase size={16} />
-                    {t.profilePage.currentTitle}
+                    <Briefcase size={18} />
+                    <span className="text-[15px]">
+                      {t.profilePage.currentTitle}
+                    </span>
                   </div>
                   {isEditing ? (
                     <SearchableSelect
@@ -537,21 +537,23 @@ function ProfilePage() {
                       onChange={setUserTitle}
                       options={JOB_TITLES}
                       placeholder={t.profilePage.currentTitle}
-                      className={fieldInputClass}
+                      className={inputClass}
                     />
                   ) : (
-                    <p className="text-lg font-medium text-white">
+                    <p className="text-[18px] font-semibold text-white">
                       {userTitle}
                     </p>
                   )}
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <div>
                   <div
-                    className={`mb-2 flex items-center gap-2 text-sm text-white/60 ${isRTL ? "flex-row-reverse" : ""}`}
+                    className={`mb-2 flex items-center gap-3 text-[#b7bedf]`}
                   >
-                    <Briefcase size={16} />
-                    {t.profilePage.experience}
+                    <Briefcase size={18} />
+                    <span className="text-[15px]">
+                      {t.profilePage.experience}
+                    </span>
                   </div>
                   {isEditing ? (
                     <SearchableSelect
@@ -559,60 +561,42 @@ function ProfilePage() {
                       onChange={setUserExperience}
                       options={EXPERIENCE_OPTIONS}
                       placeholder={t.profilePage.experience}
-                      className={fieldInputClass}
+                      className={inputClass}
                     />
                   ) : (
-                    <p className="text-lg font-medium text-white">
+                    <p className="text-[18px] font-semibold text-white">
                       {userExperience}
                     </p>
                   )}
                 </div>
               </div>
 
-              <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6">
-                <div
-                  className={`mb-3 flex items-center gap-2 text-sm text-white/60 ${isRTL ? "flex-row-reverse" : ""}`}
-                >
-                  <FileText size={16} />
+              <div className="mt-10">
+                <p className="mb-3 text-[15px] text-[#b7bedf]">
                   {t.profilePage.professionalSummary}
-                </div>
+                </p>
                 {isEditing ? (
                   <textarea
                     value={userSummary}
                     onChange={(e) => setUserSummary(e.target.value)}
-                    rows={6}
-                    className="w-full rounded-2xl bg-white/10 px-4 py-4 text-white outline-none"
+                    className={textareaClass}
                   />
-                ) : userSummary.trim() ? (
-                  <p className="text-lg leading-8 text-white/85">
+                ) : (
+                  <p className="max-w-[900px] text-[17px] leading-9 text-[#edf0ff]">
                     {userSummary}
                   </p>
-                ) : (
-                  <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-6 py-8 text-center">
-                    <p className="text-white/50">
-                      {t.profilePage.noSummary || "Add a professional summary to help employers get to know you."}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setIsEditing(true)}
-                      className="inline-flex items-center gap-2 rounded-xl border border-violet-400/30 bg-violet-500/10 px-4 py-2 text-sm font-semibold text-violet-200 transition hover:bg-violet-500/20"
-                    >
-                      <Plus size={15} />
-                      {t.profilePage.addSummary || "Add Summary"}
-                    </button>
-                  </div>
                 )}
               </div>
             </div>
           </section>
 
           <section className="mb-8">
-            <div className="rounded-[28px] border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-xl">
+            <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] p-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
               <div
                 className={`mb-6 flex items-center gap-3`}
               >
-                <Code2 size={22} className="text-violet-300" />
-                <h2 className="text-2xl font-bold text-white">
+                <Code2 size={22} className="text-[#7f8bff]" />
+                <h2 className="text-[24px] font-extrabold text-white">
                   {t.profilePage.skills}
                 </h2>
               </div>
@@ -627,13 +611,13 @@ function ProfilePage() {
                       placeholder={
                         t.profilePage.skillsPlaceholder || "Type a skill and select or press Add"
                       }
-                      className={fieldInputClass}
+                      className={inputClass}
                     />
                   </div>
                   <button
                     type="button"
                     onClick={() => handleAddSkill(skillDraft)}
-                    className="inline-flex items-center gap-1 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-500 px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+                    className="inline-flex items-center gap-1 rounded-[14px] bg-gradient-to-r from-[#7f4cff] to-[#a855f7] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90"
                   >
                     <Plus size={16} />
                   </button>
@@ -668,16 +652,16 @@ function ProfilePage() {
             </div>
           </section>
 
-          <section className="mb-8">
-            <div className="rounded-[28px] border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-xl">
+          <section>
+            <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] p-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
               <div className="mb-4 flex items-center gap-3">
-                <Lock size={22} className="text-violet-300" />
-                <h2 className="text-2xl font-bold text-white">
+                <Lock size={23} className="text-[#7c88ff]" />
+                <h2 className="text-[24px] font-extrabold text-white">
                   {t.profilePage.security || "Security"}
                 </h2>
               </div>
 
-              <p className="mb-6 text-base leading-7 text-white/70">
+              <p className="mb-6 text-[16px] leading-8 text-[#c9cde6]">
                 {t.profilePage.securityText ||
                   "Update your password to keep your account secure."}
               </p>
@@ -689,7 +673,7 @@ function ProfilePage() {
                   setChangePasswordSuccess(false);
                   setShowChangePasswordModal(true);
                 }}
-                className="rounded-xl border border-violet-400/30 bg-violet-500/10 px-4 py-2.5 text-sm font-semibold text-violet-200 transition hover:bg-violet-500/20"
+                className="rounded-[16px] border border-[#7c88ff]/40 bg-[#7c88ff]/10 px-6 py-3 text-[15px] font-bold text-[#c4b5fd] transition hover:bg-[#7c88ff]/20"
               >
                 {t.profilePage.changePassword || "Change Password"}
               </button>
@@ -697,17 +681,17 @@ function ProfilePage() {
           </section>
 
           <section>
-            <div className="rounded-[28px] border border-rose-500/30 bg-rose-500/[0.04] p-8 shadow-2xl backdrop-blur-xl">
+            <div className="rounded-[30px] border border-[rgba(255,88,120,0.26)] bg-[rgba(44,45,95,0.94)] p-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
               <div
-                className={`mb-4 flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}
+                className={`mb-4 flex items-center gap-3`}
               >
-                <Trash2 size={22} className="text-rose-400" />
-                <h2 className="text-2xl font-bold text-rose-300">
+                <Trash2 size={23} className="text-[#ff6a8d]" />
+                <h2 className="text-[24px] font-extrabold text-[#ff7d9d]">
                   {t.profilePage.dangerZone || "Danger Zone"}
                 </h2>
               </div>
 
-              <p className="mb-6 text-base leading-7 text-white/70">
+              <p className="mb-6 text-[16px] leading-8 text-[#c9cde6]">
                 {t.profilePage.dangerText ||
                   "Permanently delete your account and all associated data. This action cannot be undone."}
               </p>
@@ -718,11 +702,8 @@ function ProfilePage() {
                   setDeleteError("");
                   setShowDeleteModal(true);
                 }}
-                className={`inline-flex items-center gap-2 rounded-xl border border-rose-500/50 bg-rose-500/10 px-5 py-2.5 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/20 ${
-                  isRTL ? "flex-row-reverse" : ""
-                }`}
+                className="rounded-[16px] border border-[rgba(255,88,120,0.45)] bg-transparent px-6 py-3 text-[15px] font-bold text-[#ff7d9d] transition hover:bg-[rgba(255,88,120,0.08)]"
               >
-                <Trash2 size={16} />
                 {t.profilePage.deleteAccount || "Delete My Account"}
               </button>
             </div>
@@ -887,14 +868,14 @@ function ProfilePage() {
           onClick={() => !isChangingPassword && closeChangePasswordModal()}
         >
           <div
-            className="relative w-full max-w-[480px] rounded-[28px] border border-white/10 bg-[#181b4a] p-8 text-white shadow-2xl"
+            className="relative w-full max-w-[480px] rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,#09152f_0%,#0d1730_100%)] p-8 text-white shadow-[0_30px_80px_rgba(0,0,0,0.55)]"
             onClick={(e) => e.stopPropagation()}
           >
             {!isChangingPassword && (
               <button
                 type="button"
                 onClick={closeChangePasswordModal}
-                className={`absolute top-5 text-white/50 transition hover:text-white ${
+                className={`absolute top-5 text-[#9aa4cf] transition hover:text-white ${
                   isRTL ? "left-5" : "right-5"
                 }`}
               >
@@ -903,31 +884,31 @@ function ProfilePage() {
             )}
 
             <div className="mb-5 flex justify-center">
-              <div className="flex h-[70px] w-[70px] items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/30">
-                <Lock size={30} />
+              <div className="flex h-[78px] w-[78px] items-center justify-center rounded-[24px] bg-gradient-to-br from-[#7f4cff] to-[#a855f7] shadow-[0_18px_40px_rgba(127,76,255,0.35)]">
+                <Lock size={34} />
               </div>
             </div>
 
-            <h2 className="mb-2 text-center text-2xl font-bold">
+            <h2 className="mb-2 text-center text-[24px] font-extrabold">
               {t.profilePage.changePassword || "Change Password"}
             </h2>
 
             {changePasswordSuccess ? (
               <>
-                <p className="mb-6 text-center text-white/70">
+                <p className="mb-6 text-center text-[16px] text-[#aeb4d6]">
                   {t.profilePage.changePasswordSuccess || "Your password has been updated."}
                 </p>
                 <button
                   type="button"
                   onClick={closeChangePasswordModal}
-                  className="w-full rounded-xl bg-gradient-to-r from-violet-500 to-indigo-500 px-5 py-3 text-base font-bold text-white transition hover:opacity-90"
+                  className="w-full rounded-[14px] bg-gradient-to-r from-[#7f4cff] to-[#a855f7] px-5 py-3 text-[16px] font-bold text-white transition hover:opacity-90"
                 >
                   {t.common.close || "Close"}
                 </button>
               </>
             ) : (
               <>
-                <p className="mb-6 text-center text-white/70">
+                <p className="mb-6 text-center text-[16px] text-[#aeb4d6]">
                   {t.profilePage.changePasswordSubtitle ||
                     "Enter your current password and choose a new one."}
                 </p>
@@ -938,7 +919,7 @@ function ProfilePage() {
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder={t.profilePage.currentPassword || "Current password"}
-                    className={modalInputClass}
+                    className={inputClass}
                     disabled={isChangingPassword}
                   />
                   <input
@@ -946,7 +927,7 @@ function ProfilePage() {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder={t.profilePage.newPassword || "New password"}
-                    className={modalInputClass}
+                    className={inputClass}
                     disabled={isChangingPassword}
                   />
                   <input
@@ -954,7 +935,7 @@ function ProfilePage() {
                     value={confirmNewPassword}
                     onChange={(e) => setConfirmNewPassword(e.target.value)}
                     placeholder={t.profilePage.confirmNewPassword || "Confirm new password"}
-                    className={modalInputClass}
+                    className={inputClass}
                     disabled={isChangingPassword}
                   />
                 </div>
@@ -970,7 +951,7 @@ function ProfilePage() {
                     type="button"
                     onClick={closeChangePasswordModal}
                     disabled={isChangingPassword}
-                    className="rounded-xl border border-white/15 bg-transparent px-5 py-3 text-base font-bold text-white transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-[14px] border border-white/15 bg-transparent px-5 py-3 text-[16px] font-bold text-white transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {t.common.cancel || "Cancel"}
                   </button>
@@ -979,7 +960,7 @@ function ProfilePage() {
                     type="button"
                     onClick={handleChangePassword}
                     disabled={isChangingPassword}
-                    className="rounded-xl bg-gradient-to-r from-violet-500 to-indigo-500 px-5 py-3 text-base font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-[14px] bg-gradient-to-r from-[#7f4cff] to-[#a855f7] px-5 py-3 text-[16px] font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isChangingPassword
                       ? t.profilePage.changingPassword || "Changing..."
@@ -998,14 +979,14 @@ function ProfilePage() {
           onClick={() => !isDeleting && setShowDeleteModal(false)}
         >
           <div
-            className="relative w-full max-w-[520px] rounded-[28px] border border-rose-500/30 bg-[#181b4a] p-8 text-white shadow-2xl"
+            className="relative w-full max-w-[480px] rounded-[30px] border border-[rgba(255,88,120,0.3)] bg-[linear-gradient(180deg,#09152f_0%,#0d1730_100%)] p-8 text-white shadow-[0_30px_80px_rgba(0,0,0,0.55)]"
             onClick={(e) => e.stopPropagation()}
           >
             {!isDeleting && (
               <button
                 type="button"
                 onClick={() => setShowDeleteModal(false)}
-                className={`absolute top-5 text-white/50 transition hover:text-white ${
+                className={`absolute top-5 text-[#9aa4cf] transition hover:text-white ${
                   isRTL ? "left-5" : "right-5"
                 }`}
               >
@@ -1014,16 +995,16 @@ function ProfilePage() {
             )}
 
             <div className="mb-5 flex justify-center">
-              <div className="flex h-[70px] w-[70px] items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 shadow-lg shadow-rose-500/30">
-                <Trash2 size={30} />
+              <div className="flex h-[78px] w-[78px] items-center justify-center rounded-[24px] bg-gradient-to-br from-[#ff6a8d] to-[#ff3d68] shadow-[0_18px_40px_rgba(255,88,120,0.35)]">
+                <Trash2 size={34} />
               </div>
             </div>
 
-            <h2 className="mb-3 text-center text-2xl font-bold text-rose-300">
+            <h2 className="mb-2 text-center text-[24px] font-extrabold">
               {t.profilePage.deleteConfirmTitle || "Delete your account?"}
             </h2>
 
-            <p className="mb-6 text-center text-sm leading-6 text-white/70">
+            <p className="mb-6 text-center text-[16px] text-[#aeb4d6]">
               {t.profilePage.deleteConfirmText ||
                 "This will permanently remove your account and all associated data (applications, saved jobs, CV, notifications). This action cannot be undone."}
             </p>
@@ -1039,7 +1020,7 @@ function ProfilePage() {
                 type="button"
                 onClick={() => setShowDeleteModal(false)}
                 disabled={isDeleting}
-                className="rounded-xl border border-white/15 bg-transparent px-5 py-3 text-base font-bold text-white transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-[14px] border border-white/15 bg-transparent px-5 py-3 text-[16px] font-bold text-white transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {t.common.cancel || "Cancel"}
               </button>
@@ -1048,7 +1029,7 @@ function ProfilePage() {
                 type="button"
                 onClick={handleDeleteAccount}
                 disabled={isDeleting}
-                className="rounded-xl bg-gradient-to-r from-rose-500 to-red-600 px-5 py-3 text-base font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-[14px] bg-gradient-to-r from-[#ff6a8d] to-[#ff3d68] px-5 py-3 text-[16px] font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isDeleting
                   ? t.profilePage.deleting || "Deleting..."

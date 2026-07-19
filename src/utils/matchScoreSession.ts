@@ -1,4 +1,4 @@
-import { apiFetch } from "./api";
+import { apiFetch, apiFetchStream } from "./api";
 
 // Session-scoped cache for AI job-match scores, shared by CandidateDashboard and JobMatches so
 // the expensive first computation (one OpenAI call per unscored job) runs at most once per
@@ -155,6 +155,107 @@ export async function getSessionMatches(
   });
   inFlight.set(key, promise);
   return promise;
+}
+
+// Progressive counterpart of getSessionMatches: cached job ids resolve immediately (no network
+// call at all), anything not yet cached streams in one at a time over
+// /api/jobs/match-scores/stream (or the external equivalent) instead of blocking the caller
+// until every requested job is done - callers should prefer this over getSessionMatches for any
+// job list that isn't tiny, and always pass only the jobs actually visible right now rather than
+// an entire unpaginated list, so a large job board never fires one giant, slow batch computation.
+// The backend's own per-(candidate, job) singleflight guard (JobMatchService.
+// inFlightComputations) is what actually prevents duplicate OpenAI calls when two callers ask
+// about the same job around the same time - this function does not need its own dedup logic on
+// top of that.
+export function streamSessionMatches(
+  email: string,
+  kind: MatchKind,
+  jobIds: number[],
+  language: string,
+  onScore: (jobId: number, entry: MatchEntry) => void,
+  onDone: (hasAnalysis: boolean) => void,
+  signal?: AbortSignal
+): void {
+  if (!email || jobIds.length === 0) {
+    onDone(false);
+    return;
+  }
+
+  const cached = readBucket(email, kind);
+  if (cached && !cached.hasAnalysis) {
+    onDone(false);
+    return;
+  }
+
+  if (cached) {
+    jobIds.forEach((id) => {
+      const entry = cached.entries[id];
+      if (entry) {
+        onScore(id, entry);
+      }
+    });
+  }
+
+  const uncachedIds = cached ? jobIds.filter((id) => cached.entries[id] === undefined) : jobIds;
+  if (uncachedIds.length === 0) {
+    onDone(cached ? cached.hasAnalysis : true);
+    return;
+  }
+
+  const path = kind === "internal" ? "/api/jobs/match-scores/stream" : "/api/external-jobs/match-scores/stream";
+  const body =
+    kind === "internal"
+      ? { email, jobIds: uncachedIds, language }
+      : { email, externalJobIds: uncachedIds, language };
+
+  let sawAnalysis = cached ? cached.hasAnalysis : true;
+
+  apiFetchStream(
+    path,
+    { method: "POST", body: JSON.stringify(body) },
+    (evt) => {
+      if (evt.event === "no-analysis") {
+        sawAnalysis = false;
+        const bucket = readBucket(email, kind);
+        writeBucket(email, kind, { hasAnalysis: false, entries: bucket ? bucket.entries : {} });
+        return;
+      }
+
+      if (evt.event === "score") {
+        const match = evt.data as RawMatch;
+        const entry: MatchEntry = {
+          matchPercent: match.matchPercent,
+          matchReason: match.matchReason,
+          matchedSkills: match.matchedSkills,
+          missingSkills: match.missingSkills,
+          fieldRelated: match.fieldRelated === undefined ? true : match.fieldRelated,
+        };
+        sawAnalysis = true;
+
+        // Same "don't freeze a transient failure into the session cache" rule as
+        // fetchAndMerge above - only a real verdict (fieldRelated !== null) gets persisted,
+        // so a job the AI genuinely couldn't score naturally retries on the next visit.
+        if (entry.fieldRelated !== null) {
+          const bucket = readBucket(email, kind) || { hasAnalysis: true, entries: {} };
+          bucket.entries[match.jobId] = entry;
+          bucket.hasAnalysis = true;
+          writeBucket(email, kind, bucket);
+        }
+
+        onScore(match.jobId, entry);
+        return;
+      }
+
+      if (evt.event === "done") {
+        onDone(sawAnalysis);
+      }
+    },
+    signal
+  ).catch((error) => {
+    if (signal?.aborted) return;
+    console.error(error);
+    onDone(sawAnalysis);
+  });
 }
 
 // Called on logout so a different account logging in on the same tab never reuses another

@@ -1159,7 +1159,7 @@ plan: {
       aboutTag: "About JobMatchAI",
       aboutTitle: "Designed to make recruitment smarter and simpler",
       aboutText:
-        "JobMatchAI is a modern platform prototype that demonstrates how AI-inspired matching can improve the hiring journey for both candidates and employers.",
+        "JobMatchAI connects candidates and companies through AI-powered matching, helping both sides find the right fit faster and with more confidence.",
       howTag: "How It Works",
       howTitle: "A simple process for both sides",
       step1Title: "Create your account",
@@ -1191,7 +1191,7 @@ plan: {
       contactTag: "Contact Us",
       contactTitle: "Let's build a smarter hiring experience",
       contactText:
-        "JobMatchAI is a professional prototype showing how design, structure, and intelligent matching ideas can improve recruitment for job seekers and employers.",
+        "JobMatchAI brings thoughtful design and intelligent matching together to make recruitment simpler and more effective for job seekers and employers alike.",
       contactPrimary: "Contact Us",
       contactSecondary: "Learn More",
     },
@@ -2496,7 +2496,7 @@ companyApplicationsPage: {
       aboutTag: "عن JobMatchAI",
       aboutTitle: "مصمم لجعل التوظيف أكثر ذكاءً وسهولة",
       aboutText:
-        "JobMatchAI هو نموذج أولي حديث يوضح كيف يمكن للمطابقة الذكية أن تحسن رحلة التوظيف لكل من المرشحين وأصحاب العمل.",
+        "تربط JobMatchAI بين المرشحين والشركات من خلال مطابقة ذكية مدعومة بالذكاء الاصطناعي، مما يساعد الطرفين على إيجاد الملاءمة المناسبة بشكل أسرع وبثقة أكبر.",
       howTag: "كيف يعمل",
       howTitle: "عملية بسيطة للطرفين",
       step1Title: "أنشئ حسابك",
@@ -2528,7 +2528,7 @@ companyApplicationsPage: {
       contactTag: "تواصل معنا",
       contactTitle: "لنَبْنِ تجربة توظيف أذكى",
       contactText:
-        "JobMatchAI هو نموذج احترافي يوضح كيف يمكن للتصميم والبنية وأفكار المطابقة الذكية أن تطور تجربة التوظيف للباحثين عن عمل والشركات.",
+        "تجمع JobMatchAI بين تصميم مدروس ومطابقة ذكية لجعل عملية التوظيف أبسط وأكثر فعالية لكل من الباحثين عن عمل والشركات.",
       contactPrimary: "تواصل معنا",
       contactSecondary: "اعرف المزيد",
     },
@@ -3831,7 +3831,7 @@ companyApplicationsPage: {
       aboutTag: "על JobMatchAI",
       aboutTitle: "נועד להפוך את הגיוס לחכם ופשוט יותר",
       aboutText:
-        "JobMatchAI הוא אבטיפוס מודרני שמדגים כיצד התאמה חכמה יכולה לשפר את תהליך הגיוס עבור מועמדים ומעסיקים.",
+        "JobMatchAI מחברת בין מועמדים לחברות באמצעות התאמה חכמה מבוססת בינה מלאכותית, ועוזרת לשני הצדדים למצוא את ההתאמה הנכונה מהר יותר ובביטחון רב יותר.",
       howTag: "איך זה עובד",
       howTitle: "תהליך פשוט לשני הצדדים",
       step1Title: "צור חשבון",
@@ -3862,7 +3862,7 @@ companyApplicationsPage: {
       contactTag: "צור קשר",
       contactTitle: "בואו נבנה חוויית גיוס חכמה יותר",
       contactText:
-        "JobMatchAI הוא אבטיפוס מקצועי שמדגים כיצד עיצוב, מבנה ורעיונות התאמה חכמים יכולים לשפר את הגיוס למחפשי עבודה ולחברות.",
+        "JobMatchAI משלבת עיצוב מוקפד והתאמה חכמה כדי להפוך את תהליך הגיוס לפשוט ויעיל יותר עבור מחפשי עבודה וחברות כאחד.",
       contactPrimary: "צור קשר",
       contactSecondary: "למידע נוסף",
     },

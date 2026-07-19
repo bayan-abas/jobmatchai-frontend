@@ -20,7 +20,6 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { apiFetch, ApiError } from "../utils/api";
-import { getMatchTier, getMatchLabel } from "../utils/matchScore";
 
 type FilterType = "all" | "active" | "accepted";
 type ProgressStep = "applied" | "ai" | "review" | "shortlisted" | "final";
@@ -226,10 +225,7 @@ type MatchInfo =
 
 function ScoreRing({ info }: { info: MatchInfo }) {
   const safeValue = info.status === "scored" ? info.percent : 0;
-  // Ring color is sourced from the shared match-tier engine (matchScore.ts) so the ring's
-  // color always agrees with the tier badge rendered next to it - the same rule Company's
-  // ScoreRing follows via getMatchTier(match).ring.
-  const ringColor = info.status === "scored" ? getMatchTier(safeValue).ring : "#5f648a";
+  const ringColor = safeValue >= 90 ? "#49e38d" : safeValue >= 80 ? "#8b93ff" : "#f5c542";
 
   return (
     <div className="relative h-[98px] w-[98px] shrink-0">
@@ -245,24 +241,10 @@ function ScoreRing({ info }: { info: MatchInfo }) {
           boxShadow: info.status === "scored" ? `0 0 24px ${ringColor}22` : "0 0 0 rgba(0,0,0,0)",
         }}
       />
-      <div className="absolute inset-[8px] flex items-center justify-center rounded-full bg-[#2a2d63] text-[22px] font-extrabold text-white shadow-inner">
+      <div className="absolute inset-[8px] flex items-center justify-center rounded-full bg-[#252654] text-[22px] font-extrabold text-white shadow-inner">
         {info.status === "scored" ? `${info.percent}%` : info.status === "loading" ? "" : "?"}
       </div>
     </div>
-  );
-}
-
-// Small tier-colored caption rendered under the ScoreRing when a real score exists - the exact
-// badge markup Company uses for its match-tier pill (spec §7: rounded-full border + tier bg/
-// text/border classes from getMatchTier), so a given score renders identical colors on both sides.
-function MatchTierBadge({ percent }: { percent: number }) {
-  const tier = getMatchTier(percent);
-  return (
-    <span
-      className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${tier.bg} ${tier.text} ${tier.border}`}
-    >
-      {tier.emoji} {getMatchLabel(percent)}
-    </span>
   );
 }
 
@@ -487,27 +469,31 @@ function Applications() {
     }
   };
 
-  // Segmented-tab pattern, spec §6.1 (CompanyApplications status tabs).
   const filterButtonClass = (value: FilterType) =>
-    `rounded-[12px] px-4 py-2 text-sm font-semibold transition ${
+    `min-w-[88px] rounded-[16px] px-5 py-3 text-[15px] font-semibold transition ${
       filter === value
-        ? "border border-[#7d86ff]/30 bg-[#5964ff]/30 text-[#cfd5ff]"
-        : "text-white/60 hover:bg-white/5 hover:text-white"
+        ? "bg-[#222a75] text-white border border-[#4b57ff]"
+        : "text-white/70 hover:bg-white/[0.05] hover:text-white border border-transparent"
     }`;
 
-  // Application status badges, spec §7.1 (getStatusBadgeStyles) - shortlisted/accepted/rejected
-  // get their own accent color, everything else (Applied / AI Screening / Under Review / Viewed)
-  // falls into the shared "default" amber bucket, exactly like Company's mapping.
   const statusBadgeClass = (status: string) => {
     switch (status) {
+      case "Applied":
+        return "bg-cyan-500/12 text-cyan-300 border border-cyan-400/20";
+      case "AI Screening":
+        return "bg-emerald-500/12 text-emerald-300 border border-emerald-400/20";
+      case "Under Review":
+        return "bg-yellow-500/12 text-yellow-300 border border-yellow-400/20";
+      case "Viewed":
+        return "bg-blue-500/12 text-blue-300 border border-blue-400/20";
       case "Shortlisted":
-        return "bg-cyan-500/10 text-cyan-300 border-cyan-400/25";
+        return "bg-violet-500/12 text-violet-300 border border-violet-400/20";
       case "Final Decision":
-        return "bg-emerald-500/10 text-emerald-300 border-emerald-400/25";
+        return "bg-indigo-500/12 text-indigo-300 border border-indigo-400/20";
       case "Rejected":
-        return "bg-rose-500/10 text-rose-300 border-rose-400/25";
+        return "bg-rose-500/12 text-rose-300 border border-rose-400/20";
       default:
-        return "bg-amber-500/10 text-amber-300 border-amber-400/25";
+        return "bg-white/10 text-white/70 border border-white/10";
     }
   };
 
@@ -583,11 +569,9 @@ function Applications() {
                 <button
                   type="button"
                   onClick={() => navigate("/candidate-dashboard")}
-                  className={`flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white ${
-                    isRTL ? "flex-row-reverse" : ""
-                  }`}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white"
                 >
-                  <ArrowLeft size={18} className={isRTL ? "rotate-180" : ""} />
+                  <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
                   <span>{t.common.back}</span>
                 </button>
               </div>
@@ -607,43 +591,47 @@ function Applications() {
                 </div>
               </div>
 
-              <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div className={isRTL ? "text-right" : "text-left"}>
-                  <h3 className="text-[20px] font-extrabold text-white">
-                    {t.applicationsPage.allApplications}
-                  </h3>
-                  <p className="mt-1 text-[15px] text-white/60">
-                    {filteredApplications.length} {t.applicationsPage.recentActivity}
-                  </p>
-                </div>
+              <div className="rounded-[28px] border border-white/10 bg-white/[0.05] px-5 py-5 shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div className={isRTL ? "text-right" : "text-left"}>
+                    <h3 className="text-[20px] font-extrabold text-white">
+                      {t.applicationsPage.allApplications}
+                    </h3>
+                    <p className="mt-1 text-[15px] text-[#aeb4d6]">
+                      {filteredApplications.length} {t.applicationsPage.recentActivity}
+                    </p>
+                  </div>
 
-                <div
-                  className={`flex w-fit flex-wrap gap-2 rounded-[18px] border border-white/10 bg-white/[0.04] p-2 ${
-                    isRTL ? "self-end lg:self-auto" : ""
-                  }`}
-                >
-                  <button onClick={() => setFilter("all")} className={filterButtonClass("all")}>
-                    {t.applicationsPage.allApplications}
-                  </button>
-                  <button onClick={() => setFilter("active")} className={filterButtonClass("active")}>
-                    {t.common.active}
-                  </button>
-                  <button onClick={() => setFilter("accepted")} className={filterButtonClass("accepted")}>
-                    {t.applicationsPage.accepted}
-                  </button>
+                  <div
+                    className={`inline-flex w-fit flex-wrap rounded-[20px] border border-white/10 bg-[#141845] p-1.5 ${
+                      isRTL ? "self-end lg:self-auto" : ""
+                    }`}
+                  >
+                    <button onClick={() => setFilter("all")} className={filterButtonClass("all")}>
+                      {t.applicationsPage.allApplications}
+                    </button>
+                    <button onClick={() => setFilter("active")} className={filterButtonClass("active")}>
+                      {t.common.active}
+                    </button>
+                    <button onClick={() => setFilter("accepted")} className={filterButtonClass("accepted")}>
+                      {t.applicationsPage.accepted}
+                    </button>
+                  </div>
                 </div>
               </div>
             </section>
 
             {loading && (
-              <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-10 text-center text-white/65">
-                {t.applicationsPage.loadingApplications || "Loading applications..."}
+              <div className="rounded-[30px] border border-white/10 bg-white/[0.05] px-8 py-12 text-center">
+                <h3 className="text-[24px] font-bold text-white">
+                  {t.applicationsPage.loadingApplications || "Loading applications..."}
+                </h3>
               </div>
             )}
 
             {!loading && error && (
-              <div className="mb-6 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                {error}
+              <div className="rounded-[30px] border border-red-400/20 bg-red-500/10 px-8 py-12 text-center">
+                <h3 className="text-[24px] font-bold text-red-200">{error}</h3>
               </div>
             )}
 
@@ -660,7 +648,7 @@ function Applications() {
                       setWithdrawError("");
                       setSelectedId(app.id);
                     }}
-                    className="group min-w-0 cursor-pointer rounded-[28px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.18)] transition hover:bg-white/[0.065] md:p-6"
+                    className="group cursor-pointer rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)] transition hover:border-white/20 hover:bg-[rgba(50,52,108,0.96)]"
                   >
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
                       <div className="flex flex-col items-center justify-center gap-2 lg:justify-start">
@@ -679,13 +667,11 @@ function Applications() {
                               e.stopPropagation();
                               navigate("/resume-manager");
                             }}
-                            className="inline-flex items-center gap-2 rounded-[12px] border border-violet-400/30 bg-violet-500/10 px-3.5 py-2 text-center text-xs font-semibold text-violet-200 transition hover:bg-violet-500/20"
+                            className="rounded-full border border-[#7c88ff]/30 bg-[#7c88ff]/15 px-3 py-1 text-center text-[11px] font-semibold text-[#c4b5fd] transition hover:bg-[#7c88ff]/25"
                           >
                             {t.jobMatches.analyzeCvForScore}
                           </button>
                         )}
-
-                        {matchInfo.status === "scored" && <MatchTierBadge percent={matchInfo.percent} />}
                       </div>
 
                       <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
@@ -695,7 +681,7 @@ function Applications() {
                           </h2>
 
                           <span
-                            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${statusBadgeClass(
+                            className={`rounded-full px-3 py-1 text-sm font-semibold ${statusBadgeClass(
                               app.reviewStatus
                             )}`}
                           >
@@ -752,7 +738,7 @@ function Applications() {
                       <div className="flex flex-row items-center justify-between gap-4 lg:min-w-[170px]">
                         <div className={`${isRTL ? "text-left" : "text-right"} min-w-[88px]`}>
                           {app.pending ? (
-                            <div className="rounded-full border border-amber-400/25 bg-amber-500/10 px-4 py-2.5 text-[14px] font-semibold text-amber-300">
+                            <div className="rounded-full border border-yellow-400/20 bg-yellow-500/12 px-4 py-2.5 text-[14px] font-semibold text-yellow-300">
                               {app.pending}
                             </div>
                           ) : (
@@ -780,9 +766,13 @@ function Applications() {
                 })}
 
                 {filteredApplications.length === 0 && (
-                  <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-10 text-center text-white/65">
-                    <p className="font-semibold text-white">{t.applicationsPage.noApplications}</p>
-                    <p className="mt-1 text-white/60">{t.applicationsPage.noApplicationsText}</p>
+                  <div className="rounded-[30px] border border-white/10 bg-white/[0.05] px-8 py-12 text-center">
+                    <h3 className="text-[24px] font-bold text-white">
+                      {t.applicationsPage.noApplications}
+                    </h3>
+                    <p className="mt-2 text-white/55">
+                      {t.applicationsPage.noApplicationsText}
+                    </p>
                   </div>
                 )}
               </section>
@@ -803,16 +793,14 @@ function Applications() {
                     });
                   }, 0);
                 }}
-                className={`flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white ${
-                  isRTL ? "flex-row-reverse" : ""
-                }`}
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white"
               >
-                <ArrowLeft size={18} className={isRTL ? "rotate-180" : ""} />
+                <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
                 <span>{t.common.back}</span>
               </button>
             </div>
 
-            <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
+            <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-7 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
                 <div className="flex flex-col items-center gap-2">
                   <ScoreRing info={selectedMatchInfo} />
@@ -827,14 +815,10 @@ function Applications() {
                     <button
                       type="button"
                       onClick={() => navigate("/resume-manager")}
-                      className="inline-flex items-center gap-2 rounded-[12px] border border-violet-400/30 bg-violet-500/10 px-3.5 py-2 text-center text-xs font-semibold text-violet-200 transition hover:bg-violet-500/20"
+                      className="rounded-full border border-[#7c88ff]/30 bg-[#7c88ff]/15 px-3 py-1 text-center text-[11px] font-semibold text-[#c4b5fd] transition hover:bg-[#7c88ff]/25"
                     >
                       {t.jobMatches.analyzeCvForScore}
                     </button>
-                  )}
-
-                  {selectedMatchInfo.status === "scored" && (
-                    <MatchTierBadge percent={selectedMatchInfo.percent} />
                   )}
 
                   {selectedMatchInfo.status === "scored" && selectedMatchInfo.reason && (
@@ -856,7 +840,7 @@ function Applications() {
                         </h1>
 
                         <span
-                          className={`inline-flex items-center rounded-full border px-4 py-2 text-sm font-bold ${statusBadgeClass(
+                          className={`rounded-full px-4 py-2 text-[15px] font-semibold ${statusBadgeClass(
                             selectedApplication.reviewStatus
                           )}`}
                         >
@@ -893,10 +877,10 @@ function Applications() {
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-center">
+                    <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-6 py-5 text-center">
                       {selectedApplication.pending ? (
                         <>
-                          <p className="text-[15px] font-semibold text-amber-300">
+                          <p className="text-[15px] font-semibold text-yellow-300">
                             {selectedApplication.pending}
                           </p>
                           <p className="mt-2 text-[14px] text-white/45">
@@ -929,7 +913,7 @@ function Applications() {
                   type="button"
                   onClick={handleWithdraw}
                   disabled={withdrawing}
-                  className="mt-6 inline-flex items-center gap-2 rounded-xl border border-rose-400/30 bg-rose-500/10 px-5 py-2.5 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-6 rounded-[16px] border border-[rgba(255,88,120,0.45)] bg-transparent px-6 py-3 text-[15px] font-bold text-[#ff7d9d] transition hover:bg-[rgba(255,88,120,0.08)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {withdrawing
                     ? t.applicationsPage.withdrawing
@@ -942,7 +926,7 @@ function Applications() {
               )}
             </div>
 
-            <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
+            <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-8 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
               <h2 className={`mb-6 text-[24px] font-extrabold text-white ${isRTL ? "text-right" : "text-left"}`}>
                 {t.applicationsPage.applicationStatus}
               </h2>
@@ -1002,7 +986,7 @@ function Applications() {
             </div>
 
             {selectedApplication.reviewStatus === "Final Decision" && selectedApplication.contactMethod && (
-              <div className="rounded-[28px] border border-emerald-400/20 bg-emerald-500/10 p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
+              <div className="rounded-[30px] border border-emerald-400/20 bg-emerald-500/[0.06] px-8 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
                 <h2 className={`mb-4 flex items-center gap-2 text-[22px] font-extrabold text-white ${isRTL ? "flex-row-reverse text-right" : ""}`}>
                   <Phone size={20} className="text-emerald-300" />
                   {t.applicationsPage.contactInfoTitle}
@@ -1020,7 +1004,7 @@ function Applications() {
             )}
 
             {selectedApplication.reviewStatus === "Rejected" && selectedApplication.rejectionReason && (
-              <div className="rounded-[28px] border border-rose-400/20 bg-rose-500/10 p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
+              <div className="rounded-[30px] border border-rose-400/20 bg-rose-500/[0.06] px-8 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
                 <h2 className={`mb-4 flex items-center gap-2 text-[22px] font-extrabold text-white ${isRTL ? "flex-row-reverse text-right" : ""}`}>
                   <XCircle size={20} className="text-rose-300" />
                   {t.applicationsPage.rejectionReasonTitle}

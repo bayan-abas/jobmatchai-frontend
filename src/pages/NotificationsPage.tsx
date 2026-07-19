@@ -158,75 +158,109 @@ function NotificationsPage() {
   return (
     <div
       dir={isRTL ? "rtl" : "ltr"}
-      className={`w-full min-h-screen px-6 md:px-10 lg:px-14 py-8 text-white ${
+      className={`min-h-[calc(100vh-78px)] bg-[radial-gradient(circle_at_top_left,rgba(86,45,255,0.16),transparent_24%),radial-gradient(circle_at_bottom_right,rgba(32,146,255,0.13),transparent_22%),linear-gradient(135deg,#0a0d2e_0%,#101548_45%,#181b58_100%)] px-4 py-7 lg:px-8 ${
         isRTL ? "text-right" : "text-left"
       }`}
     >
-      <div className="mx-auto max-w-[1200px]">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className={`mb-8 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white ${
-            isRTL ? "flex-row-reverse" : ""
+      <div className="mx-auto w-full max-w-[1080px]">
+        <div
+          className={`mb-5 flex items-center ${
+            isRTL ? "justify-start" : "justify-start"
           }`}
         >
-          <ArrowLeft size={18} className={isRTL ? "rotate-180" : ""} />
-          {t.common.back}
-        </button>
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white`}
+          >
+            <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
+            <span>{t.common.back}</span>
+          </button>
+        </div>
 
-        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#a855f7] shadow-lg shadow-[rgba(127,76,255,0.3)]">
-              <Bell size={24} />
+        <section className="mb-8">
+          <div
+            className={`mb-6 flex items-start gap-4`}
+          >
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)]">
+              <Bell size={26} />
             </div>
 
-            <div className={isRTL ? "text-right" : "text-left"}>
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+            <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
+              <h1 className="text-[42px] font-extrabold leading-tight text-white">
                 {t.notificationsPage.title}
               </h1>
-              <p className="mt-1 text-sm md:text-base text-white/60">
+              <p className="mt-2 text-[17px] text-[#aeb4d6]">
                 {unreadCount} {t.notificationsPage.unreadNotifications}
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={handleMarkAllAsRead}
-              className={`flex items-center gap-2 rounded-xl border border-indigo-400/40 bg-indigo-500/10 px-4 py-2.5 text-sm font-medium text-indigo-200 transition hover:bg-indigo-500/20 ${
-                isRTL ? "flex-row-reverse" : ""
+          <div className="overflow-visible rounded-[28px] border border-white/10 bg-white/[0.05] px-5 py-5 shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
+            <div
+              className={`flex flex-col gap-4 md:flex-row md:items-center md:justify-between ${
+                isRTL ? "" : ""
               }`}
             >
-              <CheckCircle2 size={16} />
-              {t.notificationsPage.markAllAsRead}
-            </button>
+              <div
+                className={`flex min-w-0 items-center gap-4`}
+              >
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#5e66ff1f] text-[#7c88ff]">
+                  <Bell size={24} />
+                </div>
 
-            <button
-              type="button"
-              onClick={handleClearAll}
-              className={`flex items-center gap-2 rounded-xl border border-rose-400/40 bg-rose-500/10 px-4 py-2.5 text-sm font-medium text-rose-200 transition hover:bg-rose-500/20 ${
-                isRTL ? "flex-row-reverse" : ""
-              }`}
-            >
-              <Trash2 size={16} />
-              {t.notificationsPage.clearAll}
-            </button>
+                <div className={`min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
+                  <h3 className="text-[20px] font-extrabold text-white">
+                    {t.notificationsPage.notificationCenter}
+                  </h3>
+                  <p className="mt-1 text-[15px] text-[#aeb4d6]">
+                    {t.notificationsPage.subtitle}
+                  </p>
+                </div>
+              </div>
+
+              <div
+                className={`flex flex-wrap items-center gap-3 ${
+                  isRTL ? "self-start md:self-auto" : ""
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={handleMarkAllAsRead}
+                  className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white`}
+                >
+                  <CheckCircle2 size={16} />
+                  {t.notificationsPage.markAllAsRead}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleClearAll}
+                  className={`inline-flex items-center gap-2 rounded-full border border-rose-400/20 bg-rose-400/10 px-4 py-2 text-sm font-semibold text-rose-300 transition hover:bg-rose-400/15`}
+                >
+                  <Trash2 size={16} />
+                  {t.notificationsPage.clearAll}
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        </section>
 
         {!isLoading && notifications.length === 0 ? (
-          <div className="mx-auto max-w-[440px] rounded-[24px] border border-white/10 bg-white/5 px-6 py-7 text-center shadow-2xl backdrop-blur-xl">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
-              <Bell size={20} className="text-white/70" />
+          <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-7 py-12 text-center shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 text-white/60">
+              <Bell size={26} />
             </div>
-            <h3 className="text-lg font-bold">{t.notificationsPage.noNotifications}</h3>
-            <p className="mt-1.5 text-sm leading-6 text-white/55">
+
+            <h3 className="text-[24px] font-extrabold text-white">
+              {t.notificationsPage.noNotifications}
+            </h3>
+            <p className="mt-3 text-[15px] text-[#aeb4d6]">
               {t.notificationsPage.noNotificationsText}
             </p>
           </div>
         ) : (
-          <section className="space-y-4">
+          <section className="space-y-5">
             {notifications.map((item) => {
               const presentation = getPresentation(item.type);
 
@@ -234,7 +268,7 @@ function NotificationsPage() {
                 <article
                   key={item.id}
                   onClick={handleOpenNotification}
-                  className={`group relative cursor-pointer rounded-[26px] border border-white/10 bg-white/5 p-5 md:p-6 shadow-2xl backdrop-blur-xl transition hover:bg-white/[0.07] ${
+                  className={`cursor-pointer rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)] transition hover:border-white/20 hover:bg-[rgba(50,52,108,0.96)] ${
                     !item.read ? "ring-1 ring-[#5e66ff33]" : ""
                   }`}
                 >
@@ -244,44 +278,41 @@ function NotificationsPage() {
                     }`}
                   >
                     <div
-                      className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${presentation.iconBg} text-white`}
+                      className={`flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-[20px] bg-gradient-to-br ${presentation.iconBg} text-white shadow-[0_10px_30px_rgba(0,0,0,0.18)]`}
                     >
                       {presentation.icon}
                     </div>
 
                     <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
                       <div
-                        className={`flex items-start justify-between gap-4 ${
-                          isRTL ? "flex-row-reverse" : ""
+                        className={`mb-3 flex flex-wrap items-center gap-3 ${
+                          isRTL ? "" : ""
                         }`}
                       >
-                        <div className="flex min-w-0 flex-wrap items-center gap-3">
-                          <h2 className="min-w-0 break-words text-xl font-bold text-white">
-                            {item.title}
-                          </h2>
-
-                          {!item.read && (
-                            <span className="rounded-full border border-[#7c88ff33] bg-[#5e66ff14] px-3 py-1 text-xs font-semibold text-[#cfd5ff]">
-                              {t.notificationsPage.new}
-                            </span>
-                          )}
-                        </div>
+                        <h2 className="min-w-0 break-words text-[22px] font-extrabold text-white">
+                          {item.title}
+                        </h2>
 
                         {!item.read && (
-                          <span className="mt-1 block h-2.5 w-2.5 shrink-0 rounded-full bg-indigo-400 shadow-[0_0_12px_rgba(129,140,248,0.9)]" />
+                          <span className="rounded-full border border-[#7c88ff33] bg-[#5e66ff14] px-3 py-1 text-sm font-semibold text-[#cfd5ff]">
+                            {t.notificationsPage.new}
+                          </span>
                         )}
                       </div>
 
-                      <p className="mt-2 text-[15px] leading-7 text-white/70">
+                      <p className="mb-4 text-[16px] leading-7 text-[#c4cae9]">
                         {item.message}
                       </p>
 
                       <div
-                        className={`mt-3 flex items-center justify-between gap-2 ${
+                        className={`flex items-center justify-between gap-2 ${
                           isRTL ? "flex-row-reverse" : ""
                         }`}
                       >
-                        <span className="text-sm text-white/45">{formatDate(item.createdAt)}</span>
+                        <div className="flex items-center gap-2 text-[#8f98c6]">
+                          <Bell size={14} />
+                          <span className="text-[14px]">{formatDate(item.createdAt)}</span>
+                        </div>
 
                         <button
                           type="button"
@@ -289,12 +320,18 @@ function NotificationsPage() {
                             e.stopPropagation();
                             handleDismiss(item.id);
                           }}
-                          className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-white/70 transition hover:bg-white/10 hover:text-white"
+                          className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-[#c4cae9] transition hover:bg-white/10 hover:text-white"
                         >
                           <Trash2 size={13} />
                         </button>
                       </div>
                     </div>
+
+                    {!item.read && (
+                      <div className="flex justify-end md:justify-start">
+                        <span className="mt-1 h-[10px] w-[10px] rounded-full bg-[#7c88ff] shadow-[0_0_0_6px_rgba(124,136,255,0.16)]" />
+                      </div>
+                    )}
                   </div>
                 </article>
               );

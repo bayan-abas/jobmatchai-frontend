@@ -30,23 +30,28 @@ function PaymentPage() {
 
   const monthlyPrice = 9.99;
 
-  // Demo/development mode: activates Premium immediately with no card and no Stripe
-  // checkout. Swap this back to /api/payments/create-checkout-session (and remove the
-  // refreshUser call in favor of the redirect) once real Stripe payments are wired up.
+  // Starts a real Stripe Checkout session and redirects there - Stripe itself collects the
+  // card and handles the charge. Control comes back to PaymentSuccessPage (which calls
+  // /api/payments/confirm) or PaymentCancelPage depending on what the candidate does there;
+  // this page never activates Premium directly.
   const handleSubscribe = async () => {
     setError("");
     setIsActivating(true);
 
     try {
-      await apiFetch("/api/payments/demo/activate-premium", { method: "POST" });
-      await refreshUser();
+      const data = await apiFetch("/api/payments/create-checkout-session", { method: "POST" });
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setError("Could not start checkout. Please try again.");
+      setIsActivating(false);
     } catch (err) {
       setError(
         err instanceof ApiError
           ? err.message
-          : "Could not activate Premium. Please try again."
+          : "Could not start checkout. Please try again."
       );
-    } finally {
       setIsActivating(false);
     }
   };
@@ -56,7 +61,7 @@ function PaymentPage() {
     setIsCancelling(true);
 
     try {
-      await apiFetch("/api/payments/demo/cancel-premium", { method: "POST" });
+      await apiFetch("/api/payments/cancel-subscription", { method: "POST" });
       await refreshUser();
       setShowCancelModal(false);
     } catch (err) {

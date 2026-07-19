@@ -32,8 +32,9 @@ import {
 } from "../utils/jobInference";
 import { formatSalary } from "../utils/formatSalary";
 import { apiFetch } from "../utils/api";
-import { getSessionMatches } from "../utils/matchScoreSession";
+import { streamSessionMatches } from "../utils/matchScoreSession";
 import { FREE_PLAN_LIMIT } from "../utils/applicationLimit";
+import LoadingScreen from "../components/LoadingScreen";
 import PreInterviewModal from "../components/PreInterviewModal";
 import ApplicationSuccessModal from "../components/ApplicationSuccessModal";
 
@@ -100,6 +101,15 @@ function JobMatches() {
   const [matchScores, setMatchScores] = useState<Map<number, MatchScoreEntry>>(new Map());
   const [hasAnalysis, setHasAnalysis] = useState<boolean | null>(null);
   const [matchScoresLoading, setMatchScoresLoading] = useState(false);
+
+  // Jobs render immediately once fetched; match percentages are only ever requested for the
+  // page currently on screen (see the streamSessionMatches effect below) instead of the whole
+  // job list at once - this is what keeps opening this page fast regardless of how many jobs
+  // exist in total, and is why filteredJobs (below) deliberately does NOT sort by match score -
+  // sorting by a value most of the list doesn't have yet would make pages reshuffle underneath
+  // the candidate as scores stream in for whichever page they're looking at.
+  const JOBS_PER_PAGE = 24;
+  const [page, setPage] = useState(1);
 
   const [savedJobIds, setSavedJobIds] = useState<Set<number>>(new Set());
   const savedJobs = useMemo(
@@ -203,64 +213,9 @@ function JobMatches() {
       });
   }, []);
 
-  useEffect(() => {
-    if (jobs.length === 0) return;
-
-    const identity = readCandidateIdentity();
-    if (!identity.email) {
-      setHasAnalysis(false);
-      setMatchScores(new Map());
-      return;
-    }
-
-    const jobIds = jobs
-      .map((job) => job.id)
-      .filter((id): id is number => typeof id === "number");
-
-    if (jobIds.length === 0) return;
-
-    let cancelled = false;
-    setMatchScoresLoading(true);
-
-    // Session-scoped: shares the same cache as CandidateDashboard (see
-    // utils/matchScoreSession.ts), so if the dashboard already computed scores for these jobs
-    // this tab session, this resolves instantly from cache instead of re-running AI scoring.
-    getSessionMatches(identity.email, "internal", jobIds, language)
-      .then((bucket) => {
-        if (cancelled) return;
-
-        setHasAnalysis(bucket.hasAnalysis);
-
-        const nextScores = new Map<number, MatchScoreEntry>();
-        Object.entries(bucket.entries).forEach(([jobId, entry]) => {
-          nextScores.set(Number(jobId), {
-            matchPercent: entry.matchPercent,
-            matchReason: entry.matchReason || "",
-            matchedSkills: entry.matchedSkills || [],
-            missingSkills: entry.missingSkills || [],
-            fieldRelated: entry.fieldRelated === undefined ? true : entry.fieldRelated,
-          });
-        });
-
-        setMatchScores(nextScores);
-      })
-      .catch((error) => {
-        console.error(error);
-        if (!cancelled) {
-          setHasAnalysis(false);
-          setMatchScores(new Map());
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setMatchScoresLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [jobs, language]);
+  // Match-score fetching itself lives further down (after filteredJobs/paginatedJobs are
+  // computed) - it only ever requests scores for the page of jobs actually on screen, not the
+  // whole list. See that effect's own comment for why.
 
 // The dropdown must only ever offer values inferIndustry() can actually return (see
 // utils/jobInference.ts's INDUSTRY_KEYS) - this used to be a much larger, independently
@@ -427,7 +382,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
   // candidate can keep browsing everything. minMatch only narrows the count below (see
   // matchingJobsCount), never which cards render - see matchingJobsCount's comment for why.
   const filteredJobs = useMemo(() => {
-    const filtered = jobs.filter((job) => {
+    return jobs.filter((job) => {
       const matchesIndustry = !industry || job.industry === industry;
       const matchesLevel =
         !seniority || job.level.toLowerCase() === seniority.toLowerCase();
@@ -439,8 +394,16 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
 
       return matchesIndustry && matchesLevel && matchesSalary;
     });
+  }, [jobs, industry, seniority, minSalary]);
 
-    return [...filtered].sort((a, b) => {
+  // Highest match percent first, always - recomputed on every score that arrives (matchScores
+  // is a dependency below), so the list keeps re-sorting itself as results stream in rather than
+  // settling into place only once. Jobs with no verdict yet (still calculating, or a genuine
+  // "not a field match") sort after every scored job, using Array.sort's stable-sort guarantee
+  // to keep their relative order steady between renders instead of visibly shuffling among
+  // themselves on every unrelated score update - never job id/date/company, only match percent.
+  const sortedJobs = useMemo(() => {
+    return [...filteredJobs].sort((a, b) => {
       const infoA = getMatchInfo(a);
       const infoB = getMatchInfo(b);
       const scoreA = infoA.status === "scored" ? infoA.percent : -1;
@@ -448,13 +411,97 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
       return scoreB - scoreA;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobs, industry, seniority, minSalary, matchScores, hasAnalysis, matchScoresLoading]);
+  }, [filteredJobs, matchScores, hasAnalysis, matchScoresLoading]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedJobs.length / JOBS_PER_PAGE));
+
+  const paginatedJobs = useMemo(() => {
+    const start = (page - 1) * JOBS_PER_PAGE;
+    return sortedJobs.slice(start, start + JOBS_PER_PAGE);
+  }, [sortedJobs, page]);
+
+  // Filters (or a fresh job list) change which jobs exist on "page 1" - always land back there
+  // instead of potentially showing an out-of-range empty page. A re-sort triggered by an
+  // arriving score does NOT reset page - the candidate's chosen page number is preserved even
+  // as which jobs occupy it may change (see sortedJobs above).
+  useEffect(() => {
+    setPage(1);
+  }, [industry, seniority, minSalary, jobs]);
+
+  // Progressive match scoring for every filtered job (not just the current page) - the correct
+  // sort order above depends on knowing every job's score, not only the visible page's. Streamed
+  // rather than blocking (see utils/matchScoreSession.ts's streamSessionMatches), so results
+  // still render one card at a time as they resolve instead of the whole list waiting on the
+  // slowest job, and the currently-visible page's jobs are requested first so what the candidate
+  // is actually looking at resolves before jobs further down the (still-unsorted-by-score) list.
+  // Already-cached jobs (this session, or ever computed server-side) resolve instantly.
+  useEffect(() => {
+    const identity = readCandidateIdentity();
+    if (!identity.email) {
+      setHasAnalysis(false);
+      return;
+    }
+
+    const allIds = filteredJobs
+      .map((job) => job.id)
+      .filter((id): id is number => typeof id === "number");
+
+    if (allIds.length === 0) {
+      return;
+    }
+
+    const visibleIds = new Set(
+      paginatedJobs.map((job) => job.id).filter((id): id is number => typeof id === "number")
+    );
+    const prioritizedIds = [
+      ...allIds.filter((id) => visibleIds.has(id)),
+      ...allIds.filter((id) => !visibleIds.has(id)),
+    ];
+
+    const controller = new AbortController();
+    setMatchScoresLoading(true);
+
+    streamSessionMatches(
+      identity.email,
+      "internal",
+      prioritizedIds,
+      language,
+      (jobId, entry) => {
+        setHasAnalysis(true);
+        setMatchScores((prev) => {
+          const next = new Map(prev);
+          next.set(jobId, {
+            matchPercent: entry.matchPercent,
+            matchReason: entry.matchReason || "",
+            matchedSkills: entry.matchedSkills || [],
+            missingSkills: entry.missingSkills || [],
+            fieldRelated: entry.fieldRelated === undefined ? true : entry.fieldRelated,
+          });
+          return next;
+        });
+      },
+      (hasAnalysisResult) => {
+        setHasAnalysis(hasAnalysisResult);
+        setMatchScoresLoading(false);
+      },
+      controller.signal
+    );
+
+    return () => {
+      controller.abort();
+    };
+    // Deliberately keyed on filteredJobs (not paginatedJobs/page) - changing page must not
+    // restart this fetch, since every filtered job is already being requested up front.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredJobs, language]);
 
   // The headline count candidates actually care about: of the jobs currently shown (after
   // industry/seniority/salary), how many are REAL matches - the AI gave this job a genuine
   // field-related score, and that score clears the Min Match slider. A "noScore" (unrelated
   // field), still-"loading", or "error" card stays visible for browsing (see filteredJobs above)
-  // but must never count as a "match" here regardless of the slider position.
+  // but must never count as a "match" here regardless of the slider position. Climbs as scores
+  // stream in for the full filtered list (see the streaming effect above), not just the page
+  // currently on screen.
   const matchingJobsCount = useMemo(() => {
     return filteredJobs.filter((job) => {
       const info = getMatchInfo(job);
@@ -625,7 +672,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
       <article
         key={`${job.title}-${job.company}-${index}`}
         onClick={() => job.id != null && navigate(`/job-details/internal/${job.id}`)}
-        className="group cursor-pointer rounded-[28px] border border-white/10 bg-[rgba(48,46,108,0.72)] px-7 py-7 shadow-[0_10px_35px_rgba(0,0,0,0.16)] backdrop-blur-[10px] transition hover:bg-[rgba(54,52,118,0.84)]"
+        className="group cursor-pointer rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)] transition hover:border-white/20 hover:bg-[rgba(50,52,108,0.96)]"
       >
         <div className="flex flex-col gap-6 md:flex-row md:items-center">
           <div className="flex flex-col items-center justify-center md:justify-start">
@@ -702,12 +749,12 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
             >
               <h2 className="text-[22px] font-extrabold text-white">{job.title}</h2>
 
-              <span className="rounded-full bg-[rgba(38,199,132,0.14)] px-3 py-1 text-[12px] font-bold text-[#4ff0b2] border border-[rgba(79,240,178,0.18)]">
+              <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-semibold text-emerald-300">
                 {t.jobMatches.statusActive || "Active"}
               </span>
 
               {fromSaved && (
-                <span className="rounded-full bg-[rgba(147,117,255,0.12)] px-3 py-1 text-[12px] font-bold text-[#cbb8ff] border border-[rgba(203,184,255,0.14)]">
+                <span className="rounded-full border border-[#8b5cf6]/30 bg-[#8b5cf6]/15 px-3 py-1 text-sm font-semibold text-[#c4b5fd]">
                   Saved
                 </span>
               )}
@@ -778,7 +825,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                   {matchedSkills.map((skill) => (
                     <span
                       key={skill}
-                      className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-300"
+                      className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-semibold text-emerald-300"
                     >
                       {skill}
                     </span>
@@ -787,7 +834,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                   {missingSkills.map((skill) => (
                     <span
                       key={skill}
-                      className="rounded-full border border-rose-400/20 bg-rose-500/10 px-2.5 py-1 text-xs font-semibold text-rose-300"
+                      className="rounded-full border border-rose-400/20 bg-rose-400/10 px-3 py-1 text-sm font-semibold text-rose-300"
                     >
                       {skill}
                     </span>
@@ -853,18 +900,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
   };
 
   if (loading) {
-    return (
-      <div
-        dir={isRTL ? "rtl" : "ltr"}
-        className="min-h-[calc(100vh-78px)] bg-[radial-gradient(circle_at_top_left,rgba(86,45,255,0.16),transparent_24%),radial-gradient(circle_at_bottom_right,rgba(32,146,255,0.13),transparent_22%),linear-gradient(135deg,#0a0d2e_0%,#101548_45%,#181b58_100%)] px-4 py-7 lg:px-8"
-      >
-        <div className="mx-auto w-full max-w-[1080px]">
-          <div className="rounded-[28px] border border-white/10 bg-[rgba(48,46,108,0.72)] p-8 text-center text-white/70">
-            {t.common?.loading || "Loading..."}
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingScreen message="Finding the best job matches for your profile..." />;
   }
 
   return (
@@ -890,11 +926,11 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                 <button
                   type="button"
                   onClick={() => navigate("/candidate-dashboard")}
-                  className={`inline-flex items-center gap-3 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-6 py-3 text-[16px] font-semibold text-white/80 backdrop-blur-[8px] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-white ${
+                  className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white ${
                     isRTL ? "flex-row-reverse" : ""
                   }`}
                 >
-                  <ArrowLeft size={18} className={isRTL ? "rotate-180" : ""} />
+                  <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
                   <span>{t.common?.back || "Back"}</span>
                 </button>
 
@@ -1189,8 +1225,34 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
             </section>
 
             <section className="space-y-5">
-              {filteredJobs.map((job, index) => renderJobCard(job, index))}
+              {paginatedJobs.map((job, index) => renderJobCard(job, index))}
             </section>
+
+            {totalPages > 1 && (
+              <div className={`mt-8 flex items-center justify-center gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
+                <button
+                  type="button"
+                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                  disabled={page <= 1}
+                  className="rounded-full border border-white/10 bg-white/5 px-5 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {isRTL ? "הקודם" : "Previous"}
+                </button>
+
+                <span className="text-sm font-semibold text-[#aeb4d6]">
+                  {t.common?.page || "Page"} {page} / {totalPages}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={page >= totalPages}
+                  className="rounded-full border border-white/10 bg-white/5 px-5 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {isRTL ? "הבא" : "Next"}
+                </button>
+              </div>
+            )}
           </>
         )}
 
@@ -1200,11 +1262,11 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
               <button
                 type="button"
                 onClick={() => setShowSavedJobs(false)}
-                className={`inline-flex items-center gap-3 rounded-[18px] border border-white/10 bg-[rgba(255,255,255,0.05)] px-6 py-3 text-[16px] font-semibold text-white/80 backdrop-blur-[8px] transition hover:bg-[rgba(255,255,255,0.08)] hover:text-white ${
+                className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white ${
                   isRTL ? "flex-row-reverse" : ""
                 }`}
               >
-                <ArrowLeft size={18} className={isRTL ? "rotate-180" : ""} />
+                <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
                 <span>{t.common?.back || "Back"}</span>
               </button>
             </div>
@@ -1221,9 +1283,9 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                 {savedJobs.map((job, index) => renderJobCard(job, index, true))}
               </section>
             ) : (
-              <div className="rounded-[28px] border border-white/10 bg-[rgba(48,46,108,0.72)] p-8 text-center text-white/70">
-                <p className="font-semibold text-white">No saved jobs yet</p>
-                <p className="mt-1 text-white/60">
+              <div className="rounded-[30px] border border-white/10 bg-white/[0.05] px-7 py-10 text-center">
+                <p className="text-[18px] font-semibold text-white">No saved jobs yet</p>
+                <p className="mt-2 text-[#aeb4d6]">
                   Save jobs from the matches list and they will appear here.
                 </p>
               </div>
