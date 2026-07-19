@@ -213,7 +213,7 @@ export function inferExperience(job: InferableJob): string {
   return "2+ years";
 }
 
-export function getRingColor(status: "scored" | "loading" | "noAnalysis" | "noScore" | "error", percent: number): string {
+export function getRingColor(status: "scored" | "loading" | "noAnalysis" | "noScore" | "error" | "insufficientData", percent: number): string {
   if (status === "error") return "#f59e0b"; // amber — computation failed, distinct from a real "not a match" verdict
   if (status !== "scored") return "#5f648a";
   if (percent >= 80) return "#c084fc"; // purple/lilac — strong match (matches app's AI-insights accent)

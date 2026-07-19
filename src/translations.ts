@@ -246,6 +246,8 @@ export const translations: Record<Language, any> = {
       loadError: "We couldn't load your dashboard data. Please try refreshing the page.",
       loadingMessage: "Loading your dashboard...",
       noMatchesYet: "No job matches yet.",
+      matchesLoadingTitle: "Finding your best job matches...",
+      matchesLoadingSubtitle: "This may take a minute while our AI analyzes available jobs.",
       stats: {
         jobMatches: "Job Matches",
         applications: "Applications",
@@ -622,6 +624,7 @@ plan: {
   analyzeCvForScore: "Analyze your CV to see your match score",
   matchScoreLoading: "Calculating match score...",
   profileMatchScore: "Profile Match Score",
+  insufficientData: "Not enough job information to calculate a reliable match.",
 },
 
     applicationsPage: {
@@ -1600,6 +1603,8 @@ plan: {
       loadError: "تعذر تحميل بيانات لوحة التحكم. يرجى تحديث الصفحة.",
       loadingMessage: "جارٍ تحميل لوحة التحكم...",
       noMatchesYet: "لا توجد وظائف مطابقة بعد.",
+      matchesLoadingTitle: "جارٍ البحث عن أفضل الوظائف المطابقة لك...",
+      matchesLoadingSubtitle: "قد يستغرق هذا دقيقة بينما يقوم الذكاء الاصطناعي بتحليل الوظائف المتاحة.",
       stats: {
         jobMatches: "الوظائف المطابقة",
         applications: "الطلبات",
@@ -1960,6 +1965,7 @@ jobMatches: {
   analyzeCvForScore: "حلّل سيرتك الذاتية لرؤية نسبة التوافق",
   matchScoreLoading: "جارٍ حساب نسبة التوافق...",
   profileMatchScore: "نسبة توافق الملف الشخصي",
+  insufficientData: "لا توجد معلومات كافية عن هذه الوظيفة لحساب نسبة توافق موثوقة.",
 },
 
     applicationsPage: {
@@ -2937,6 +2943,8 @@ companyApplicationsPage: {
       loadError: "לא הצלחנו לטעון את נתוני לוח הבקרה. נסה לרענן את הדף.",
       loadingMessage: "טוען את לוח הבקרה שלך...",
       noMatchesYet: "אין עדיין התאמות משרה.",
+      matchesLoadingTitle: "מחפשים עבורך את ההתאמות הטובות ביותר...",
+      matchesLoadingSubtitle: "זה עשוי לקחת דקה בזמן שהבינה המלאכותית מנתחת את המשרות הזמינות.",
       stats: {
         jobMatches: "משרות מתאימות",
         applications: "הגשות",
@@ -3297,6 +3305,7 @@ companyApplicationsPage: {
   analyzeCvForScore: "נתח את קורות החיים שלך כדי לראות את אחוז ההתאמה",
   matchScoreLoading: "מחשב אחוז התאמה...",
   profileMatchScore: "ציון התאמת הפרופיל",
+  insufficientData: "אין מספיק מידע על המשרה כדי לחשב התאמה אמינה.",
 },
 
     applicationsPage: {

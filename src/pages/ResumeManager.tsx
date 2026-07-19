@@ -18,6 +18,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { apiFetch, apiFetchBlob, ApiError } from "../utils/api";
+import { clearMatchScoreSession } from "../utils/matchScoreSession";
 
 type AnalysisResult = {
   score: number;
@@ -179,6 +180,11 @@ function ResumeManager() {
       setDisplayFileName(uploadResult.originalFileName || uploadResult.fileName);
       resetAnalysis();
       localStorage.setItem("resumeFileName", uploadResult.fileName);
+      // The Job Matches / Dashboard session cache is keyed by cv identity and self-invalidates
+      // on its own (see utils/matchScoreSession.ts), but clearing it immediately here means a
+      // page that was already open in another tab never has even a moment where it could show
+      // a match score computed against the CV that just got replaced.
+      clearMatchScoreSession();
 
       showToast("success", r.uploadSuccess);
     } catch (error) {
@@ -231,6 +237,9 @@ function ResumeManager() {
       setDisplayFileName("");
       resetAnalysis();
       localStorage.removeItem("resumeFileName");
+      // See the matching comment in handleUpload above - immediate, explicit invalidation on
+      // top of the cv-identity self-check.
+      clearMatchScoreSession();
 
       showToast("success", r.deleteSuccess);
     } catch (error) {
@@ -270,6 +279,11 @@ function ResumeManager() {
       setProgress(100);
       setAnalysisStep(r.analysisComplete);
       setAnalysis(buildAnalysis(data));
+      // This is the moment the candidate's cv_text_hash actually changes on the backend (a
+      // re-analysis of new/changed CV content) - match scores computed against the previous
+      // analysis are no longer valid for this candidate. See the matching comment in
+      // handleUpload above.
+      clearMatchScoreSession();
 
       showToast("success", r.analyzeSuccess);
     } catch (error) {

@@ -12,6 +12,17 @@ import { apiFetch, apiFetchStream } from "./api";
 // counterpart), which computes and persists real scores. Only once those results are known are
 // they kept here and reused - so the dashboard/job-matches pages always show real counts, never
 // a false "0 matches" just because nothing was cached yet.
+//
+// Every cached bucket is stamped with the `cvIdentity` (the candidate's current cv_text_hash,
+// from GET /api/cv/analysis - the exact same value JobMatchService's own fingerprint check is
+// keyed on; "none" when there's no CVAnalysis at all) it was computed against. A bucket whose
+// stamp doesn't match the caller's current cvIdentity is treated as if it didn't exist -
+// every job in it is re-requested from the backend rather than trusted. This is what makes
+// deleting/replacing a CV self-correct automatically the next time either page loads, instead of
+// depending on every CV-mutating code path remembering to explicitly clear this cache (uploading,
+// deleting, and analyzing a CV in ResumeManager.tsx also call clearMatchScoreSession() directly,
+// for an immediate effect rather than waiting on the next mount - but this identity check is the
+// actual root-cause fix: it holds even if some future code path forgets to).
 
 export type MatchEntry = {
   matchPercent: number | null;
@@ -19,6 +30,10 @@ export type MatchEntry = {
   matchedSkills?: string[];
   missingSkills?: string[];
   fieldRelated?: boolean | null;
+  // True when the job posting itself was too thin (title-only, or a one-line description with
+  // no real requirements/skills) to support a reliable comparison at all - a deterministic,
+  // backend-computed verdict, never an AI judgment call. See JobMatchService#isInsufficientJobData.
+  insufficientData?: boolean;
 };
 
 type RawMatch = {
@@ -28,16 +43,40 @@ type RawMatch = {
   matchedSkills?: string[];
   missingSkills?: string[];
   fieldRelated?: boolean | null;
+  insufficientData?: boolean;
 };
 
 type MatchesResponse = { hasAnalysis: boolean; matches: RawMatch[] };
 
 export type MatchKind = "internal" | "external";
 
+// Sentinel for "no CVAnalysis exists yet" - distinct from any real cv_text_hash, so a candidate
+// with no CV at all still gets a stable, matchable identity instead of undefined/null needing
+// special-casing at every call site.
+export const NO_CV_IDENTITY = "none";
+
 type CacheBucket = {
+  cvIdentity: string;
   hasAnalysis: boolean;
   entries: Record<number, MatchEntry>;
 };
+
+// The single place every match-score caller gets its cvIdentity from, so there is exactly one
+// definition of "what counts as the candidate's current CV" across the whole frontend. Mirrors
+// GET /api/cv/analysis's own "no analysis" shape ({ hasAnalysis: false }, no cvTextHash field)
+// rather than guessing - any other unexpected shape (row exists but somehow has no hash) also
+// falls back to NO_CV_IDENTITY, which just means more cache misses, never a wrong match returned.
+export async function fetchCurrentCvIdentity(): Promise<string> {
+  try {
+    const data = await apiFetch("/api/cv/analysis");
+    if (data && typeof data.cvTextHash === "string" && data.cvTextHash.length > 0) {
+      return data.cvTextHash as string;
+    }
+    return NO_CV_IDENTITY;
+  } catch {
+    return NO_CV_IDENTITY;
+  }
+}
 
 const STORAGE_PREFIX = "jobmatch_matchscores_";
 
@@ -45,10 +84,15 @@ function storageKey(email: string, kind: MatchKind) {
   return `${STORAGE_PREFIX}${kind}_${email}`;
 }
 
-function readBucket(email: string, kind: MatchKind): CacheBucket | null {
+// Returns the cached bucket only if it was computed against the SAME cv identity the caller
+// currently has - a bucket left over from a since-deleted/replaced CV is treated as absent
+// rather than served, which is the actual fix for stale scores surviving a CV change.
+function readBucket(email: string, kind: MatchKind, cvIdentity: string): CacheBucket | null {
   try {
     const raw = sessionStorage.getItem(storageKey(email, kind));
-    return raw ? (JSON.parse(raw) as CacheBucket) : null;
+    if (!raw) return null;
+    const bucket = JSON.parse(raw) as CacheBucket;
+    return bucket.cvIdentity === cvIdentity ? bucket : null;
   } catch {
     return null;
   }
@@ -65,21 +109,24 @@ function writeBucket(email: string, kind: MatchKind, bucket: CacheBucket) {
   }
 }
 
-// Per (email, kind, job-id-set) in-flight promise so concurrent callers within the same tab
-// (a component mounting twice under React StrictMode, or navigating back to a page before its
-// first request resolved) join the SAME network call instead of each starting their own. This is
+// Per (email, kind, cvIdentity, job-id-set) in-flight promise so concurrent callers within the
+// same tab (a component mounting twice under React StrictMode, or navigating back to a page
+// before its first request resolved) join the SAME network call instead of each starting their
+// own. Keyed on cvIdentity too, so a request started against the old CV can never be joined by -
+// or itself resolve into the cache for - a request that started after the CV changed. This is
 // the frontend half of "concurrent requests cannot start the same calculation more than once" -
 // the backend's own per-job singleflight guard (JobMatchService.inFlightComputations) is the
 // other half, covering requests that land at the same time from different tabs/sessions.
 const inFlight = new Map<string, Promise<CacheBucket>>();
 
-function requestKey(email: string, kind: MatchKind, jobIds: number[]) {
-  return `${email}|${kind}|${[...jobIds].sort((a, b) => a - b).join(",")}`;
+function requestKey(email: string, kind: MatchKind, cvIdentity: string, jobIds: number[]) {
+  return `${email}|${kind}|${cvIdentity}|${[...jobIds].sort((a, b) => a - b).join(",")}`;
 }
 
 async function fetchAndMerge(
   email: string,
   kind: MatchKind,
+  cvIdentity: string,
   jobIds: number[],
   language: string
 ): Promise<CacheBucket> {
@@ -94,7 +141,7 @@ async function fetchAndMerge(
     body: JSON.stringify(body),
   });
 
-  const existing = readBucket(email, kind);
+  const existing = readBucket(email, kind, cvIdentity);
   // Two views of the result: `persisted` is what gets written to sessionStorage and reused by
   // future calls, `resultEntries` is what THIS call returns to its caller for immediate
   // rendering. They differ for a transient AI failure (fieldRelated === null, the backend's
@@ -113,30 +160,35 @@ async function fetchAndMerge(
       matchedSkills: match.matchedSkills,
       missingSkills: match.missingSkills,
       fieldRelated: match.fieldRelated === undefined ? true : match.fieldRelated,
+      insufficientData: match.insufficientData === true,
     };
     resultEntries[match.jobId] = entry;
-    if (match.fieldRelated !== null) {
+    if (match.fieldRelated !== null || entry.insufficientData) {
       persisted[match.jobId] = entry;
     }
   });
 
-  writeBucket(email, kind, { hasAnalysis: data.hasAnalysis, entries: persisted });
-  return { hasAnalysis: data.hasAnalysis, entries: resultEntries };
+  writeBucket(email, kind, { cvIdentity, hasAnalysis: data.hasAnalysis, entries: persisted });
+  return { cvIdentity, hasAnalysis: data.hasAnalysis, entries: resultEntries };
 }
 
-// Returns match results for the given job ids, computing them (once) only if they aren't
-// already known for this session. Safe to call from multiple pages/mounts concurrently.
+// Returns match results for the given job ids, computing them (once per cv identity) only if
+// they aren't already known for this session. Safe to call from multiple pages/mounts
+// concurrently. `cvIdentity` should be the candidate's current cv_text_hash from GET
+// /api/cv/analysis (or NO_CV_IDENTITY if they have none) - see this module's top-of-file comment
+// for why.
 export async function getSessionMatches(
   email: string,
   kind: MatchKind,
+  cvIdentity: string,
   jobIds: number[],
   language: string
 ): Promise<CacheBucket> {
   if (!email || jobIds.length === 0) {
-    return { hasAnalysis: false, entries: {} };
+    return { cvIdentity, hasAnalysis: false, entries: {} };
   }
 
-  const cached = readBucket(email, kind);
+  const cached = readBucket(email, kind, cvIdentity);
   // No CVAnalysis means there will never be anything to compute - trust that terminal state
   // for the rest of the session rather than re-asking on every page visit. Otherwise, only
   // trust the cache once every requested job id is already present in it.
@@ -144,13 +196,13 @@ export async function getSessionMatches(
     return cached;
   }
 
-  const key = requestKey(email, kind, jobIds);
+  const key = requestKey(email, kind, cvIdentity, jobIds);
   const existingRequest = inFlight.get(key);
   if (existingRequest) {
     return existingRequest;
   }
 
-  const promise = fetchAndMerge(email, kind, jobIds, language).finally(() => {
+  const promise = fetchAndMerge(email, kind, cvIdentity, jobIds, language).finally(() => {
     inFlight.delete(key);
   });
   inFlight.set(key, promise);
@@ -166,10 +218,11 @@ export async function getSessionMatches(
 // The backend's own per-(candidate, job) singleflight guard (JobMatchService.
 // inFlightComputations) is what actually prevents duplicate OpenAI calls when two callers ask
 // about the same job around the same time - this function does not need its own dedup logic on
-// top of that.
+// top of that. `cvIdentity` - see this module's top-of-file comment and getSessionMatches above.
 export function streamSessionMatches(
   email: string,
   kind: MatchKind,
+  cvIdentity: string,
   jobIds: number[],
   language: string,
   onScore: (jobId: number, entry: MatchEntry) => void,
@@ -181,7 +234,7 @@ export function streamSessionMatches(
     return;
   }
 
-  const cached = readBucket(email, kind);
+  const cached = readBucket(email, kind, cvIdentity);
   if (cached && !cached.hasAnalysis) {
     onDone(false);
     return;
@@ -216,8 +269,8 @@ export function streamSessionMatches(
     (evt) => {
       if (evt.event === "no-analysis") {
         sawAnalysis = false;
-        const bucket = readBucket(email, kind);
-        writeBucket(email, kind, { hasAnalysis: false, entries: bucket ? bucket.entries : {} });
+        const bucket = readBucket(email, kind, cvIdentity);
+        writeBucket(email, kind, { cvIdentity, hasAnalysis: false, entries: bucket ? bucket.entries : {} });
         return;
       }
 
@@ -229,14 +282,16 @@ export function streamSessionMatches(
           matchedSkills: match.matchedSkills,
           missingSkills: match.missingSkills,
           fieldRelated: match.fieldRelated === undefined ? true : match.fieldRelated,
+          insufficientData: match.insufficientData === true,
         };
         sawAnalysis = true;
 
         // Same "don't freeze a transient failure into the session cache" rule as
-        // fetchAndMerge above - only a real verdict (fieldRelated !== null) gets persisted,
-        // so a job the AI genuinely couldn't score naturally retries on the next visit.
-        if (entry.fieldRelated !== null) {
-          const bucket = readBucket(email, kind) || { hasAnalysis: true, entries: {} };
+        // fetchAndMerge above - only a real verdict (fieldRelated !== null) OR the deterministic
+        // insufficient-data verdict gets persisted, so a job the AI genuinely couldn't score
+        // naturally retries on the next visit.
+        if (entry.fieldRelated !== null || entry.insufficientData) {
+          const bucket = readBucket(email, kind, cvIdentity) || { cvIdentity, hasAnalysis: true, entries: {} };
           bucket.entries[match.jobId] = entry;
           bucket.hasAnalysis = true;
           writeBucket(email, kind, bucket);
@@ -258,9 +313,11 @@ export function streamSessionMatches(
   });
 }
 
-// Called on logout so a different account logging in on the same tab never reuses another
-// candidate's session-cached match scores (defense in depth - the cache is already keyed per
-// email, so this is about not letting stale entries accumulate, not a correctness fix).
+// Called on logout, and on CV upload/delete/analyze (see ResumeManager.tsx) so a different
+// account - or a replaced CV - on the same tab never reuses stale session-cached match scores.
+// Defense in depth: the cvIdentity check baked into readBucket above is what actually makes a
+// stale bucket unusable even if some future caller forgets to invoke this, but clearing
+// immediately here means the very next read doesn't even find a stale (if inert) entry.
 export function clearMatchScoreSession() {
   inFlight.clear();
   try {

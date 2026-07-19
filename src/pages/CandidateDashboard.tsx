@@ -6,7 +6,7 @@ import { translations } from "../translations";
 import { computeProfileCompleteness } from "./ProfilePage";
 import { getRingColor } from "../utils/jobInference";
 import { apiFetch } from "../utils/api";
-import { streamSessionMatches } from "../utils/matchScoreSession";
+import { streamSessionMatches, fetchCurrentCvIdentity } from "../utils/matchScoreSession";
 import { FREE_PLAN_LIMIT } from "../utils/applicationLimit";
 import LoadingScreen from "../components/LoadingScreen";
 import {
@@ -23,6 +23,7 @@ import {
   MapPin,
   Wifi,
   CheckCircle2,
+  Loader2,
 } from "lucide-react";
 
 type RecentApplication = {
@@ -38,6 +39,7 @@ type RecentApplication = {
 
 type MatchItem = {
   id: number;
+  jobType: "internal" | "external";
   title: string;
   company: string;
   location: string;
@@ -64,11 +66,25 @@ type BackendJob = {
   companyName?: string;
   location?: string;
   remote?: boolean;
+  type?: string;
 };
 
 type BackendExternalJob = {
   id?: number;
+  title?: string;
+  companyName?: string;
+  location?: string;
+  type?: string;
 };
+
+// The Job/ExternalJob entities have no boolean "remote" column - BackendJob.remote is never
+// actually present on the raw API response (Job's own client-side mapping in JobMatches.tsx
+// derives it the same way instead of trusting a field that doesn't exist), so this checks the
+// same signal (job type/location text) rather than silently defaulting to true for everything.
+function isRemoteJob(job: { remote?: boolean; type?: string; location?: string }): boolean {
+  if (typeof job.remote === "boolean") return job.remote;
+  return /remote/i.test(job.type || "") || /remote/i.test(job.location || "");
+}
 
 type MatchScoreEntry = {
   matchPercent: number | null;
@@ -147,6 +163,10 @@ function CandidateDashboard() {
   // of jobs available. See fetchDashboardData below for the "matched" definition (fieldRelated
   // && matchPercent !== null), kept consistent with JobMatches.tsx's own "scored" status.
   const [matchedJobsCount, setMatchedJobsCount] = useState("0");
+  // True for the whole span AI match-scoring is running - the "Job Matches" tile shows a
+  // spinner/message instead of matchedJobsCount while this is true, so the candidate never sees
+  // the count tick up 0, 1, 2... one job at a time (see fetchDashboardData's matching phase).
+  const [matchesLoading, setMatchesLoading] = useState(false);
   const [applicationsCount, setApplicationsCount] = useState("0");
   const [applicationsThisMonth, setApplicationsThisMonth] = useState(0);
   const [interviewsCount, setInterviewsCount] = useState("0");
@@ -178,6 +198,7 @@ function CandidateDashboard() {
       setTopMatches([]);
       setApplications([]);
       setMatchedJobsCount("0");
+      setMatchesLoading(false);
       setLoading(true);
       setError("");
 
@@ -299,27 +320,46 @@ function CandidateDashboard() {
         }).length;
         setMatchedJobsCount(String(matchedInternalCount + matchedExternalCount));
 
-        const jobsWithScores = jobsData
+        // "Top Job Matches" must draw from the SAME combined internal+external pool the
+        // "Job Matches" count above does - it used to only ever look at internal jobs, so a
+        // candidate whose real matches happened to be mostly/entirely external ones saw a
+        // nonzero count next to a "No job matches yet" list, which read as broken.
+        const internalMatches: MatchItem[] = jobsData
           .filter((job) => {
             if (typeof job.id !== "number") return false;
             const entry = matchByJobId.get(job.id);
             return Boolean(entry && entry.fieldRelated && entry.matchPercent !== null);
           })
           .map((job) => ({
-            job,
-            score: matchByJobId.get(job.id as number)!.matchPercent as number,
-          }))
-          .sort((a, b) => b.score - a.score);
-
-        setTopMatches(
-          jobsWithScores.slice(0, 3).map(({ job, score }) => ({
             id: job.id as number,
+            jobType: "internal",
             title: job.title || "Job Position",
             company: job.company || job.companyName || "Company",
             location: job.location || "Not specified",
-            remote: job.remote ?? true,
-            score,
-          }))
+            remote: isRemoteJob(job),
+            score: matchByJobId.get(job.id as number)!.matchPercent as number,
+          }));
+
+        const externalMatches: MatchItem[] = externalJobsData
+          .filter((job) => {
+            if (typeof job.id !== "number") return false;
+            const entry = externalMatchByJobId.get(job.id);
+            return Boolean(entry && entry.fieldRelated && entry.matchPercent !== null);
+          })
+          .map((job) => ({
+            id: job.id as number,
+            jobType: "external",
+            title: job.title || "Job Position",
+            company: job.companyName || "Company",
+            location: job.location || "Not specified",
+            remote: isRemoteJob(job),
+            score: externalMatchByJobId.get(job.id as number)!.matchPercent as number,
+          }));
+
+        setTopMatches(
+          [...internalMatches, ...externalMatches]
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3)
         );
 
         setApplications((prev) =>
@@ -334,41 +374,68 @@ function CandidateDashboard() {
       // streams real scores (one OpenAI call per unscored job, computed server-side) and caches
       // each result for the rest of the session - see utils/matchScoreSession.ts. Shared with
       // JobMatches.tsx, so a job already scored there resolves here instantly with no network
-      // call at all, and vice versa.
-      if (combinedJobIds.length > 0) {
-        streamSessionMatches(
-          userEmail,
-          "internal",
-          combinedJobIds,
-          language,
-          (jobId, entry) => {
-            matchByJobId.set(jobId, {
-              matchPercent: entry.matchPercent,
-              fieldRelated: entry.fieldRelated !== false,
-            });
-            applyDerivedState();
-          },
-          () => {},
-          controller.signal
-        );
-      }
+      // call at all, and vice versa. Resolved fresh (never assumed/cached client-side) so a
+      // deleted/replaced CV can never surface stale scores here either - see
+      // fetchCurrentCvIdentity's own comment.
+      //
+      // The "Job Matches" tile deliberately does NOT show matchedJobsCount ticking up 0, 1, 2...
+      // as each job resolves - that read as broken/janky rather than "working". Instead the tile
+      // shows a loading spinner/message for the whole streak and only reveals the final number
+      // once every internal AND external job has been accounted for (both streams' onDone has
+      // fired) - see matchesLoading below and its use in the stats tile render.
+      if (combinedJobIds.length > 0 || externalJobIds.length > 0) {
+        setMatchesLoading(true);
+        let pendingStreams = (combinedJobIds.length > 0 ? 1 : 0) + (externalJobIds.length > 0 ? 1 : 0);
+        const onStreamDone = () => {
+          pendingStreams -= 1;
+          if (pendingStreams <= 0 && !controller.signal.aborted) {
+            setMatchesLoading(false);
+          }
+        };
 
-      if (externalJobIds.length > 0) {
-        streamSessionMatches(
-          userEmail,
-          "external",
-          externalJobIds,
-          language,
-          (jobId, entry) => {
-            externalMatchByJobId.set(jobId, {
-              matchPercent: entry.matchPercent,
-              fieldRelated: entry.fieldRelated !== false,
-            });
-            applyDerivedState();
-          },
-          () => {},
-          controller.signal
-        );
+        fetchCurrentCvIdentity().then((cvIdentity) => {
+          if (controller.signal.aborted) return;
+
+          if (combinedJobIds.length > 0) {
+            streamSessionMatches(
+              userEmail,
+              "internal",
+              cvIdentity,
+              combinedJobIds,
+              language,
+              (jobId, entry) => {
+                matchByJobId.set(jobId, {
+                  matchPercent: entry.matchPercent,
+                  fieldRelated: entry.fieldRelated !== false,
+                });
+                applyDerivedState();
+              },
+              onStreamDone,
+              controller.signal
+            );
+          }
+
+          if (externalJobIds.length > 0) {
+            streamSessionMatches(
+              userEmail,
+              "external",
+              cvIdentity,
+              externalJobIds,
+              language,
+              (jobId, entry) => {
+                externalMatchByJobId.set(jobId, {
+                  matchPercent: entry.matchPercent,
+                  fieldRelated: entry.fieldRelated !== false,
+                });
+                applyDerivedState();
+              },
+              onStreamDone,
+              controller.signal
+            );
+          }
+        });
+      } else {
+        setMatchesLoading(false);
       }
     };
 
@@ -410,6 +477,7 @@ function CandidateDashboard() {
         iconBg: "bg-[#5e66ff1f]",
         iconColor: "text-[#7c88ff]",
         onClick: () => navigate("/job-matches"),
+        loading: matchesLoading,
       },
       {
         icon: <FileText size={22} />,
@@ -418,6 +486,7 @@ function CandidateDashboard() {
         iconBg: "bg-[#22d3ee1f]",
         iconColor: "text-[#67e8f9]",
         onClick: () => navigate("/applications"),
+        loading: false,
       },
       {
         icon: <CalendarDays size={22} />,
@@ -425,6 +494,7 @@ function CandidateDashboard() {
         label: t.dashboard.stats.interviews,
         iconBg: "bg-[#34d3991f]",
         iconColor: "text-[#6ee7b7]",
+        loading: false,
       },
       {
         icon: <Sparkles size={22} />,
@@ -433,9 +503,10 @@ function CandidateDashboard() {
         iconBg: "bg-[#a855f71f]",
         iconColor: "text-[#d8b4fe]",
         onClick: () => navigate("/profile"),
+        loading: false,
       },
     ],
-    [matchedJobsCount, applicationsCount, interviewsCount, profileScore, navigate, t]
+    [matchedJobsCount, matchesLoading, applicationsCount, interviewsCount, profileScore, navigate, t]
   );
 
   const profilePercent = profileScore;
@@ -510,10 +581,24 @@ function CandidateDashboard() {
                 />
               </div>
 
-              <h2 className="mb-1 text-[40px] font-extrabold leading-none text-white">
-                {stat.value}
-              </h2>
-              <p className="text-[15px] text-[#aeb4d6]">{stat.label}</p>
+              {stat.loading ? (
+                <div className={isRTL ? "text-right" : "text-left"}>
+                  <Loader2 size={26} className="mb-2 animate-spin text-white/70" />
+                  <p className="text-[15px] font-bold leading-snug text-white">
+                    {t.dashboard.matchesLoadingTitle}
+                  </p>
+                  <p className="mt-1 text-[13px] leading-snug text-[#aeb4d6]">
+                    {t.dashboard.matchesLoadingSubtitle}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <h2 className="mb-1 text-[40px] font-extrabold leading-none text-white">
+                    {stat.value}
+                  </h2>
+                  <p className="text-[15px] text-[#aeb4d6]">{stat.label}</p>
+                </>
+              )}
             </button>
           ))}
         </section>
@@ -585,12 +670,8 @@ function CandidateDashboard() {
               ) : (
                 topMatches.map((job) => (
                   <article
-                    key={job.id}
-                    onClick={() =>
-                      navigate("/job-matches", {
-                        state: { selectedJobTitle: job.title },
-                      })
-                    }
+                    key={`${job.jobType}-${job.id}`}
+                    onClick={() => navigate(`/job-details/${job.jobType}/${job.id}`)}
                     className="group cursor-pointer rounded-[28px] border border-white/10 bg-[rgba(50,52,108,0.78)] px-5 py-5 transition hover:border-white/20 hover:bg-[rgba(56,58,118,0.95)]"
                   >
                     <div className="flex flex-col gap-5 md:flex-row md:items-center">

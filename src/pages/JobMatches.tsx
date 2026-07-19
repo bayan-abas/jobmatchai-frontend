@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   BriefcaseBusiness,
@@ -32,7 +32,7 @@ import {
 } from "../utils/jobInference";
 import { formatSalary } from "../utils/formatSalary";
 import { apiFetch } from "../utils/api";
-import { streamSessionMatches } from "../utils/matchScoreSession";
+import { streamSessionMatches, fetchCurrentCvIdentity } from "../utils/matchScoreSession";
 import { FREE_PLAN_LIMIT } from "../utils/applicationLimit";
 import LoadingScreen from "../components/LoadingScreen";
 import PreInterviewModal from "../components/PreInterviewModal";
@@ -76,6 +76,9 @@ type MatchScoreEntry = {
   // job's match at all (a transient failure, not a verdict) - the backend never caches this,
   // so it's worth retrying rather than treating it the same as a genuine field mismatch.
   fieldRelated: boolean | null;
+  // True when the job posting itself was too thin to support a reliable comparison at all - a
+  // deterministic backend verdict (see JobMatchService#isInsufficientJobData), never an AI call.
+  insufficientData: boolean;
 };
 
 function JobMatches() {
@@ -102,14 +105,27 @@ function JobMatches() {
   const [hasAnalysis, setHasAnalysis] = useState<boolean | null>(null);
   const [matchScoresLoading, setMatchScoresLoading] = useState(false);
 
-  // Jobs render immediately once fetched; match percentages are only ever requested for the
-  // page currently on screen (see the streamSessionMatches effect below) instead of the whole
-  // job list at once - this is what keeps opening this page fast regardless of how many jobs
-  // exist in total, and is why filteredJobs (below) deliberately does NOT sort by match score -
-  // sorting by a value most of the list doesn't have yet would make pages reshuffle underneath
-  // the candidate as scores stream in for whichever page they're looking at.
+  // Jobs render immediately once fetched; match percentages stream in progressively (see the
+  // streamSessionMatches effect below) rather than blocking the page.
+  //
+  // The current page number lives in the URL (?page=N), not local-only state, specifically so
+  // that opening a job from, say, page 3 and then going back restores page 3 itself, not page 1
+  // - see ScrollToTop.tsx, which restores the scroll position for this exact URL (path + query)
+  // on back/forward navigation. goToPage below is the only way this should ever change.
   const JOBS_PER_PAGE = 24;
-  const [page, setPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+
+  const goToPage = (nextPage: number) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("page", String(Math.max(1, nextPage)));
+        return next;
+      },
+      { replace: true }
+    );
+  };
 
   const [savedJobIds, setSavedJobIds] = useState<Set<number>>(new Set());
   const savedJobs = useMemo(
@@ -332,6 +348,10 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
   type MatchInfo =
     | { status: "loading" }
     | { status: "noAnalysis" }
+    // The job posting itself was too thin (title-only, no real requirements/skills) to support
+    // a reliable comparison - a deterministic backend verdict, never an AI call spent confirming
+    // it. Distinct from "error": this is stable/cached, not something a refresh will change.
+    | { status: "insufficientData" }
     // The AI tried and gave a real verdict that this job isn't a field match - matchReason
     // explains why, straight from the AI's own comparison of the CV and the job posting.
     | { status: "noScore"; reason: string }
@@ -357,7 +377,15 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
 
     const entry = typeof job.id === "number" ? matchScores.get(job.id) : undefined;
     if (!entry) {
-      return { status: "noAnalysis" };
+      // hasAnalysis is true here (the branch above already handled false), so a missing entry
+      // after the stream has settled means this specific job's score never arrived - a
+      // computation gap, not "no CV" - showing the "Analyze your CV" CTA here would be
+      // misleading since a real CVAnalysis does exist.
+      return { status: "error", reason: "" };
+    }
+
+    if (entry.insufficientData) {
+      return { status: "insufficientData" };
     }
 
     if (entry.fieldRelated === null) {
@@ -420,13 +448,32 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
     return sortedJobs.slice(start, start + JOBS_PER_PAGE);
   }, [sortedJobs, page]);
 
-  // Filters (or a fresh job list) change which jobs exist on "page 1" - always land back there
-  // instead of potentially showing an out-of-range empty page. A re-sort triggered by an
-  // arriving score does NOT reset page - the candidate's chosen page number is preserved even
-  // as which jobs occupy it may change (see sortedJobs above).
+  // Changing a filter changes which jobs exist on "page 1" - always land back there instead of
+  // potentially showing an out-of-range empty page. Deliberately does NOT depend on `jobs` (the
+  // fetched list) - only on the filters themselves, which only change via explicit user
+  // interaction - so the initial data load on mount never fights the page number restored from
+  // the URL (see the page/goToPage comment above) by silently resetting it back to 1. A re-sort
+  // triggered by an arriving score does NOT reset page either - the candidate's chosen page
+  // number is preserved even as which jobs occupy it may change (see sortedJobs above).
   useEffect(() => {
-    setPage(1);
-  }, [industry, seniority, minSalary, jobs]);
+    goToPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [industry, seniority, minSalary]);
+
+  // Smooth-scrolls to top whenever the candidate changes page WHILE already on this page
+  // (Previous/Next, or the filter-triggered reset above) - otherwise the new page's jobs render
+  // starting from wherever they had scrolled to previously. Deliberately skipped on this
+  // component's very first render: when the page number was just restored from the URL (see
+  // above) after coming back from a job's details, ScrollToTop.tsx already restores the exact
+  // scroll offset, and forcing a scroll-to-top here would immediately fight that.
+  const skipNextPageScroll = useRef(true);
+  useEffect(() => {
+    if (skipNextPageScroll.current) {
+      skipNextPageScroll.current = false;
+      return;
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [page]);
 
   // Progressive match scoring for every filtered job (not just the current page) - the correct
   // sort order above depends on knowing every job's score, not only the visible page's. Streamed
@@ -461,31 +508,41 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
     const controller = new AbortController();
     setMatchScoresLoading(true);
 
-    streamSessionMatches(
-      identity.email,
-      "internal",
-      prioritizedIds,
-      language,
-      (jobId, entry) => {
-        setHasAnalysis(true);
-        setMatchScores((prev) => {
-          const next = new Map(prev);
-          next.set(jobId, {
-            matchPercent: entry.matchPercent,
-            matchReason: entry.matchReason || "",
-            matchedSkills: entry.matchedSkills || [],
-            missingSkills: entry.missingSkills || [],
-            fieldRelated: entry.fieldRelated === undefined ? true : entry.fieldRelated,
+    // Always resolved fresh (never assumed/cached client-side) before touching the session
+    // cache - this is what lets a deleted/replaced CV self-correct: a stale bucket left over
+    // from the previous CV simply won't match this identity and gets bypassed (see
+    // utils/matchScoreSession.ts).
+    fetchCurrentCvIdentity().then((cvIdentity) => {
+      if (controller.signal.aborted) return;
+
+      streamSessionMatches(
+        identity.email,
+        "internal",
+        cvIdentity,
+        prioritizedIds,
+        language,
+        (jobId, entry) => {
+          setHasAnalysis(true);
+          setMatchScores((prev) => {
+            const next = new Map(prev);
+            next.set(jobId, {
+              matchPercent: entry.matchPercent,
+              matchReason: entry.matchReason || "",
+              matchedSkills: entry.matchedSkills || [],
+              missingSkills: entry.missingSkills || [],
+              fieldRelated: entry.fieldRelated === undefined ? true : entry.fieldRelated,
+              insufficientData: entry.insufficientData === true,
+            });
+            return next;
           });
-          return next;
-        });
-      },
-      (hasAnalysisResult) => {
-        setHasAnalysis(hasAnalysisResult);
-        setMatchScoresLoading(false);
-      },
-      controller.signal
-    );
+        },
+        (hasAnalysisResult) => {
+          setHasAnalysis(hasAnalysisResult);
+          setMatchScoresLoading(false);
+        },
+        controller.signal
+      );
+    });
 
     return () => {
       controller.abort();
@@ -681,7 +738,9 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
               title={
                 matchInfo.status === "noScore" || matchInfo.status === "error"
                   ? matchInfo.reason
-                  : undefined
+                  : matchInfo.status === "insufficientData"
+                    ? t.jobMatches.insufficientData
+                    : undefined
               }
             >
               <div
@@ -711,7 +770,9 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                       ? "!"
                       : matchInfo.status === "noScore"
                         ? "—"
-                        : "?"}
+                        : matchInfo.status === "insufficientData"
+                          ? "ⓘ"
+                          : "?"}
               </div>
             </div>
 
@@ -724,6 +785,12 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
             {matchInfo.status === "error" && (
               <span className="mt-2 max-w-[110px] text-center text-[11px] font-medium text-amber-300/80">
                 Couldn't compute - refresh to retry
+              </span>
+            )}
+
+            {matchInfo.status === "insufficientData" && (
+              <span className="mt-2 max-w-[110px] text-center text-[11px] font-medium text-white/40">
+                {t.jobMatches.insufficientData}
               </span>
             )}
 
@@ -1232,7 +1299,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
               <div className={`mt-8 flex items-center justify-center gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
                 <button
                   type="button"
-                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                  onClick={() => goToPage(Math.max(1, page - 1))}
                   disabled={page <= 1}
                   className="rounded-full border border-white/10 bg-white/5 px-5 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                 >
@@ -1245,7 +1312,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
 
                 <button
                   type="button"
-                  onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                  onClick={() => goToPage(Math.min(totalPages, page + 1))}
                   disabled={page >= totalPages}
                   className="rounded-full border border-white/10 bg-white/5 px-5 py-2 text-sm font-semibold text-[#dbe2ff] transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                 >
