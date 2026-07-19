@@ -3,6 +3,7 @@ import { Bot, X, Send, Sparkles, MessageSquare, RotateCcw } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../utils/api";
+import AiMessageContent from "./AiMessageContent";
 
 type Message = {
   id: number;
@@ -253,7 +254,11 @@ function AIChatButton() {
                         : "border border-white/10 bg-white/5 text-[#eef1ff]"
                     } ${isRTL ? "text-right" : "text-left"}`}
                   >
-                    {message.text}
+                    {message.sender === "ai" ? (
+                      <AiMessageContent text={message.text} isRTL={isRTL} />
+                    ) : (
+                      message.text
+                    )}
                   </div>
                 </div>
               ))}

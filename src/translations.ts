@@ -5,6 +5,7 @@ export const translations: Record<Language, any> = {
     common: {
       back: "Back",
       login: "Sign In",
+      signingIn: "Signing in...",
       register: "Register",
       createAccount: "Create New Account",
       alreadyHaveAccount: "Already Have an Account?",
@@ -1359,6 +1360,7 @@ plan: {
     common: {
       back: "رجوع",
       login: "تسجيل الدخول",
+      signingIn: "جارٍ تسجيل الدخول...",
       register: "إنشاء حساب",
       createAccount: "إنشاء حساب جديد",
       alreadyHaveAccount: "لديك حساب بالفعل؟",
@@ -2694,6 +2696,7 @@ companyApplicationsPage: {
     common: {
       back: "חזרה",
       login: "התחברות",
+      signingIn: "מתחבר...",
       register: "הרשמה",
       createAccount: "צור חשבון חדש",
       alreadyHaveAccount: "כבר יש לך חשבון?",

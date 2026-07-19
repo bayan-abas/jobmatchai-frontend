@@ -6,6 +6,7 @@ import {
   Lock,
   Building2,
   UserRound,
+  Loader2,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth, normalizeRole } from "../context/AuthContext";
@@ -22,9 +23,13 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
 const handleLogin = async (e: React.FormEvent) => {
   e.preventDefault();
+
+  if (isSubmitting) return;
+
   setError("");
 
   const normalizedEmail = email.trim().toLowerCase();
@@ -41,6 +46,8 @@ const handleLogin = async (e: React.FormEvent) => {
     );
     return;
   }
+
+  setIsSubmitting(true);
 
   try {
     const data = await apiFetch("/api/users/login", {
@@ -75,6 +82,8 @@ const handleLogin = async (e: React.FormEvent) => {
   } catch (error) {
     console.error(error);
     setError(error instanceof ApiError ? error.message : "Server connection failed.");
+  } finally {
+    setIsSubmitting(false);
   }
 };
 
@@ -210,7 +219,8 @@ const handleLogin = async (e: React.FormEvent) => {
                     placeholder={t?.common?.email || "Email Address"}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className={inputClass}
+                    disabled={isSubmitting}
+                    className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
                   />
                 </div>
 
@@ -226,7 +236,8 @@ const handleLogin = async (e: React.FormEvent) => {
                     placeholder={t?.common?.password || "Password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className={inputClass}
+                    disabled={isSubmitting}
+                    className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
                   />
                 </div>
               </div>
@@ -254,9 +265,13 @@ const handleLogin = async (e: React.FormEvent) => {
 
               <button
                 type="submit"
-                className="w-full rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-6 py-4 text-base font-bold text-white shadow-[0_12px_30px_rgba(34,211,238,0.25)] transition hover:scale-[1.01]"
+                disabled={isSubmitting}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-6 py-4 text-base font-bold text-white shadow-[0_12px_30px_rgba(34,211,238,0.25)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:scale-100"
               >
-                {t?.common?.login || "Sign In"}
+                {isSubmitting && <Loader2 size={18} className="animate-spin" />}
+                {isSubmitting
+                  ? t?.common?.signingIn || "Signing in..."
+                  : t?.common?.login || "Sign In"}
               </button>
 
               <div className="grid gap-3 sm:grid-cols-2">
