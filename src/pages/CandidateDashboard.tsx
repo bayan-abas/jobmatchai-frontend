@@ -6,7 +6,7 @@ import { translations } from "../translations";
 import { computeProfileCompleteness } from "./ProfilePage";
 import { getRingColor } from "../utils/jobInference";
 import { apiFetch } from "../utils/api";
-import { streamSessionMatches, fetchCurrentCvIdentity } from "../utils/matchScoreSession";
+import { streamSessionMatches, fetchCurrentCvIdentity, NO_CV_IDENTITY } from "../utils/matchScoreSession";
 import { FREE_PLAN_LIMIT } from "../utils/applicationLimit";
 import LoadingScreen from "../components/LoadingScreen";
 import {
@@ -167,6 +167,10 @@ function CandidateDashboard() {
   // spinner/message instead of matchedJobsCount while this is true, so the candidate never sees
   // the count tick up 0, 1, 2... one job at a time (see fetchDashboardData's matching phase).
   const [matchesLoading, setMatchesLoading] = useState(false);
+  // null = not yet known, false = no CV on file (matchedJobsCount's "0" would be misleading -
+  // the system genuinely doesn't know how many jobs match without a CV to compare against), true
+  // = a real CVAnalysis exists and matchedJobsCount reflects an actual computed count.
+  const [hasAnalysis, setHasAnalysis] = useState<boolean | null>(null);
   const [applicationsCount, setApplicationsCount] = useState("0");
   const [applicationsThisMonth, setApplicationsThisMonth] = useState(0);
   const [interviewsCount, setInterviewsCount] = useState("0");
@@ -199,6 +203,7 @@ function CandidateDashboard() {
       setApplications([]);
       setMatchedJobsCount("0");
       setMatchesLoading(false);
+      setHasAnalysis(null);
       setLoading(true);
       setError("");
 
@@ -396,6 +401,19 @@ function CandidateDashboard() {
         fetchCurrentCvIdentity().then((cvIdentity) => {
           if (controller.signal.aborted) return;
 
+          // No CV means matchedJobsCount's "0" would be misleading (the system genuinely can't
+          // know how many jobs match without one) - resolved here, before either stream call, so
+          // the "Job Matches" tile can show a clear upload CTA instead. streamSessionMatches
+          // would also short-circuit this itself, but doing it here means hasAnalysis is set
+          // correctly without waiting on that round trip.
+          if (cvIdentity === NO_CV_IDENTITY) {
+            setHasAnalysis(false);
+            setMatchesLoading(false);
+            return;
+          }
+
+          setHasAnalysis(true);
+
           if (combinedJobIds.length > 0) {
             streamSessionMatches(
               userEmail,
@@ -476,8 +494,12 @@ function CandidateDashboard() {
         label: t.dashboard.stats.jobMatches,
         iconBg: "bg-[#5e66ff1f]",
         iconColor: "text-[#7c88ff]",
-        onClick: () => navigate("/job-matches"),
+        // No CV means "0 Job Matches" would misleadingly read as "we checked and you match
+        // nothing" - the system genuinely hasn't been able to check at all. Routes to the resume
+        // upload flow instead of an empty Job Matches page in that case.
+        onClick: () => navigate(hasAnalysis === false ? "/resume-manager" : "/job-matches"),
         loading: matchesLoading,
+        noAnalysis: hasAnalysis === false,
       },
       {
         icon: <FileText size={22} />,
@@ -487,6 +509,7 @@ function CandidateDashboard() {
         iconColor: "text-[#67e8f9]",
         onClick: () => navigate("/applications"),
         loading: false,
+        noAnalysis: false,
       },
       {
         icon: <CalendarDays size={22} />,
@@ -495,6 +518,7 @@ function CandidateDashboard() {
         iconBg: "bg-[#34d3991f]",
         iconColor: "text-[#6ee7b7]",
         loading: false,
+        noAnalysis: false,
       },
       {
         icon: <Sparkles size={22} />,
@@ -504,9 +528,10 @@ function CandidateDashboard() {
         iconColor: "text-[#d8b4fe]",
         onClick: () => navigate("/profile"),
         loading: false,
+        noAnalysis: false,
       },
     ],
-    [matchedJobsCount, matchesLoading, applicationsCount, interviewsCount, profileScore, navigate, t]
+    [matchedJobsCount, matchesLoading, hasAnalysis, applicationsCount, interviewsCount, profileScore, navigate, t]
   );
 
   const profilePercent = profileScore;
@@ -591,6 +616,18 @@ function CandidateDashboard() {
                     {t.dashboard.matchesLoadingSubtitle}
                   </p>
                 </div>
+              ) : stat.noAnalysis ? (
+                // No CV means matchedJobsCount's "0" would misleadingly read as "we checked and
+                // you match nothing" rather than "we haven't been able to check yet" - a CTA in
+                // its place is the honest version of this tile until a CV is on file.
+                <div className={isRTL ? "text-right" : "text-left"}>
+                  <p className="text-[15px] font-bold leading-snug text-white">
+                    {t.dashboard.noCvTitle}
+                  </p>
+                  <p className="mt-1 text-[13px] leading-snug text-[#aeb4d6]">
+                    {t.dashboard.noCvSubtitle}
+                  </p>
+                </div>
               ) : (
                 <>
                   <h2 className="mb-1 text-[40px] font-extrabold leading-none text-white">
@@ -665,7 +702,17 @@ function CandidateDashboard() {
             <div className="space-y-5">
               {topMatches.length === 0 ? (
                 <div className="rounded-[28px] border border-white/10 bg-[rgba(50,52,108,0.78)] px-5 py-8 text-center text-white/60">
-                  {t.dashboard.noMatchesYet || "No job matches yet."}
+                  {hasAnalysis === false ? (
+                    <button
+                      type="button"
+                      onClick={() => navigate("/resume-manager")}
+                      className="rounded-full border border-[#7c88ff]/30 bg-[#7c88ff]/15 px-4 py-2 text-[14px] font-semibold text-[#c4b5fd] transition hover:bg-[#7c88ff]/25"
+                    >
+                      {t.dashboard.noCvSubtitle}
+                    </button>
+                  ) : (
+                    t.dashboard.noMatchesYet || "No job matches yet."
+                  )}
                 </div>
               ) : (
                 topMatches.map((job) => (

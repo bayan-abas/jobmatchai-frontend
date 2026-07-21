@@ -15,6 +15,7 @@ import {
   Globe2,
   ThumbsUp,
   ThumbsDown,
+  ChevronRight,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
@@ -96,7 +97,49 @@ type MatchDetail = {
   locationMatchPercent: number | null;
   missingRequiredSkills: string[];
   missingPreferredSkills: string[];
+  // The AI-classified requirement this job was actually scored against for each dimension (e.g.
+  // "mid", "relevant_degree") - null when that dimension wasn't applicable, mirroring the
+  // corresponding *MatchPercent's own null-ness. See backend JobMatchScore's own comment.
+  requiredExperienceLevel: string | null;
+  requiredEducationLevel: string | null;
+  requiredCertificationLevel: string | null;
+  // ISO timestamp string (ISO instant via Jackson's default LocalDateTime serialization) of when
+  // this row's score was last (re)computed - null only for the "no score at all yet" states.
+  lastAnalyzedAt: string | null;
 };
+
+// Score bands are intentionally coarser (and don't need to line up 1:1) with getRingColor's own
+// 3-tier color scale - this is a separate, explicit reading aid ("Excellent"/"Good"/"Moderate"/
+// "Low"), not a restatement of the ring color.
+function getMatchStatusLabel(d: any, percent: number): string {
+  if (percent >= 85) return d.matchStatusExcellent;
+  if (percent >= 70) return d.matchStatusGood;
+  if (percent >= 50) return d.matchStatusModerate;
+  return d.matchStatusLow;
+}
+
+// Mirrors the backend's fixed vocabularies exactly (see JobMatchService's
+// VALID_EXPERIENCE_LEVELS/VALID_EDUCATION_LEVELS/VALID_CERTIFICATION_LEVELS) - an unrecognized
+// value (should never happen, but a schema/vocabulary change on one side without the other is
+// exactly the kind of drift this guards against) falls back to the raw code rather than hiding it.
+function formatExperienceLevel(d: any, level: string | null): string | null {
+  if (level === "entry") return d.experienceLevelEntry;
+  if (level === "mid") return d.experienceLevelMid;
+  if (level === "senior") return d.experienceLevelSenior;
+  return level;
+}
+
+function formatEducationLevel(d: any, level: string | null): string | null {
+  if (level === "any_degree") return d.educationLevelAnyDegree;
+  if (level === "relevant_degree") return d.educationLevelRelevantDegree;
+  return level;
+}
+
+function formatCertificationLevel(d: any, level: string | null): string | null {
+  if (level === "general_cert") return d.certificationLevelGeneral;
+  if (level === "specific_license") return d.certificationLevelSpecific;
+  return level;
+}
 
 function splitSkills(value?: string): string[] {
   return (value || "")
@@ -134,6 +177,7 @@ function JobDetailsPage() {
   const [appliedJobIds, setAppliedJobIds] = useState<number[]>([]);
   const [applying, setApplying] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
+  const [expandedBreakdownKey, setExpandedBreakdownKey] = useState<string | null>(null);
   const [applyMessage, setApplyMessage] = useState("");
   const [showPreInterviewModal, setShowPreInterviewModal] = useState(false);
   const [showApplySuccessModal, setShowApplySuccessModal] = useState(false);
@@ -529,7 +573,32 @@ function JobDetailsPage() {
 
               {skills.length > 0 && (
                 <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-6">
-                  <h2 className="mb-4 text-[22px] font-extrabold text-white">{d.requiredSkills}</h2>
+                  <div className={`mb-4 flex flex-wrap items-center justify-between gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+                    <h2 className="text-[22px] font-extrabold text-white">{d.requiredSkills}</h2>
+                    {matchStatus === "scored" && matchDetail &&
+                      matchDetail.matchedSkills.length + matchDetail.missingSkills.length > 0 && (
+                        <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-sm font-bold text-white">
+                          {/* Derived from the SAME matchedSkills/missingSkills arrays rendered as
+                              chips below (not a re-derivation against the job's raw skills field) -
+                              this counter and those chip lists must never be able to disagree. */}
+                          {matchDetail.matchedSkills.length}/
+                          {matchDetail.matchedSkills.length + matchDetail.missingSkills.length}{" "}
+                          <span className="font-medium text-white/60">{d.requiredSkillsMatchedSuffix}</span>
+                        </span>
+                      )}
+                  </div>
+
+                  {matchStatus === "scored" && matchDetail && (
+                    <div className={`mb-4 flex flex-wrap gap-x-5 gap-y-1.5 text-xs font-semibold text-white/50 ${isRTL ? "flex-row-reverse" : ""}`}>
+                      <span className="inline-flex items-center gap-1.5">
+                        <CheckCircle2 size={13} className="text-emerald-300" /> {d.foundInCv}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <AlertTriangle size={13} className="text-rose-300" /> {d.missingFromCv}
+                      </span>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                     {skills.map((skill) => {
                       const isMatched = matchStatus === "scored" && matchDetail?.matchedSkills.includes(skill);
@@ -541,7 +610,7 @@ function JobDetailsPage() {
                             key={skill}
                             type="button"
                             onClick={() => setSelectedSkill(skill)}
-                            className={`flex items-center gap-2 rounded-2xl border border-orange-400/20 bg-orange-400/10 px-3 py-2.5 text-sm font-semibold text-orange-300 transition hover:border-orange-400/40 hover:bg-orange-400/20 ${
+                            className={`flex items-center gap-2 rounded-2xl border border-rose-400/25 bg-rose-400/10 px-3 py-2.5 text-sm font-semibold text-rose-300 transition hover:border-rose-400/45 hover:bg-rose-400/20 ${
                               isRTL ? "flex-row-reverse text-right" : "text-left"
                             }`}
                           >
@@ -577,6 +646,12 @@ function JobDetailsPage() {
                       );
                     })}
                   </div>
+
+                  {matchStatus === "scored" && matchDetail && matchDetail.missingSkills.length > 0 && (
+                    <p className={`mt-4 text-[13px] leading-6 text-rose-300/80 ${isRTL ? "text-right" : "text-left"}`}>
+                      {d.missingSkillsImpact}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -631,7 +706,7 @@ function JobDetailsPage() {
                             key={skill}
                             type="button"
                             onClick={() => setSelectedSkill(skill)}
-                            className="rounded-full border border-orange-400/20 bg-orange-400/10 px-3 py-1.5 text-xs font-semibold text-orange-300 transition hover:border-orange-400/40 hover:bg-orange-400/20"
+                            className="rounded-full border border-rose-400/25 bg-rose-400/10 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:border-rose-400/45 hover:bg-rose-400/20"
                           >
                             {skill}
                           </button>
@@ -714,6 +789,15 @@ function JobDetailsPage() {
                     </div>
                   </div>
 
+                  {matchStatus === "scored" && (
+                    <span
+                      className="mt-3 rounded-full px-3 py-1 text-xs font-bold"
+                      style={{ color: ringColor, backgroundColor: `${ringColor}22`, border: `1px solid ${ringColor}55` }}
+                    >
+                      {getMatchStatusLabel(d, percent)}
+                    </span>
+                  )}
+
                   <p className="mt-4 text-sm font-semibold text-[#aeb4d6]">
                     {matchStatus === "scored"
                       ? d.profileMatchScore
@@ -734,6 +818,17 @@ function JobDetailsPage() {
                     matchDetail?.matchReason && (
                       <p className="mt-3 text-[13px] leading-6 text-[#c4cae9]">{matchDetail.matchReason}</p>
                     )}
+
+                  {matchStatus === "scored" && (
+                    <>
+                      <p className="mt-4 text-[12px] leading-5 text-white/40">{d.transparencyNote}</p>
+                      {matchDetail?.lastAnalyzedAt && (
+                        <p className="mt-2 text-[11px] font-medium text-white/35">
+                          {d.lastAnalyzed}: {new Date(matchDetail.lastAnalyzedAt).toLocaleString()}
+                        </p>
+                      )}
+                    </>
+                  )}
 
                   {matchStatus === "error" && (
                     <button
@@ -809,7 +904,7 @@ function JobDetailsPage() {
               {matchStatus === "scored" && matchDetail && (
                 <div className="rounded-[30px] border border-white/10 bg-white/[0.05] p-6">
                   <h2 className="mb-4 text-[18px] font-extrabold text-white">{d.fitBreakdown}</h2>
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     {[
                       // fieldRelevancePercent carries the single largest weight (25%) in the
                       // actual score - it was missing from this list entirely, while
@@ -818,36 +913,134 @@ function JobDetailsPage() {
                       // requirement). For a sparse job posting where skills/experience/education/
                       // certification all come back null, that left ONLY the language bar
                       // visible, making the score look language-driven when it never was.
-                      { label: d.fieldMatch, value: matchDetail.fieldRelevancePercent },
-                      { label: d.skillsMatch, value: matchDetail.skillsMatchPercent },
-                      { label: d.experienceMatch, value: matchDetail.experienceMatchPercent },
-                      { label: d.educationMatch, value: matchDetail.educationMatchPercent },
-                      { label: d.certificationMatch, value: matchDetail.certificationMatchPercent },
-                      { label: d.locationMatch, value: matchDetail.locationMatchPercent },
-                      { label: d.languageMatch, value: matchDetail.languageMatchPercent },
+                      {
+                        key: "field",
+                        label: d.fieldMatch,
+                        value: matchDetail.fieldRelevancePercent,
+                        explanation: matchDetail.matchReason,
+                      },
+                      {
+                        key: "skills",
+                        label: d.skillsMatch,
+                        value: matchDetail.skillsMatchPercent,
+                        explanation: null, // rendered specially below - it's a skill list, not a sentence
+                      },
+                      {
+                        key: "experience",
+                        label: d.experienceMatch,
+                        value: matchDetail.experienceMatchPercent,
+                        explanation: matchDetail.requiredExperienceLevel
+                          ? `${d.requiredLabel}: ${formatExperienceLevel(d, matchDetail.requiredExperienceLevel)}`
+                          : null,
+                      },
+                      {
+                        key: "education",
+                        label: d.educationMatch,
+                        value: matchDetail.educationMatchPercent,
+                        explanation: matchDetail.requiredEducationLevel
+                          ? `${d.requiredLabel}: ${formatEducationLevel(d, matchDetail.requiredEducationLevel)}`
+                          : null,
+                      },
+                      {
+                        key: "certification",
+                        label: d.certificationMatch,
+                        value: matchDetail.certificationMatchPercent,
+                        explanation: matchDetail.requiredCertificationLevel
+                          ? `${d.requiredLabel}: ${formatCertificationLevel(d, matchDetail.requiredCertificationLevel)}`
+                          : null,
+                      },
+                      { key: "location", label: d.locationMatch, value: matchDetail.locationMatchPercent, explanation: d.locationMatchExplanation },
+                      { key: "language", label: d.languageMatch, value: matchDetail.languageMatchPercent, explanation: d.languageMatchExplanation },
                     ]
                       // Component rows that weren't applicable to this job (backend leaves them
                       // null and excludes them from the weighted score) are omitted rather than
                       // shown as a misleading 0% - that would look like a gap that hurt the score
                       // when it was actually just excluded and had no effect on it.
                       .filter((row) => row.value !== null)
-                      .map((row) => (
-                      <div key={row.label}>
-                        <div className="mb-1.5 flex items-center justify-between text-[13px] font-semibold text-[#c4cae9]">
-                          <span>{row.label}</span>
-                          <span className="text-white">{row.value ?? 0}%</span>
-                        </div>
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-[#2a2c5a]">
-                          <div
-                            className="h-full rounded-full transition-all duration-700"
-                            style={{
-                              width: `${row.value ?? 0}%`,
-                              background: getRingColor("scored", row.value ?? 0),
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ))}
+                      .map((row) => {
+                        const isExpanded = expandedBreakdownKey === row.key;
+                        // Skills always has something to show (matched/missing chips, even if one
+                        // list is empty). The other rows only have real content when their backend
+                        // explanation is present - for experience/education/certification, that's
+                        // null on any row scored before this feature existed (it isn't
+                        // backfilled - only recomputed the next time the CV or job changes), and
+                        // there is nothing useful to reveal by clicking in that case. Rendering
+                        // those as plain, non-interactive rows instead of a dead-end "click here"
+                        // is what actually fixes the confusion, rather than just rewording the
+                        // fallback text.
+                        const hasDetail = row.key === "skills" || Boolean(row.explanation);
+
+                        const barContent = (
+                          <>
+                            <div className={`mb-1.5 flex items-center justify-between gap-2 text-[13px] font-semibold text-[#c4cae9] ${isRTL ? "flex-row-reverse" : ""}`}>
+                              <span className="inline-flex items-center gap-1.5">
+                                {row.label}
+                                {hasDetail && (
+                                  <ChevronRight
+                                    size={14}
+                                    className={`text-white/35 transition-transform ${isRTL ? "rotate-180" : ""} ${isExpanded ? "rotate-90" : ""}`}
+                                  />
+                                )}
+                              </span>
+                              <span className="text-white">{row.value ?? 0}%</span>
+                            </div>
+                            <div className="h-2 w-full overflow-hidden rounded-full bg-[#2a2c5a]">
+                              <div
+                                className="h-full rounded-full transition-all duration-700"
+                                style={{
+                                  width: `${row.value ?? 0}%`,
+                                  background: getRingColor("scored", row.value ?? 0),
+                                }}
+                              />
+                            </div>
+                          </>
+                        );
+
+                        return (
+                          <div key={row.key} className="overflow-hidden rounded-2xl">
+                            {hasDetail ? (
+                              <button
+                                type="button"
+                                onClick={() => setExpandedBreakdownKey(isExpanded ? null : row.key)}
+                                className={`w-full py-1.5 text-left ${isRTL ? "text-right" : ""}`}
+                              >
+                                {barContent}
+                              </button>
+                            ) : (
+                              <div className="py-1.5">{barContent}</div>
+                            )}
+
+                            {hasDetail && isExpanded && (
+                              <div className={`mt-2 rounded-xl bg-white/[0.04] px-3 py-2.5 text-[12.5px] leading-5 text-white/65 ${isRTL ? "text-right" : "text-left"}`}>
+                                {row.key === "skills" ? (
+                                  <div className="space-y-2">
+                                    {matchDetail.matchedSkills.length > 0 && (
+                                      <div className={`flex flex-wrap gap-1.5 ${isRTL ? "flex-row-reverse" : ""}`}>
+                                        {matchDetail.matchedSkills.map((skill) => (
+                                          <span key={skill} className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">
+                                            {skill}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                    {matchDetail.missingSkills.length > 0 && (
+                                      <div className={`flex flex-wrap gap-1.5 ${isRTL ? "flex-row-reverse" : ""}`}>
+                                        {matchDetail.missingSkills.map((skill) => (
+                                          <span key={skill} className="rounded-full border border-rose-400/20 bg-rose-400/10 px-2 py-0.5 text-[11px] font-semibold text-rose-300">
+                                            {skill}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  row.explanation
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                   </div>
                 </div>
               )}

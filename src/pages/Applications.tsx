@@ -20,6 +20,8 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { apiFetch, ApiError } from "../utils/api";
+import { getRingColor } from "../utils/jobInference";
+import { fetchCurrentCvIdentity, NO_CV_IDENTITY } from "../utils/matchScoreSession";
 
 type FilterType = "all" | "active" | "accepted";
 type ProgressStep = "applied" | "ai" | "review" | "shortlisted" | "final";
@@ -214,18 +216,30 @@ function mapBackendApplication(app: BackendApplication): ApplicationItem {
 }
 
 type MatchScoreEntry = {
-  matchPercent: number;
+  matchPercent: number | null;
   matchReason: string;
+  // true = AI decided this job matches the candidate's field; false = a real "not a match"
+  // verdict; null/undefined = the backend couldn't compute this one (transient failure, never
+  // persisted) - mirrors JobMatches.tsx's MatchScoreEntry shape/semantics exactly, since both
+  // pages read the same persisted JobMatchScore rows and must treat them the same way.
+  fieldRelated?: boolean | null;
 };
 
 type MatchInfo =
   | { status: "loading" }
   | { status: "noAnalysis" }
+  // The AI gave a real verdict that this job isn't a field match, or the backend couldn't
+  // compute it at all - either way there is no percentage to show, so this must never fall
+  // through to the "scored" case (which unconditionally renders `${percent}%`).
+  | { status: "noScore" }
   | { status: "scored"; percent: number; reason: string };
 
 function ScoreRing({ info }: { info: MatchInfo }) {
   const safeValue = info.status === "scored" ? info.percent : 0;
-  const ringColor = safeValue >= 90 ? "#49e38d" : safeValue >= 80 ? "#8b93ff" : "#f5c542";
+  // Shared with JobMatches.tsx/ExternalJobCard.tsx (see utils/jobInference.ts) - this page used
+  // to have its own hardcoded (and different) color scale, so the same score rendered a
+  // different color depending on which page you were looking at it from.
+  const ringColor = getRingColor(info.status, safeValue);
 
   return (
     <div className="relative h-[98px] w-[98px] shrink-0">
@@ -242,7 +256,13 @@ function ScoreRing({ info }: { info: MatchInfo }) {
         }}
       />
       <div className="absolute inset-[8px] flex items-center justify-center rounded-full bg-[#252654] text-[22px] font-extrabold text-white shadow-inner">
-        {info.status === "scored" ? `${info.percent}%` : info.status === "loading" ? "" : "?"}
+        {info.status === "scored"
+          ? `${info.percent}%`
+          : info.status === "loading"
+            ? ""
+            : info.status === "noScore"
+              ? "—"
+              : "?"}
       </div>
     </div>
   );
@@ -331,41 +351,60 @@ function Applications() {
     let cancelled = false;
     setMatchScoresLoading(true);
 
-    apiFetch(`/api/jobs/match-scores`, {
-      method: "POST",
-      body: JSON.stringify({
-        email: candidateEmail,
-        jobIds,
-        language,
-      }),
-    })
-      .then((data: { hasAnalysis: boolean; matches: { jobId: number; matchPercent: number; matchReason: string }[] }) => {
-        if (cancelled) return;
+    // Checked before ever calling the match-scores endpoint - a candidate with no CV has nothing
+    // to compute, and the backend already knows that too (it returns instantly with
+    // hasAnalysis:false, no AI/queue work triggered), but skipping the request entirely here is
+    // what stops the "Calculating match score..." flash from ever appearing in that case.
+    fetchCurrentCvIdentity().then((cvIdentity) => {
+      if (cancelled) return;
 
-        setHasAnalysis(Boolean(data.hasAnalysis));
+      if (cvIdentity === NO_CV_IDENTITY) {
+        setHasAnalysis(false);
+        setMatchScores(new Map());
+        setMatchScoresLoading(false);
+        return;
+      }
 
-        const nextScores = new Map<number, MatchScoreEntry>();
-        (data.matches || []).forEach((match) => {
-          nextScores.set(match.jobId, {
-            matchPercent: match.matchPercent,
-            matchReason: match.matchReason,
+      apiFetch(`/api/jobs/match-scores`, {
+        method: "POST",
+        body: JSON.stringify({
+          email: candidateEmail,
+          jobIds,
+          language,
+        }),
+      })
+        .then((data: {
+          hasAnalysis: boolean;
+          matches: { jobId: number; matchPercent: number | null; matchReason: string; fieldRelated?: boolean | null }[];
+        }) => {
+          if (cancelled) return;
+
+          setHasAnalysis(Boolean(data.hasAnalysis));
+
+          const nextScores = new Map<number, MatchScoreEntry>();
+          (data.matches || []).forEach((match) => {
+            nextScores.set(match.jobId, {
+              matchPercent: match.matchPercent,
+              matchReason: match.matchReason,
+              fieldRelated: match.fieldRelated,
+            });
           });
-        });
 
-        setMatchScores(nextScores);
-      })
-      .catch((err) => {
-        console.error(err);
-        if (!cancelled) {
-          setHasAnalysis(false);
-          setMatchScores(new Map());
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setMatchScoresLoading(false);
-        }
-      });
+          setMatchScores(nextScores);
+        })
+        .catch((err) => {
+          console.error(err);
+          if (!cancelled) {
+            setHasAnalysis(false);
+            setMatchScores(new Map());
+          }
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setMatchScoresLoading(false);
+          }
+        });
+    });
 
     return () => {
       cancelled = true;
@@ -373,7 +412,7 @@ function Applications() {
   }, [applications, candidateEmail, language]);
 
   const getMatchInfo = (app: ApplicationItem): MatchInfo => {
-    if (matchScoresLoading || hasAnalysis === null) {
+    if (hasAnalysis === null) {
       return { status: "loading" };
     }
 
@@ -381,9 +420,21 @@ function Applications() {
       return { status: "noAnalysis" };
     }
 
+    // Mirrors JobMatches.tsx's getMatchInfo - a resolved entry must render immediately rather
+    // than being forced back to "loading" by a batch-wide flag (see that file's comment for the
+    // full rationale; the risk is smaller here since this page fetches scores in one blocking
+    // call rather than streaming, but the same gating bug would apply if that ever changes).
     const entry = app.jobId !== null ? matchScores.get(app.jobId) : undefined;
     if (!entry) {
-      return { status: "noAnalysis" };
+      return matchScoresLoading ? { status: "loading" } : { status: "noAnalysis" };
+    }
+
+    // A real "not a field match" verdict (fieldRelated === false) or a transient AI failure
+    // (fieldRelated === null/undefined, matchPercent === null) both mean there is no percentage
+    // to show - rendering `${entry.matchPercent}%` here for either case is exactly how this page
+    // used to show a literal "null%" instead of JobMatches.tsx's "—" for the same situation.
+    if (entry.fieldRelated === false || entry.matchPercent === null || entry.matchPercent === undefined) {
+      return { status: "noScore" };
     }
 
     return { status: "scored", percent: entry.matchPercent, reason: entry.matchReason };

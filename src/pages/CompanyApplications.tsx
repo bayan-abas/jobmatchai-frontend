@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
 import { apiFetch, apiFetchBlob, ApiError } from "../utils/api";
-import { getMatchTier, getMatchLabel, getRecommendation } from "../utils/matchScore";
+import { getMatchTier, getMatchLabel } from "../utils/matchScore";
 import CandidateAiSummaryModal from "../components/CandidateAiSummaryModal";
 import AcceptApplicationModal, { type ContactMethod } from "../components/AcceptApplicationModal";
 import RejectApplicationModal from "../components/RejectApplicationModal";
@@ -46,6 +46,10 @@ type ApplicationItem = {
   date: string;
   match: number | null;
   matchLabel: string | null;
+  // Fixed-vocabulary hiring-decision category ("accept"/"consider"/"reject") computed once by
+  // the backend from match - see CandidateSummaryService.SummaryResult's own comment. Never
+  // recompute this from `match` here; only map it to a localized label for display.
+  recommendation: string | null;
   stage: ApplicationStage;
   currentStep: number;
   status: string;
@@ -67,6 +71,7 @@ type BackendApplicant = {
   appliedDate: string | null;
   matchPercent: number | null;
   matchLabel: string | null;
+  recommendation: string | null;
   viewedByCompany?: boolean;
   rejectionReason?: string | null;
   preInterviewAnswers?: Record<string, string>;
@@ -102,6 +107,7 @@ type InlineAiSummary = {
   overallSuitability?: string;
   matchScore?: number;
   matchLabel?: string;
+  recommendation?: string;
   message?: string;
 };
 
@@ -140,6 +146,16 @@ function describeLicensesEvidence(value: string | null | undefined): string | nu
     default:
       return null;
   }
+}
+
+// Pure presentation mapping from the backend's already-decided recommendation category
+// ("accept"/"consider"/"reject" - see CandidateSummaryService.SummaryResult) to a localized
+// label. Never decides the category itself - that judgment is entirely backend-sourced.
+function recommendationLabel(category: string | null, page: Record<string, string | undefined>): string {
+  if (category === "accept") return page.accept || "Accept";
+  if (category === "consider") return page.keepUnderReview || "Keep Under Review";
+  if (category === "reject") return page.reject || "Reject";
+  return page.awaitingAnalysis || "Awaiting Analysis";
 }
 
 function deriveStage(status: string | null): ApplicationStage {
@@ -254,6 +270,7 @@ function mapApplicant(item: BackendApplicant): ApplicationItem {
     date: item.appliedDate || "",
     match,
     matchLabel: item.matchLabel ?? (match !== null ? getMatchLabel(match) : null),
+    recommendation: item.recommendation ?? null,
     stage,
     currentStep: deriveStep(stage),
     status: item.status || "Under Review",
@@ -559,8 +576,12 @@ function CompanyApplications() {
     }
   };
 
-  const applyAiMatchScore = (id: number, matchScore: number, matchLabel: string) => {
-    const patch = { match: matchScore, matchLabel: matchLabel || getMatchLabel(matchScore) };
+  const applyAiMatchScore = (id: number, matchScore: number, matchLabel: string, recommendation: string) => {
+    const patch = {
+      match: matchScore,
+      matchLabel: matchLabel || getMatchLabel(matchScore),
+      recommendation: recommendation || null,
+    };
 
     setApplications((prev) =>
       prev.map((app) => (app.id === id && app.match !== matchScore ? { ...app, ...patch } : app))
@@ -670,7 +691,15 @@ function CompanyApplications() {
   // selectedApplication is set, but cheap enough to compute unconditionally every render
   // rather than fight hook-ordering rules with a conditional useMemo).
   const detailMatch = selectedApplication?.match ?? null;
-  const detailRecommendation = detailMatch !== null ? getRecommendation(detailMatch) : null;
+  // Sourced ENTIRELY from the backend (CandidateSummaryService.SummaryResult.recommendation /
+  // ApplicantView.recommendation) - prefers the freshly-fetched AI summary's value when
+  // available, same precedence recommendationExplanation below already uses, falling back to
+  // the value already on the list row. Never computed from detailMatch here - the frontend only
+  // maps this fixed backend category to a localized label/description below.
+  const detailRecommendation =
+    (inlineAiSummary?.hasAnalysis ? inlineAiSummary.recommendation : null) ??
+    selectedApplication?.recommendation ??
+    null;
   const detailTier = detailMatch !== null ? getMatchTier(detailMatch) : null;
 
   const detailIsFinal = selectedApplication
@@ -679,16 +708,17 @@ function CompanyApplications() {
   const detailIsAccepted = selectedApplication?.status === "Accepted";
   const detailIsShortlisted = selectedApplication?.status === "Shortlisted";
 
-  // "Recommended action" mirrors the same 3-tier scale as the Recommendation badge - never a
-  // second, independently-invented scale that could disagree with it.
+  // Presentation-only mapping from the backend's already-decided category to a localized
+  // label/description - this never itself decides accept/consider/reject; that judgment comes
+  // entirely from detailRecommendation above (see CandidateSummaryService.SummaryResult).
   const aiRecommendedAction =
-    detailMatch === null
-      ? { label: page.keepUnderReview || "Keep Under Review", reason: "No AI analysis is available for this candidate yet, so there isn't enough information for a confident decision." }
-      : detailRecommendation === "Strong Candidate"
+    detailRecommendation === "accept"
       ? { label: page.accept || "Accept", reason: `The match score is ${detailMatch}% and the candidate's profile aligns well with this role's requirements.` }
-      : detailRecommendation === "Consider"
+      : detailRecommendation === "consider"
       ? { label: page.keepUnderReview || "Keep Under Review", reason: `The match score is ${detailMatch}%, a moderate fit - worth a closer look before deciding.` }
-      : { label: page.reject || "Reject", reason: `The match score is ${detailMatch}% and the candidate's profile has significant gaps against this role's requirements.` };
+      : detailRecommendation === "reject"
+      ? { label: page.reject || "Reject", reason: `The match score is ${detailMatch}% and the candidate's profile has significant gaps against this role's requirements.` }
+      : { label: page.keepUnderReview || "Keep Under Review", reason: "No AI analysis is available for this candidate yet, so there isn't enough information for a confident decision." };
 
   const recommendationExplanation =
     inlineAiSummary?.hasAnalysis && inlineAiSummary.weaknesses
@@ -889,7 +919,7 @@ function CompanyApplications() {
                               {app.matchLabel || getMatchLabel(app.match)}
                             </span>
                             <span className={`mt-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${tier.bg} ${tier.text} ${tier.border}`}>
-                              {getRecommendation(app.match)}
+                              {recommendationLabel(app.recommendation, page)}
                             </span>
                           </div>
                         );
@@ -1110,11 +1140,11 @@ function CompanyApplications() {
 
                 <div
                   className={`rounded-[28px] border p-6 shadow-[0_18px_50px_rgba(0,0,0,0.18)] ${
-                    detailRecommendation === "Strong Candidate"
+                    detailRecommendation === "accept"
                       ? "border-emerald-400/20 bg-emerald-500/10"
-                      : detailRecommendation === "Consider"
+                      : detailRecommendation === "consider"
                       ? "border-amber-400/20 bg-amber-500/10"
-                      : detailRecommendation === "Not Recommended"
+                      : detailRecommendation === "reject"
                       ? "border-rose-400/20 bg-rose-500/10"
                       : "border-white/10 bg-white/[0.05]"
                   }`}
@@ -1132,11 +1162,11 @@ function CompanyApplications() {
                         {page.recommendation || "Recommendation"}
                       </p>
                       <h3 className={`text-[20px] font-extrabold ${detailTier ? detailTier.text : "text-white/70"}`}>
-                        {detailRecommendation === "Strong Candidate"
+                        {detailRecommendation === "accept"
                           ? page.strongCandidate || "Strong Candidate"
-                          : detailRecommendation === "Consider"
+                          : detailRecommendation === "consider"
                           ? page.considerCandidate || "Consider"
-                          : detailRecommendation === "Not Recommended"
+                          : detailRecommendation === "reject"
                           ? page.notRecommended || "Not Recommended"
                           : page.awaitingAnalysis || "Awaiting Analysis"}
                       </h3>
@@ -1754,7 +1784,9 @@ function CompanyApplications() {
                 fetchInlineAiSummary(closedId);
               }
             }}
-            onScoreReady={(matchScore, matchLabel) => applyAiMatchScore(aiSummaryApplication.id, matchScore, matchLabel)}
+            onScoreReady={(matchScore, matchLabel, recommendation) =>
+              applyAiMatchScore(aiSummaryApplication.id, matchScore, matchLabel, recommendation)
+            }
           />
         )}
 

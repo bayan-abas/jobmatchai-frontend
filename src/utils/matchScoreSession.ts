@@ -188,6 +188,13 @@ export async function getSessionMatches(
     return { cvIdentity, hasAnalysis: false, entries: {} };
   }
 
+  // No CV means there is nothing to compute - the caller already knows this from
+  // fetchCurrentCvIdentity(), so resolve immediately without ever touching sessionStorage or the
+  // network. No AI request, no queue job, no "Calculating..." flash while this state settles.
+  if (cvIdentity === NO_CV_IDENTITY) {
+    return { cvIdentity, hasAnalysis: false, entries: {} };
+  }
+
   const cached = readBucket(email, kind, cvIdentity);
   // No CVAnalysis means there will never be anything to compute - trust that terminal state
   // for the rest of the session rather than re-asking on every page visit. Otherwise, only
@@ -230,6 +237,15 @@ export function streamSessionMatches(
   signal?: AbortSignal
 ): void {
   if (!email || jobIds.length === 0) {
+    onDone(false);
+    return;
+  }
+
+  // Same short-circuit as getSessionMatches above - the caller already knows there's no CV
+  // (fetchCurrentCvIdentity resolved to NO_CV_IDENTITY), so resolve immediately without ever
+  // opening the SSE connection. This is what stops "Calculating match score..." from ever
+  // appearing when there's no CV to compute against.
+  if (cvIdentity === NO_CV_IDENTITY) {
     onDone(false);
     return;
   }

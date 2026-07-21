@@ -62,14 +62,3 @@ export function getMatchLabel(score: number): string {
   if (score >= 30) return "Weak Match";
   return "Poor Match";
 }
-
-// Hiring-decision-oriented recommendation, distinct from the match-quality label above -
-// the one recommendation scale used everywhere a hiring call is shown (AI Ranking badge,
-// Candidate Details recommendation card) so the same score never reads as "Strong Candidate"
-// in one place and "Poor Match" in another. Thresholds mirror getMatchTier's own boundaries
-// (85 emerald / 70 lime collapse into one positive tier here; 50 orange / else rose stay split).
-export function getRecommendation(score: number): string {
-  if (score >= 70) return "Strong Candidate";
-  if (score >= 50) return "Consider";
-  return "Not Recommended";
-}

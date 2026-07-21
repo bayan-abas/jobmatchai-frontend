@@ -22,6 +22,7 @@ function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -55,6 +56,7 @@ const handleLogin = async (e: React.FormEvent) => {
       body: JSON.stringify({
         email: normalizedEmail,
         password: normalizedPassword,
+        rememberMe,
       }),
     });
 
@@ -66,7 +68,7 @@ const handleLogin = async (e: React.FormEvent) => {
     const foundUser = data.user;
     const role = normalizeRole(foundUser.role);
 
-    login(data.token, foundUser);
+    login(data.token, foundUser, rememberMe);
 
     if (role === "candidate") {
       navigate("/candidate-dashboard");
@@ -244,7 +246,13 @@ const handleLogin = async (e: React.FormEvent) => {
 
               <div className="flex items-center justify-between gap-3 text-sm">
                 <label className="flex items-center gap-2 text-white/70">
-                  <input type="checkbox" className="h-4 w-4" />
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    disabled={isSubmitting}
+                  />
                   {t?.common?.rememberMe || "Remember me"}
                 </label>
 

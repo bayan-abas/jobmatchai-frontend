@@ -367,7 +367,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
       };
 
   const getMatchInfo = (job: Job): MatchInfo => {
-    if (matchScoresLoading || hasAnalysis === null) {
+    if (hasAnalysis === null) {
       return { status: "loading" };
     }
 
@@ -375,13 +375,20 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
       return { status: "noAnalysis" };
     }
 
+    // A job that already has a resolved entry (cached from a previous visit, or just arrived on
+    // this one) must render it immediately - checking matchScoresLoading FIRST here used to force
+    // every card back to "Calculating match score..." for as long as ANY job in the whole
+    // (potentially hundreds-strong) batch was still pending, even ones that resolved instantly
+    // (e.g. the deterministic insufficient-data gate, or an already-cached score from
+    // sessionStorage). This is what made an already-scored job look like it was recalculating on
+    // every single page visit.
     const entry = typeof job.id === "number" ? matchScores.get(job.id) : undefined;
     if (!entry) {
-      // hasAnalysis is true here (the branch above already handled false), so a missing entry
-      // after the stream has settled means this specific job's score never arrived - a
-      // computation gap, not "no CV" - showing the "Analyze your CV" CTA here would be
-      // misleading since a real CVAnalysis does exist.
-      return { status: "error", reason: "" };
+      // Genuinely nothing for this job yet - "loading" while the batch is still in flight is the
+      // honest state; only once the WHOLE batch has settled (matchScoresLoading is false) does a
+      // still-missing entry mean this specific job's computation gap, not "no CV" (hasAnalysis is
+      // already known true above), so the "Analyze your CV" CTA would be misleading here.
+      return matchScoresLoading ? { status: "loading" } : { status: "error", reason: "" };
     }
 
     if (entry.insufficientData) {
@@ -1271,6 +1278,26 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                   </>
                 )}
               </div>
+
+              {/* Only while there's a real CVAnalysis AND the batch hasn't fully settled yet -
+                  never shown for the "no CV" case (nothing is actually being calculated then),
+                  and disappears the moment matchScoresLoading flips false (every requested job
+                  has been accounted for), matching getMatchInfo's own per-job "loading" gate. */}
+              {hasAnalysis === true && matchScoresLoading && (
+                <div
+                  className={`mb-5 flex items-start gap-3 rounded-2xl border border-[#7c88ff55] bg-[#7c88ff14] px-5 py-4 text-white/85 ${
+                    isRTL ? "flex-row-reverse" : ""
+                  }`}
+                >
+                  <span className="mt-0.5 shrink-0 text-lg leading-none">🤖</span>
+                  <p className={`text-sm leading-6 ${isRTL ? "text-right" : "text-left"}`}>
+                    <span className="font-bold text-white">
+                      {t.jobMatches.analyzingBannerTitle}
+                    </span>{" "}
+                    {t.jobMatches.analyzingBannerSubtitle}
+                  </p>
+                </div>
+              )}
 
               <div
                 className={`mb-5 flex items-start gap-3 rounded-2xl border border-[#5e66ff55] bg-[#5e66ff14] px-5 py-4 text-white/80 ${

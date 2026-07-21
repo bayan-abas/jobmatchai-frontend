@@ -13,6 +13,10 @@ type CandidateSummaryData = {
   overallSuitability?: string;
   matchScore?: number;
   matchLabel?: string;
+  // Fixed-vocabulary hiring-decision category ("accept"/"consider"/"reject") computed once by
+  // the backend from matchScore - see CandidateSummaryService.SummaryResult. This component and
+  // its consumers only ever display it (mapped to a localized label); never re-derive it.
+  recommendation?: string;
   message?: string;
 };
 
@@ -24,7 +28,7 @@ type CandidateAiSummaryModalProps = {
   t: any;
   isRTL: boolean;
   onClose: () => void;
-  onScoreReady?: (matchScore: number, matchLabel: string) => void;
+  onScoreReady?: (matchScore: number, matchLabel: string, recommendation: string) => void;
 };
 
 // Keyed by applicationId so re-opening the modal for the same candidate reuses
@@ -103,7 +107,7 @@ function CandidateAiSummaryModal({
   // on every parent render) so this fires once per result, not once per render.
   useEffect(() => {
     if (data && data.hasAnalysis && typeof data.matchScore === "number") {
-      onScoreReady?.(data.matchScore, data.matchLabel || "");
+      onScoreReady?.(data.matchScore, data.matchLabel || "", data.recommendation || "");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);

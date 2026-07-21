@@ -31,7 +31,7 @@ type AuthContextType = {
   user: AuthUser | null;
   token: string | null;
   isLoading: boolean;
-  login: (token: string, user: AuthUser) => void;
+  login: (token: string, user: AuthUser, rememberMe?: boolean) => void;
   logout: () => void;
   refreshUser: () => Promise<void>;
 };
@@ -39,6 +39,13 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const TOKEN_STORAGE_KEY = "jobmatch_token";
+
+// Remember Me stores the token in localStorage (survives browser/computer restarts) instead of
+// sessionStorage (cleared when the browser closes) - this reads whichever one currently has it,
+// so a page reload keeps working no matter which storage the original login chose.
+function readStoredToken(): string | null {
+  return localStorage.getItem(TOKEN_STORAGE_KEY) ?? sessionStorage.getItem(TOKEN_STORAGE_KEY);
+}
 
 // Stray form-draft keys written by the candidate/company registration and profile pages.
 // None of these are ever read back anywhere (verified - they're write-only leftovers), but
@@ -65,7 +72,7 @@ function normalizeUser(user: AuthUser): AuthUser {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(() => sessionStorage.getItem(TOKEN_STORAGE_KEY));
+  const [token, setToken] = useState<string | null>(() => readStoredToken());
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -77,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     setUser(null);
     sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
     STRAY_LOCAL_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
     clearMatchScoreSession();
   };
@@ -120,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const login = (newToken: string, newUser: AuthUser) => {
+  const login = (newToken: string, newUser: AuthUser, rememberMe = false) => {
     // tokenRef.current is normally kept in sync by the render-time assignment above,
     // but that only happens on the NEXT render after setToken schedules one. Callers
     // that immediately fire an authenticated request right after login() (e.g.
@@ -131,7 +139,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     tokenRef.current = newToken;
     setToken(newToken);
     setUser(normalizeUser(newUser));
-    sessionStorage.setItem(TOKEN_STORAGE_KEY, newToken);
+
+    // rememberMe persists the token in localStorage so it survives closing the browser/
+    // restarting the computer; otherwise it goes in sessionStorage, cleared when the tab/
+    // browser closes (the pre-existing behavior). Clear the other storage so a re-login that
+    // flips the choice doesn't leave a stale copy of the token behind in both places.
+    if (rememberMe) {
+      localStorage.setItem(TOKEN_STORAGE_KEY, newToken);
+      sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+    } else {
+      sessionStorage.setItem(TOKEN_STORAGE_KEY, newToken);
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
+    }
   };
 
   const refreshUser = async () => {

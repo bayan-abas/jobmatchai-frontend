@@ -25,6 +25,9 @@ export type ExternalJobData = {
   applyUrl?: string;
   externalJobId?: string;
   importedAt?: string;
+  // The source's own posted/updated date for this listing, when the provider supplies one -
+  // distinct from importedAt (when OUR system last confirmed it's still live).
+  publishedAt?: string;
 };
 
 // "error" = the AI couldn't compute this job's match at all (a transient failure, never
@@ -65,6 +68,9 @@ function ExternalJobCard({ job, matchInfo, t, isRTL, onViewDetails, isSaved, onT
 
   const importedDate = job.importedAt
     ? new Date(job.importedAt).toLocaleDateString()
+    : null;
+  const postedDate = job.publishedAt
+    ? new Date(job.publishedAt).toLocaleDateString()
     : null;
 
   const handleApply = () => {
@@ -203,6 +209,12 @@ function ExternalJobCard({ job, matchInfo, t, isRTL, onViewDetails, isSaved, onT
             <span className="text-xs font-medium text-white/45">
               {p.sourceLabel}: {job.sourceName || "External"}
             </span>
+            {postedDate && (
+              <span className={`inline-flex items-center gap-1 text-xs font-medium text-white/45 ${isRTL ? "flex-row-reverse" : ""}`}>
+                <CalendarDays size={13} />
+                {p.postedLabel}: {postedDate}
+              </span>
+            )}
             {importedDate && (
               <span className={`inline-flex items-center gap-1 text-xs font-medium text-white/35 ${isRTL ? "flex-row-reverse" : ""}`}>
                 <CalendarDays size={13} />

@@ -7,6 +7,7 @@ import { translations } from "../translations";
 import ExternalJobCard, { type ExternalJobData, type MatchInfo } from "../components/ExternalJobCard";
 import { inferIndustry, extractSalaryNumber, INDUSTRY_KEYS } from "../utils/jobInference";
 import { apiFetch, apiFetchStream } from "../utils/api";
+import { fetchCurrentCvIdentity, NO_CV_IDENTITY } from "../utils/matchScoreSession";
 import { ISRAELI_CITIES } from "../utils/israeliCities";
 import { ISRAELI_REGIONS, getRegionForLocation, type IsraeliRegion } from "../utils/israeliRegions";
 
@@ -82,49 +83,63 @@ function ExternalJobsPage() {
     setMatchScores(new Map());
     setMatchScoresLoading(true);
 
-    apiFetchStream(
-      "/api/external-jobs/match-scores/stream",
-      { method: "POST", body: JSON.stringify({ email: identity.email, externalJobIds, language }) },
-      (evt) => {
-        if (evt.event === "no-analysis") {
-          setHasAnalysis(false);
-          setMatchScoresLoading(false);
-          return;
-        }
-
-        if (evt.event === "score") {
-          const match = evt.data as {
-            jobId: number;
-            matchPercent: number | null;
-            matchReason?: string;
-            fieldRelated?: boolean | null;
-          };
-          setHasAnalysis(true);
-          // Per-card progressive update: each "score" event updates just that one job's entry,
-          // so a job that's already resolved shows its real percentage immediately instead of
-          // waiting for every other job in the batch to finish too.
-          setMatchScores((prev) => {
-            const next = new Map(prev);
-            next.set(match.jobId, {
-              matchPercent: match.matchPercent,
-              matchReason: match.matchReason || "",
-              fieldRelated: match.fieldRelated === undefined ? true : match.fieldRelated,
-            });
-            return next;
-          });
-          return;
-        }
-
-        if (evt.event === "done") {
-          setMatchScoresLoading(false);
-        }
-      },
-      controller.signal
-    ).catch((error) => {
+    // Checked before ever opening the SSE connection - a candidate with no CV has nothing to
+    // compute (the backend would immediately reply with its own "no-analysis" event anyway, no
+    // AI/queue work triggered), but skipping the request entirely here is what stops the
+    // "Calculating match score..." flash from ever appearing in that case.
+    fetchCurrentCvIdentity().then((cvIdentity) => {
       if (controller.signal.aborted) return;
-      console.error(error);
-      setHasAnalysis(false);
-      setMatchScoresLoading(false);
+
+      if (cvIdentity === NO_CV_IDENTITY) {
+        setHasAnalysis(false);
+        setMatchScoresLoading(false);
+        return;
+      }
+
+      apiFetchStream(
+        "/api/external-jobs/match-scores/stream",
+        { method: "POST", body: JSON.stringify({ email: identity.email, externalJobIds, language }) },
+        (evt) => {
+          if (evt.event === "no-analysis") {
+            setHasAnalysis(false);
+            setMatchScoresLoading(false);
+            return;
+          }
+
+          if (evt.event === "score") {
+            const match = evt.data as {
+              jobId: number;
+              matchPercent: number | null;
+              matchReason?: string;
+              fieldRelated?: boolean | null;
+            };
+            setHasAnalysis(true);
+            // Per-card progressive update: each "score" event updates just that one job's entry,
+            // so a job that's already resolved shows its real percentage immediately instead of
+            // waiting for every other job in the batch to finish too.
+            setMatchScores((prev) => {
+              const next = new Map(prev);
+              next.set(match.jobId, {
+                matchPercent: match.matchPercent,
+                matchReason: match.matchReason || "",
+                fieldRelated: match.fieldRelated === undefined ? true : match.fieldRelated,
+              });
+              return next;
+            });
+            return;
+          }
+
+          if (evt.event === "done") {
+            setMatchScoresLoading(false);
+          }
+        },
+        controller.signal
+      ).catch((error) => {
+        if (controller.signal.aborted) return;
+        console.error(error);
+        setHasAnalysis(false);
+        setMatchScoresLoading(false);
+      });
     });
 
     return () => {
