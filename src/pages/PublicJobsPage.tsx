@@ -9,7 +9,6 @@ import {
   ArrowRight,
   X,
 } from "lucide-react";
-import AIChatButton from "../components/AIChatButton";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
 import { apiFetch } from "../utils/api";
@@ -388,8 +387,6 @@ function PublicJobsPage() {
           </div>
         </div>
       )}
-
-      <AIChatButton />
     </div>
   );
 }
