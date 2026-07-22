@@ -868,6 +868,11 @@ function CompanyApplications() {
             <div className="space-y-5">
               {sortedApplications.map((app) => {
                 const aiRank = rankByApplicationId.get(app.id);
+                // Same "already decided" check as the detail modal's detailIsFinal - once a
+                // company has accepted or rejected a candidate, Accept/Reject here must be
+                // disabled too, not just in the modal, so the list card can't contradict the
+                // "Accepted"/"Rejected" badge it's showing right next to these buttons.
+                const isFinal = ["accepted", "rejected"].includes((app.status || "").toLowerCase());
 
                 return (
                 <div
@@ -971,7 +976,8 @@ function CompanyApplications() {
                       <button
                         type="button"
                         onClick={() => handleAccept(app.id)}
-                        className="inline-flex items-center gap-2 rounded-[12px] bg-emerald-500/20 px-3.5 py-2 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/30"
+                        disabled={isFinal}
+                        className="inline-flex items-center gap-2 rounded-[12px] bg-emerald-500/20 px-3.5 py-2 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/30 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         <CheckCircle2 size={16} />
                         {page.accept || "Accept"}
@@ -980,7 +986,8 @@ function CompanyApplications() {
                       <button
                         type="button"
                         onClick={() => handleReject(app.id)}
-                        className="inline-flex items-center gap-2 rounded-[12px] bg-rose-500/20 px-3.5 py-2 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/30"
+                        disabled={isFinal}
+                        className="inline-flex items-center gap-2 rounded-[12px] bg-rose-500/20 px-3.5 py-2 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/30 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         <XCircle size={16} />
                         {page.reject || "Reject"}
