@@ -5,6 +5,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import ExternalJobCard, { type ExternalJobData, type MatchInfo } from "../components/ExternalJobCard";
+import AiDisclaimer from "../components/AiDisclaimer";
 import { inferIndustry, extractSalaryNumber, INDUSTRY_KEYS } from "../utils/jobInference";
 import { apiFetch, apiFetchStream } from "../utils/api";
 import { fetchCurrentCvIdentity, NO_CV_IDENTITY } from "../utils/matchScoreSession";
@@ -20,6 +21,10 @@ type MatchScoreEntry = {
   // explains why); null = the AI couldn't compute this job at all - a transient failure, not
   // a verdict, and never cached by the backend, so it's worth retrying.
   fieldRelated: boolean | null;
+  // See JobMatches.tsx's identically-named fields for the full rationale - same backend
+  // VocationalRoleClassifier-driven categorization applies to external jobs too.
+  generalVocationalRole: boolean;
+  excludedFromListing: boolean;
 };
 
 function ExternalJobsPage() {
@@ -51,6 +56,10 @@ function ExternalJobsPage() {
   const [hasAnalysis, setHasAnalysis] = useState<boolean | null>(null);
   const [matchScoresLoading, setMatchScoresLoading] = useState(false);
   const [savedJobIds, setSavedJobIds] = useState<Set<number>>(new Set());
+  // See JobMatches.tsx's identically-named state for the full rationale.
+  const [jobCategory, setJobCategory] = useState<"profession" | "vocational">("profession");
+  // See JobMatches.tsx's identically-named state for the full rationale.
+  const [matchYouFilter, setMatchYouFilter] = useState(true);
 
   useEffect(() => {
     apiFetch(`/api/external-jobs/all`)
@@ -112,6 +121,8 @@ function ExternalJobsPage() {
               matchPercent: number | null;
               matchReason?: string;
               fieldRelated?: boolean | null;
+              generalVocationalRole?: boolean;
+              excludedFromListing?: boolean;
             };
             setHasAnalysis(true);
             // Per-card progressive update: each "score" event updates just that one job's entry,
@@ -123,6 +134,8 @@ function ExternalJobsPage() {
                 matchPercent: match.matchPercent,
                 matchReason: match.matchReason || "",
                 fieldRelated: match.fieldRelated === undefined ? true : match.fieldRelated,
+                generalVocationalRole: match.generalVocationalRole === true,
+                excludedFromListing: match.excludedFromListing === true,
               });
               return next;
             });
@@ -276,7 +289,24 @@ function ExternalJobsPage() {
       // made this filter pass almost everything regardless of slider position.
       const matchesSalary = jobSalary === 0 ? true : jobSalary >= minSalary * 1000;
 
-      return matchesSearch && matchesRegion && matchesCity && matchesType && matchesIndustry && matchesSalary;
+      // See JobMatches.tsx's categorizedJobs for the full rationale - when matchYouFilter is on
+      // (the default), a genuinely-unrelated, non-vocational job is hidden entirely and a
+      // vocational one is routed to its own tab instead of being mixed into profession-based
+      // results. When matchYouFilter is off, every job matches regardless of profession - no
+      // split, nothing hidden. A job with no match entry yet (not logged in, still loading, no
+      // CV) always counts as "profession" so nothing vanishes before it's even been classified.
+      const entry = matchScores.get(job.id);
+      const matchesCategory = !matchYouFilter
+        ? true
+        : !entry
+          ? jobCategory === "profession"
+          : entry.excludedFromListing
+            ? false
+            : jobCategory === "vocational"
+              ? entry.generalVocationalRole
+              : !entry.generalVocationalRole;
+
+      return matchesSearch && matchesRegion && matchesCity && matchesType && matchesIndustry && matchesSalary && matchesCategory;
     });
 
     if (sortOrder === "newest" || sortOrder === "oldest") {
@@ -308,7 +338,19 @@ function ExternalJobsPage() {
     hasAnalysis,
     matchScoresLoading,
     isLoggedIn,
+    jobCategory,
+    matchYouFilter,
   ]);
+
+  // Whether the "General & Vocational Jobs" tab is worth showing at all - independent of
+  // jobCategory (unlike filteredJobs above) so switching tabs doesn't make the OTHER tab's button
+  // disappear from under the candidate.
+  const vocationalJobsCount = useMemo(() => {
+    return jobs.filter((job) => {
+      const entry = matchScores.get(job.id);
+      return entry ? entry.generalVocationalRole && !entry.excludedFromListing : false;
+    }).length;
+  }, [jobs, matchScores]);
 
   return (
     <div
@@ -340,6 +382,32 @@ function ExternalJobsPage() {
               </div>
               <h3 className="text-[18px] font-extrabold text-white">{t.jobMatches.smartFilters}</h3>
             </div>
+
+            {/* See JobMatches.tsx's identically-purposed toggle for the full rationale. Only
+                meaningful once logged in with match data to personalize against. */}
+            {isLoggedIn && (
+              <div className="mb-4 flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3.5">
+                <div className={isRTL ? "text-right" : "text-left"}>
+                  <p className="text-[15px] font-semibold text-white">{t.jobMatches.matchYouFilterLabel}</p>
+                  <p className="mt-0.5 text-xs text-[#aeb4d6]">{t.jobMatches.matchYouFilterHint}</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={matchYouFilter}
+                  onClick={() => setMatchYouFilter((prev) => !prev)}
+                  className={`relative h-[26px] w-[46px] shrink-0 rounded-full transition ${
+                    matchYouFilter ? "bg-[#7f4cff]" : "bg-white/15"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-[3px] h-[20px] w-[20px] rounded-full bg-white shadow transition-all ${
+                      matchYouFilter ? (isRTL ? "right-[23px]" : "left-[23px]") : isRTL ? "right-[3px]" : "left-[3px]"
+                    }`}
+                  />
+                </button>
+              </div>
+            )}
 
             {/* grid-cols-1 below (not bare "grid") - same overflow bug as the job-card list
                 further down this page: the implicit single column otherwise sizes to its
@@ -444,6 +512,35 @@ function ExternalJobsPage() {
             </div>
           </div>
         </section>
+
+        {isLoggedIn && <AiDisclaimer />}
+
+        {isLoggedIn && matchYouFilter && vocationalJobsCount > 0 && (
+          <div className={`mt-4 flex flex-wrap gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+            <button
+              type="button"
+              onClick={() => setJobCategory("profession")}
+              className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                jobCategory === "profession"
+                  ? "border-[#7f4cff]/50 bg-[#7f4cff]/20 text-white"
+                  : "border-white/10 bg-white/5 text-[#c4cae9] hover:bg-white/10"
+              }`}
+            >
+              {t.jobMatches.professionMatchesTab}
+            </button>
+            <button
+              type="button"
+              onClick={() => setJobCategory("vocational")}
+              className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                jobCategory === "vocational"
+                  ? "border-[#7f4cff]/50 bg-[#7f4cff]/20 text-white"
+                  : "border-white/10 bg-white/5 text-[#c4cae9] hover:bg-white/10"
+              }`}
+            >
+              {t.jobMatches.vocationalJobsTab} ({vocationalJobsCount})
+            </button>
+          </div>
+        )}
 
         {/* grid-cols-1 (not bare "grid") is load-bearing here, not cosmetic - a bare grid's
             single implicit column sizes to its widest child's own content width instead of the

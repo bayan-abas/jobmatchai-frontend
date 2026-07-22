@@ -4,6 +4,7 @@ export const translations: Record<Language, any> = {
   en: {
     common: {
       back: "Back",
+      aiDisclaimer: "AI provides recommendations to assist your decision, but human review is always recommended.",
       login: "Sign In",
       signingIn: "Signing in...",
       register: "Register",
@@ -591,6 +592,13 @@ plan: {
   fairMatchingText:
     "Matches are based solely on skills, experience, and qualifications.",
 
+  professionMatchesTab: "Profession Matches",
+  vocationalJobsTab: "General & Vocational Jobs",
+  vocationalJobsNote:
+    "These general/entry-level roles don't require specialized experience in your field, so they're kept separate from your profession-based matches.",
+  matchYouFilterLabel: "Jobs That Match You",
+  matchYouFilterHint: "On: only your profession matches and general/vocational jobs. Off: every job on the platform.",
+
   analyzingBannerTitle: "AI is analyzing your CV and comparing it with available jobs.",
   analyzingBannerSubtitle:
     "This may take a few moments. Match scores will appear automatically as they become available.",
@@ -871,6 +879,9 @@ plan: {
       foundInCv: "Found in your CV",
       missingFromCv: "Missing from your CV",
       missingSkillsImpact: "Missing skills lower your Skills Match score.",
+      preferredLabel: "Preferred",
+      preferredLegend: "Preferred (optional)",
+      preferredSkillsMatchedSuffix: "preferred skills matched",
       matchStatusExcellent: "Excellent Match",
       matchStatusGood: "Good Match",
       matchStatusModerate: "Moderate Match",
@@ -1390,6 +1401,7 @@ plan: {
   ar: {
     common: {
       back: "رجوع",
+      aiDisclaimer: "يقدّم الذكاء الاصطناعي توصيات لمساعدتك في اتخاذ القرار، لكن يُنصح دائمًا بمراجعة بشرية.",
       login: "تسجيل الدخول",
       signingIn: "جارٍ تسجيل الدخول...",
       register: "إنشاء حساب",
@@ -1930,6 +1942,12 @@ jobMatches: {
   jobsMatchCriteria: "وظيفة تطابق معاييرك",
   fairMatchingTitle: "المطابقة العادلة بالذكاء الاصطناعي:",
   fairMatchingText: "تعتمد المطابقات فقط على المهارات والخبرة والمؤهلات.",
+  professionMatchesTab: "تطابقات المهنة",
+  vocationalJobsTab: "وظائف عامة ومهنية",
+  vocationalJobsNote:
+    "هذه الوظائف العامة/المبتدئة لا تتطلب خبرة متخصصة في مجالك، لذلك يتم عرضها بشكل منفصل عن تطابقات مهنتك.",
+  matchYouFilterLabel: "الوظائف التي تناسبك",
+  matchYouFilterHint: "عند التفعيل: فقط تطابقات مهنتك والوظائف العامة/المهنية. عند الإيقاف: جميع الوظائف على المنصة.",
 
   analyzingBannerTitle: "الذكاء الاصطناعي يحلل سيرتك الذاتية ويقارنها بالوظائف المتاحة.",
   analyzingBannerSubtitle: "قد يستغرق هذا بضع لحظات. ستظهر نسب التطابق تلقائيًا بمجرد توفرها.",
@@ -2239,6 +2257,9 @@ jobMatches: {
       foundInCv: "موجودة في سيرتك الذاتية",
       missingFromCv: "غير موجودة في سيرتك الذاتية",
       missingSkillsImpact: "المهارات الناقصة تخفّض نسبة تطابق المهارات.",
+      preferredLabel: "مفضّلة",
+      preferredLegend: "مفضّلة (اختيارية)",
+      preferredSkillsMatchedSuffix: "من المهارات المفضّلة متطابقة",
       matchStatusExcellent: "تطابق ممتاز",
       matchStatusGood: "تطابق جيد",
       matchStatusModerate: "تطابق متوسط",
@@ -2756,6 +2777,7 @@ companyApplicationsPage: {
   he: {
     common: {
       back: "חזרה",
+      aiDisclaimer: "הבינה המלאכותית מספקת המלצות לסיוע בקבלת ההחלטה שלך, אך מומלץ תמיד לבצע בדיקה אנושית נוספת.",
       login: "התחברות",
       signingIn: "מתחבר...",
       register: "הרשמה",
@@ -3297,6 +3319,12 @@ companyApplicationsPage: {
   jobsMatchCriteria: "משרות תואמות לקריטריונים שלך",
   fairMatchingTitle: "התאמה הוגנת מבוססת AI:",
   fairMatchingText: "התאמות מבוססות אך ורק על כישורים, ניסיון ומיומנויות.",
+  professionMatchesTab: "התאמות מקצועיות",
+  vocationalJobsTab: "משרות כלליות ומקצועות שירות",
+  vocationalJobsNote:
+    "משרות כלליות/דרג-כניסה אלו אינן דורשות ניסיון מיוחד בתחום שלך, ולכן הן מוצגות בנפרד מההתאמות המקצועיות שלך.",
+  matchYouFilterLabel: "משרות שמתאימות לך",
+  matchYouFilterHint: "כאשר מופעל: רק ההתאמות המקצועיות שלך ומשרות כלליות/מקצועות שירות. כאשר כבוי: כל המשרות בפלטפורמה.",
 
   analyzingBannerTitle: "הבינה המלאכותית מנתחת את קורות החיים שלך ומשווה אותם למשרות הזמינות.",
   analyzingBannerSubtitle: "זה עשוי לקחת מספר רגעים. ציוני ההתאמה יופיעו אוטומטית ברגע שיהיו זמינים.",
@@ -3605,6 +3633,9 @@ companyApplicationsPage: {
       foundInCv: "נמצא בקורות החיים שלך",
       missingFromCv: "לא נמצא בקורות החיים שלך",
       missingSkillsImpact: "כישורים חסרים מורידים את ציון התאמת הכישורים שלך.",
+      preferredLabel: "מועדף",
+      preferredLegend: "מועדף (לא חובה)",
+      preferredSkillsMatchedSuffix: "מהכישורים המועדפים תואמים",
       matchStatusExcellent: "התאמה מצוינת",
       matchStatusGood: "התאמה טובה",
       matchStatusModerate: "התאמה בינונית",

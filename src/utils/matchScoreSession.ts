@@ -29,11 +29,29 @@ export type MatchEntry = {
   matchReason?: string;
   matchedSkills?: string[];
   missingSkills?: string[];
+  // matchedSkills/missingSkills split by required vs preferred, mirroring JobMatchScore's own
+  // split - lets the UI badge a skill as "required" vs "preferred" instead of showing every
+  // matched/missing skill identically.
+  matchedRequiredSkills?: string[];
+  matchedPreferredSkills?: string[];
+  missingRequiredSkills?: string[];
+  missingPreferredSkills?: string[];
   fieldRelated?: boolean | null;
   // True when the job posting itself was too thin (title-only, or a one-line description with
   // no real requirements/skills) to support a reliable comparison at all - a deterministic,
   // backend-computed verdict, never an AI judgment call. See JobMatchService#isInsufficientJobData.
   insufficientData?: boolean;
+  // A title-only, candidate-independent classification (see backend's VocationalRoleClassifier) -
+  // true for generalist/vocational roles (Cashier, Delivery Driver, etc.) that are never excluded
+  // outright but also shouldn't be mixed into profession-based match results, since a numeric
+  // match score against them isn't a meaningful "professional fit" signal.
+  generalVocationalRole?: boolean;
+  // True only for a NON-vocational job the candidate's resolved profession is genuinely unrelated
+  // to (taxonomy hard-block or a real AI "unrelated" verdict, never the transient fieldRelated
+  // === null retry sentinel) - the UI must hide this job from every listing entirely, not just
+  // downweight it, per the "don't show completely unrelated jobs, even at a low percentage"
+  // product requirement.
+  excludedFromListing?: boolean;
 };
 
 type RawMatch = {
@@ -42,8 +60,14 @@ type RawMatch = {
   matchReason?: string;
   matchedSkills?: string[];
   missingSkills?: string[];
+  matchedRequiredSkills?: string[];
+  matchedPreferredSkills?: string[];
+  missingRequiredSkills?: string[];
+  missingPreferredSkills?: string[];
   fieldRelated?: boolean | null;
   insufficientData?: boolean;
+  generalVocationalRole?: boolean;
+  excludedFromListing?: boolean;
 };
 
 type MatchesResponse = { hasAnalysis: boolean; matches: RawMatch[] };
@@ -159,8 +183,14 @@ async function fetchAndMerge(
       matchReason: match.matchReason,
       matchedSkills: match.matchedSkills,
       missingSkills: match.missingSkills,
+      matchedRequiredSkills: match.matchedRequiredSkills,
+      matchedPreferredSkills: match.matchedPreferredSkills,
+      missingRequiredSkills: match.missingRequiredSkills,
+      missingPreferredSkills: match.missingPreferredSkills,
       fieldRelated: match.fieldRelated === undefined ? true : match.fieldRelated,
       insufficientData: match.insufficientData === true,
+      generalVocationalRole: match.generalVocationalRole === true,
+      excludedFromListing: match.excludedFromListing === true,
     };
     resultEntries[match.jobId] = entry;
     if (match.fieldRelated !== null || entry.insufficientData) {
@@ -297,8 +327,14 @@ export function streamSessionMatches(
           matchReason: match.matchReason,
           matchedSkills: match.matchedSkills,
           missingSkills: match.missingSkills,
+          matchedRequiredSkills: match.matchedRequiredSkills,
+          matchedPreferredSkills: match.matchedPreferredSkills,
+          missingRequiredSkills: match.missingRequiredSkills,
+          missingPreferredSkills: match.missingPreferredSkills,
           fieldRelated: match.fieldRelated === undefined ? true : match.fieldRelated,
           insufficientData: match.insufficientData === true,
+          generalVocationalRole: match.generalVocationalRole === true,
+          excludedFromListing: match.excludedFromListing === true,
         };
         sawAnalysis = true;
 

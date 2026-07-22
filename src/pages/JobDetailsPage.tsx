@@ -25,6 +25,7 @@ import { formatSalary } from "../utils/formatSalary";
 import SkillExplanationModal from "../components/SkillExplanationModal";
 import PreInterviewModal from "../components/PreInterviewModal";
 import ApplicationSuccessModal from "../components/ApplicationSuccessModal";
+import AiDisclaimer from "../components/AiDisclaimer";
 import { apiFetch } from "../utils/api";
 
 type JobType = "internal" | "external";
@@ -97,6 +98,8 @@ type MatchDetail = {
   locationMatchPercent: number | null;
   missingRequiredSkills: string[];
   missingPreferredSkills: string[];
+  matchedRequiredSkills: string[];
+  matchedPreferredSkills: string[];
   // The AI-classified requirement this job was actually scored against for each dimension (e.g.
   // "mid", "relevant_degree") - null when that dimension wasn't applicable, mirroring the
   // corresponding *MatchPercent's own null-ness. See backend JobMatchScore's own comment.
@@ -576,17 +579,28 @@ function JobDetailsPage() {
                   <div className={`mb-4 flex flex-wrap items-center justify-between gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
                     <h2 className="text-[22px] font-extrabold text-white">{d.requiredSkills}</h2>
                     {matchStatus === "scored" && matchDetail &&
-                      matchDetail.matchedSkills.length + matchDetail.missingSkills.length > 0 && (
+                      matchDetail.matchedRequiredSkills.length + matchDetail.missingRequiredSkills.length > 0 && (
                         <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-sm font-bold text-white">
-                          {/* Derived from the SAME matchedSkills/missingSkills arrays rendered as
-                              chips below (not a re-derivation against the job's raw skills field) -
-                              this counter and those chip lists must never be able to disagree. */}
-                          {matchDetail.matchedSkills.length}/
-                          {matchDetail.matchedSkills.length + matchDetail.missingSkills.length}{" "}
+                          {/* Counts ONLY required (mandatory) skills, matching this counter's own
+                              "required skills matched" label literally - preferred skills get
+                              their own separate counter below instead of being folded into this
+                              one, since a candidate missing only preferred skills should read as
+                              "fully meets requirements", not as a partial required-skills score. */}
+                          {matchDetail.matchedRequiredSkills.length}/
+                          {matchDetail.matchedRequiredSkills.length + matchDetail.missingRequiredSkills.length}{" "}
                           <span className="font-medium text-white/60">{d.requiredSkillsMatchedSuffix}</span>
                         </span>
                       )}
                   </div>
+
+                  {matchStatus === "scored" && matchDetail &&
+                    matchDetail.matchedPreferredSkills.length + matchDetail.missingPreferredSkills.length > 0 && (
+                      <p className={`mb-4 text-sm text-white/60 ${isRTL ? "text-right" : "text-left"}`}>
+                        {matchDetail.matchedPreferredSkills.length}/
+                        {matchDetail.matchedPreferredSkills.length + matchDetail.missingPreferredSkills.length}{" "}
+                        {d.preferredSkillsMatchedSuffix}
+                      </p>
+                    )}
 
                   {matchStatus === "scored" && matchDetail && (
                     <div className={`mb-4 flex flex-wrap gap-x-5 gap-y-1.5 text-xs font-semibold text-white/50 ${isRTL ? "flex-row-reverse" : ""}`}>
@@ -596,6 +610,10 @@ function JobDetailsPage() {
                       <span className="inline-flex items-center gap-1.5">
                         <AlertTriangle size={13} className="text-rose-300" /> {d.missingFromCv}
                       </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="h-[13px] w-[13px] rounded-full border border-dashed border-white/40" />
+                        {d.preferredLegend}
+                      </span>
                     </div>
                   )}
 
@@ -603,6 +621,10 @@ function JobDetailsPage() {
                     {skills.map((skill) => {
                       const isMatched = matchStatus === "scored" && matchDetail?.matchedSkills.includes(skill);
                       const isMissing = matchStatus === "scored" && matchDetail?.missingSkills.includes(skill);
+                      const isPreferred =
+                        matchStatus === "scored" &&
+                        (matchDetail?.missingPreferredSkills.includes(skill) ||
+                          matchDetail?.matchedPreferredSkills.includes(skill));
 
                       if (isMissing) {
                         return (
@@ -610,12 +632,19 @@ function JobDetailsPage() {
                             key={skill}
                             type="button"
                             onClick={() => setSelectedSkill(skill)}
-                            className={`flex items-center gap-2 rounded-2xl border border-rose-400/25 bg-rose-400/10 px-3 py-2.5 text-sm font-semibold text-rose-300 transition hover:border-rose-400/45 hover:bg-rose-400/20 ${
-                              isRTL ? "flex-row-reverse text-right" : "text-left"
-                            }`}
+                            className={`flex items-center gap-2 rounded-2xl border px-3 py-2.5 text-sm transition ${
+                              isPreferred
+                                ? "border-dashed border-amber-400/30 bg-amber-400/5 font-medium text-amber-300/80 hover:border-amber-400/50 hover:bg-amber-400/10"
+                                : "border-rose-400/25 bg-rose-400/10 font-semibold text-rose-300 hover:border-rose-400/45 hover:bg-rose-400/20"
+                            } ${isRTL ? "flex-row-reverse text-right" : "text-left"}`}
                           >
                             <AlertTriangle size={16} className="shrink-0" />
                             <span className="truncate">{skill}</span>
+                            {isPreferred && (
+                              <span className="ms-auto shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/60">
+                                {d.preferredLabel}
+                              </span>
+                            )}
                           </button>
                         );
                       }
@@ -624,12 +653,19 @@ function JobDetailsPage() {
                         return (
                           <div
                             key={skill}
-                            className={`flex items-center gap-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2.5 text-sm font-semibold text-emerald-300 ${
-                              isRTL ? "flex-row-reverse text-right" : ""
-                            }`}
+                            className={`flex items-center gap-2 rounded-2xl border px-3 py-2.5 text-sm ${
+                              isPreferred
+                                ? "border-dashed border-emerald-400/30 bg-emerald-400/5 font-medium text-emerald-300/80"
+                                : "border-emerald-400/20 bg-emerald-400/10 font-semibold text-emerald-300"
+                            } ${isRTL ? "flex-row-reverse text-right" : ""}`}
                           >
                             <CheckCircle2 size={16} className="shrink-0" />
                             <span className="truncate">{skill}</span>
+                            {isPreferred && (
+                              <span className="ms-auto shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/60">
+                                {d.preferredLabel}
+                              </span>
+                            )}
                           </div>
                         );
                       }
@@ -676,7 +712,11 @@ function JobDetailsPage() {
                         {matchDetail.matchedSkills.map((skill) => (
                           <span
                             key={skill}
-                            className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-300"
+                            className={
+                              matchDetail.matchedPreferredSkills.includes(skill)
+                                ? "rounded-full border border-dashed border-emerald-400/30 bg-emerald-400/5 px-3 py-1.5 text-xs font-medium text-emerald-300/80"
+                                : "rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-300"
+                            }
                           >
                             {skill}
                           </span>
@@ -706,7 +746,11 @@ function JobDetailsPage() {
                             key={skill}
                             type="button"
                             onClick={() => setSelectedSkill(skill)}
-                            className="rounded-full border border-rose-400/25 bg-rose-400/10 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:border-rose-400/45 hover:bg-rose-400/20"
+                            className={
+                              matchDetail.missingPreferredSkills.includes(skill)
+                                ? "rounded-full border border-dashed border-amber-400/30 bg-amber-400/5 px-3 py-1.5 text-xs font-medium text-amber-300/80 transition hover:border-amber-400/50 hover:bg-amber-400/10"
+                                : "rounded-full border border-rose-400/25 bg-rose-400/10 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:border-rose-400/45 hover:bg-rose-400/20"
+                            }
                           >
                             {skill}
                           </button>
@@ -827,6 +871,7 @@ function JobDetailsPage() {
                           {d.lastAnalyzed}: {new Date(matchDetail.lastAnalyzedAt).toLocaleString()}
                         </p>
                       )}
+                      <AiDisclaimer className="mt-4" />
                     </>
                   )}
 
@@ -1017,7 +1062,14 @@ function JobDetailsPage() {
                                     {matchDetail.matchedSkills.length > 0 && (
                                       <div className={`flex flex-wrap gap-1.5 ${isRTL ? "flex-row-reverse" : ""}`}>
                                         {matchDetail.matchedSkills.map((skill) => (
-                                          <span key={skill} className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">
+                                          <span
+                                            key={skill}
+                                            className={
+                                              matchDetail.matchedPreferredSkills.includes(skill)
+                                                ? "rounded-full border border-dashed border-emerald-400/30 bg-emerald-400/5 px-2 py-0.5 text-[11px] font-medium text-emerald-300/80"
+                                                : "rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-300"
+                                            }
+                                          >
                                             {skill}
                                           </span>
                                         ))}
@@ -1026,7 +1078,14 @@ function JobDetailsPage() {
                                     {matchDetail.missingSkills.length > 0 && (
                                       <div className={`flex flex-wrap gap-1.5 ${isRTL ? "flex-row-reverse" : ""}`}>
                                         {matchDetail.missingSkills.map((skill) => (
-                                          <span key={skill} className="rounded-full border border-rose-400/20 bg-rose-400/10 px-2 py-0.5 text-[11px] font-semibold text-rose-300">
+                                          <span
+                                            key={skill}
+                                            className={
+                                              matchDetail.missingPreferredSkills.includes(skill)
+                                                ? "rounded-full border border-dashed border-amber-400/30 bg-amber-400/5 px-2 py-0.5 text-[11px] font-medium text-amber-300/80"
+                                                : "rounded-full border border-rose-400/20 bg-rose-400/10 px-2 py-0.5 text-[11px] font-semibold text-rose-300"
+                                            }
+                                          >
                                             {skill}
                                           </span>
                                         ))}

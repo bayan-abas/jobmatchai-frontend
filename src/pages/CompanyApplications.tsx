@@ -50,6 +50,12 @@ type ApplicationItem = {
   // the backend from match - see CandidateSummaryService.SummaryResult's own comment. Never
   // recompute this from `match` here; only map it to a localized label for display.
   recommendation: string | null;
+  // Whether a CandidateAiSummary already exists for this candidate+job - i.e. whether the
+  // AI Summary fetch below is guaranteed to be a cache hit. Deliberately NOT derived from
+  // `match` (see fetchInlineAiSummary's own comment) - `match` is JobMatchScore-sourced and is
+  // typically populated well before any AI Summary is ever generated, so it can no longer be
+  // used as a proxy for "AI Summary already exists" the way it once could.
+  hasAiSummary: boolean;
   stage: ApplicationStage;
   currentStep: number;
   status: string;
@@ -72,6 +78,7 @@ type BackendApplicant = {
   matchPercent: number | null;
   matchLabel: string | null;
   recommendation: string | null;
+  hasAiSummary?: boolean;
   viewedByCompany?: boolean;
   rejectionReason?: string | null;
   preInterviewAnswers?: Record<string, string>;
@@ -271,6 +278,7 @@ function mapApplicant(item: BackendApplicant): ApplicationItem {
     match,
     matchLabel: item.matchLabel ?? (match !== null ? getMatchLabel(match) : null),
     recommendation: item.recommendation ?? null,
+    hasAiSummary: Boolean(item.hasAiSummary),
     stage,
     currentStep: deriveStep(stage),
     status: item.status || "Under Review",
@@ -313,8 +321,8 @@ function CompanyApplications() {
 
   // The richer AI-generated summary (professional background, key skills, strengths,
   // weaknesses, overall suitability) - only auto-fetched when a cached CandidateAiSummary is
-  // already known to exist (selectedApplication.match !== null, sourced from that same cache),
-  // which guarantees the call below is a cache hit and never triggers a fresh OpenAI request.
+  // already known to exist (selectedApplication.hasAiSummary), which guarantees the call below
+  // is a cache hit and never triggers a fresh OpenAI request.
   const [inlineAiSummary, setInlineAiSummary] = useState<InlineAiSummary | null>(null);
   const [inlineAiSummaryLoading, setInlineAiSummaryLoading] = useState(false);
 
@@ -581,15 +589,19 @@ function CompanyApplications() {
       match: matchScore,
       matchLabel: matchLabel || getMatchLabel(matchScore),
       recommendation: recommendation || null,
+      // A CandidateAiSummary is guaranteed to exist now - this callback only ever fires once
+      // the modal's fetch has actually resolved with a result. Previously this patch (and thus
+      // implicitly "a summary now exists") only applied when the match score's VALUE changed,
+      // which silently stopped working once match became JobMatchScore-sourced (it's usually
+      // already correct by the time this fires, since JobMatchScore is populated independently
+      // of the AI Summary) - applying unconditionally on id match is what actually keeps
+      // hasAiSummary correct for the rest of this session without a page reload.
+      hasAiSummary: true,
     };
 
-    setApplications((prev) =>
-      prev.map((app) => (app.id === id && app.match !== matchScore ? { ...app, ...patch } : app))
-    );
+    setApplications((prev) => prev.map((app) => (app.id === id ? { ...app, ...patch } : app)));
 
-    setSelectedApplication((prev) =>
-      prev && prev.id === id && prev.match !== matchScore ? { ...prev, ...patch } : prev
-    );
+    setSelectedApplication((prev) => (prev && prev.id === id ? { ...prev, ...patch } : prev));
   };
 
   const openApplicationDetail = (app: ApplicationItem) => {
@@ -618,8 +630,10 @@ function CompanyApplications() {
   };
 
   // Only auto-fetch the richer AI narrative when a cached CandidateAiSummary is already known
-  // to exist (match !== null is sourced from that exact cache) - guarantees this call is a
-  // cache hit and never triggers a fresh OpenAI generation just from opening the page.
+  // to exist (hasAiSummary) - guarantees this call is a cache hit and never triggers a fresh
+  // OpenAI generation just from opening the page. `match` is NOT a safe proxy for this: it's
+  // JobMatchScore-sourced now, and JobMatchScore is typically populated well before any AI
+  // Summary is ever generated for the same pair.
   const fetchInlineAiSummary = (applicationId: number) => {
     setInlineAiSummaryLoading(true);
     apiFetch(`/api/applications/${applicationId}/ai-summary?language=${language}`, { method: "POST" })
@@ -650,7 +664,7 @@ function CompanyApplications() {
         if (!cancelled) setCandidateProfileLoading(false);
       });
 
-    if (selectedApplication.match !== null) {
+    if (selectedApplication.hasAiSummary) {
       fetchInlineAiSummary(selectedApplication.id);
     }
 
@@ -1120,7 +1134,7 @@ function CompanyApplications() {
                       <div>
                         <p className="mb-4 flex items-start gap-2 text-[15px] leading-7 text-white/60">
                           <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-300" />
-                          {selectedApplication.match !== null
+                          {selectedApplication.hasAiSummary
                             ? page.summaryLoadError || "Could not load the AI summary. Please try again."
                             : page.noAiSummaryYet ||
                               "No AI analysis has been generated for this candidate and role yet."}
@@ -1446,7 +1460,7 @@ function CompanyApplications() {
                       <span className="font-semibold text-white">
                         {page.aiAnalysisCompletedLabel || "AI Analysis Completed:"}
                       </span>{" "}
-                      {selectedApplication.match !== null ? common.yes || "Yes" : common.no || "No"}
+                      {selectedApplication.hasAiSummary ? common.yes || "Yes" : common.no || "No"}
                     </p>
                     <p>
                       <span className="font-semibold text-white">

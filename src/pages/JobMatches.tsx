@@ -37,6 +37,7 @@ import { FREE_PLAN_LIMIT } from "../utils/applicationLimit";
 import LoadingScreen from "../components/LoadingScreen";
 import PreInterviewModal from "../components/PreInterviewModal";
 import ApplicationSuccessModal from "../components/ApplicationSuccessModal";
+import AiDisclaimer from "../components/AiDisclaimer";
 
 type BackendJob = {
   id?: number;
@@ -71,6 +72,10 @@ type MatchScoreEntry = {
   matchReason: string;
   matchedSkills: string[];
   missingSkills: string[];
+  matchedRequiredSkills: string[];
+  matchedPreferredSkills: string[];
+  missingRequiredSkills: string[];
+  missingPreferredSkills: string[];
   // true = AI decided this job matches the candidate's field; false = AI decided it doesn't
   // (a real verdict, with matchReason explaining why); null = the AI couldn't compute this
   // job's match at all (a transient failure, not a verdict) - the backend never caches this,
@@ -79,6 +84,13 @@ type MatchScoreEntry = {
   // True when the job posting itself was too thin to support a reliable comparison at all - a
   // deterministic backend verdict (see JobMatchService#isInsufficientJobData), never an AI call.
   insufficientData: boolean;
+  // Title-only, candidate-independent classification (see backend VocationalRoleClassifier) -
+  // a generalist/vocational role (Cashier, Delivery Driver, etc.) that's kept in its own
+  // "General & Vocational Jobs" section rather than mixed into profession-based results.
+  generalVocationalRole: boolean;
+  // A non-vocational job the candidate's resolved profession is genuinely unrelated to - hidden
+  // from every listing entirely, never just downweighted.
+  excludedFromListing: boolean;
 };
 
 function JobMatches() {
@@ -91,6 +103,17 @@ function JobMatches() {
   const [minSalary, setMinSalary] = useState(0);
   const [minMatch, setMinMatch] = useState(0);
   const [showSavedJobs, setShowSavedJobs] = useState(false);
+  // "profession": jobs the candidate's resolved profession is actually related to (the default,
+  // ranked-by-match view). "vocational": generalist/entry-level roles (Cashier, Delivery Driver,
+  // etc.) that are never excluded outright but are deliberately kept out of the profession-ranked
+  // view too, since a numeric match score against them isn't a meaningful professional-fit signal
+  // - see MatchScoreEntry#generalVocationalRole. A third bucket (genuinely unrelated, non-
+  // vocational jobs) is filtered out of BOTH tabs entirely - see categorizedJobs below.
+  const [jobCategory, setJobCategory] = useState<"profession" | "vocational">("profession");
+  // The "Jobs That Match You" filter - on by default. On: exactly today's split (profession
+  // matches vs. the separate vocational tab, genuinely-unrelated jobs hidden). Off: every job on
+  // the platform, unsplit, regardless of the candidate's profession - see categorizedJobs below.
+  const [matchYouFilter, setMatchYouFilter] = useState(true);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
@@ -364,6 +387,10 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
         reason: string;
         matchedSkills: string[];
         missingSkills: string[];
+        matchedRequiredSkills: string[];
+        matchedPreferredSkills: string[];
+        missingRequiredSkills: string[];
+        missingPreferredSkills: string[];
       };
 
   const getMatchInfo = (job: Job): MatchInfo => {
@@ -409,6 +436,10 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
       reason: entry.matchReason,
       matchedSkills: entry.matchedSkills,
       missingSkills: entry.missingSkills,
+      matchedRequiredSkills: entry.matchedRequiredSkills,
+      matchedPreferredSkills: entry.matchedPreferredSkills,
+      missingRequiredSkills: entry.missingRequiredSkills,
+      missingPreferredSkills: entry.missingPreferredSkills,
     };
   };
 
@@ -431,6 +462,41 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
     });
   }, [jobs, industry, seniority, minSalary]);
 
+  // Splits filteredJobs into the two listing sections when matchYouFilter is ON: hides a
+  // genuinely-unrelated, non-vocational job (excludedFromListing) from BOTH entirely, then routes
+  // every remaining job to "vocational" or "profession" by generalVocationalRole - never mixing
+  // the two, per the product decision that a Cashier/Delivery-Driver-style posting shouldn't be
+  // presented alongside (or as if it were) a real profession-based match. When matchYouFilter is
+  // OFF, none of that applies - every filtered job shows, unsplit, regardless of profession; the
+  // candidate turned personalization off, so nothing is hidden or re-bucketed on their behalf. A
+  // job with no match entry yet (still loading, no CV, or an error) always counts as "profession"
+  // so nothing a candidate hasn't looked at yet silently vanishes into a tab they're not viewing.
+  const categorizedJobs = useMemo(() => {
+    if (!matchYouFilter) {
+      return filteredJobs;
+    }
+    return filteredJobs.filter((job) => {
+      const entry = typeof job.id === "number" ? matchScores.get(job.id) : undefined;
+      if (!entry) {
+        return jobCategory === "profession";
+      }
+      if (entry.excludedFromListing) {
+        return false;
+      }
+      return jobCategory === "vocational" ? entry.generalVocationalRole : !entry.generalVocationalRole;
+    });
+  }, [filteredJobs, matchScores, jobCategory, matchYouFilter]);
+
+  // Whether the "General & Vocational Jobs" tab is worth showing at all - a candidate whose
+  // filtered results contain no vocational jobs (or none scored yet) never sees an empty tab.
+  // Irrelevant (and never rendered) once matchYouFilter is off - see its render site below.
+  const vocationalJobsCount = useMemo(() => {
+    return filteredJobs.filter((job) => {
+      const entry = typeof job.id === "number" ? matchScores.get(job.id) : undefined;
+      return entry ? entry.generalVocationalRole && !entry.excludedFromListing : false;
+    }).length;
+  }, [filteredJobs, matchScores]);
+
   // Highest match percent first, always - recomputed on every score that arrives (matchScores
   // is a dependency below), so the list keeps re-sorting itself as results stream in rather than
   // settling into place only once. Jobs with no verdict yet (still calculating, or a genuine
@@ -438,7 +504,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
   // to keep their relative order steady between renders instead of visibly shuffling among
   // themselves on every unrelated score update - never job id/date/company, only match percent.
   const sortedJobs = useMemo(() => {
-    return [...filteredJobs].sort((a, b) => {
+    return [...categorizedJobs].sort((a, b) => {
       const infoA = getMatchInfo(a);
       const infoB = getMatchInfo(b);
       const scoreA = infoA.status === "scored" ? infoA.percent : -1;
@@ -446,7 +512,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
       return scoreB - scoreA;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredJobs, matchScores, hasAnalysis, matchScoresLoading]);
+  }, [categorizedJobs, matchScores, hasAnalysis, matchScoresLoading]);
 
   const totalPages = Math.max(1, Math.ceil(sortedJobs.length / JOBS_PER_PAGE));
 
@@ -465,7 +531,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
   useEffect(() => {
     goToPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [industry, seniority, minSalary]);
+  }, [industry, seniority, minSalary, jobCategory, matchYouFilter]);
 
   // Smooth-scrolls to top whenever the candidate changes page WHILE already on this page
   // (Previous/Next, or the filter-triggered reset above) - otherwise the new page's jobs render
@@ -537,8 +603,14 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
               matchReason: entry.matchReason || "",
               matchedSkills: entry.matchedSkills || [],
               missingSkills: entry.missingSkills || [],
+              matchedRequiredSkills: entry.matchedRequiredSkills || [],
+              matchedPreferredSkills: entry.matchedPreferredSkills || [],
+              missingRequiredSkills: entry.missingRequiredSkills || [],
+              missingPreferredSkills: entry.missingPreferredSkills || [],
               fieldRelated: entry.fieldRelated === undefined ? true : entry.fieldRelated,
               insufficientData: entry.insufficientData === true,
+              generalVocationalRole: entry.generalVocationalRole === true,
+              excludedFromListing: entry.excludedFromListing === true,
             });
             return next;
           });
@@ -567,18 +639,19 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
   // stream in for the full filtered list (see the streaming effect above), not just the page
   // currently on screen.
   const matchingJobsCount = useMemo(() => {
-    return filteredJobs.filter((job) => {
+    return categorizedJobs.filter((job) => {
       const info = getMatchInfo(job);
       return info.status === "scored" && info.percent >= minMatch;
     }).length;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredJobs, minMatch, matchScores, hasAnalysis, matchScoresLoading]);
+  }, [categorizedJobs, minMatch, matchScores, hasAnalysis, matchScoresLoading]);
 
   const activeFiltersCount =
     (industry ? 1 : 0) +
     (seniority ? 1 : 0) +
     (minSalary !== 0 ? 1 : 0) +
-    (minMatch !== 0 ? 1 : 0);
+    (minMatch !== 0 ? 1 : 0) +
+    (matchYouFilter ? 0 : 1);
 
   const getRingColor = (info: MatchInfo) =>
     getSharedRingColor(info.status, info.status === "scored" ? info.percent : 0);
@@ -891,15 +964,26 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
 
               const matchedSkills = matchInfo.matchedSkills;
               const missingSkills = matchInfo.missingSkills.slice(0, 4);
+              const preferredSet = new Set(matchInfo.missingPreferredSkills);
+              const matchedPreferredSet = new Set(matchInfo.matchedPreferredSkills);
 
               if (matchedSkills.length === 0 && missingSkills.length === 0) return null;
 
+              // Required skills keep the original solid emerald/rose treatment; a PREFERRED skill
+              // (see MatchScoreEntry#missingPreferredSkills/matchedPreferredSkills) uses a lighter/
+              // dashed variant of the same color instead of a different hue, so it still reads as
+              // "matched"/"missing" at a glance while being visually distinct enough to tell apart
+              // - see the legend text below the chips.
               return (
                 <div className={`flex flex-wrap gap-2 ${isRTL ? "md:flex-row-reverse" : ""}`}>
                   {matchedSkills.map((skill) => (
                     <span
                       key={skill}
-                      className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-semibold text-emerald-300"
+                      className={
+                        matchedPreferredSet.has(skill)
+                          ? "rounded-full border border-dashed border-emerald-400/30 bg-emerald-400/5 px-3 py-1 text-sm font-medium text-emerald-300/80"
+                          : "rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-sm font-semibold text-emerald-300"
+                      }
                     >
                       {skill}
                     </span>
@@ -908,7 +992,11 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                   {missingSkills.map((skill) => (
                     <span
                       key={skill}
-                      className="rounded-full border border-rose-400/20 bg-rose-400/10 px-3 py-1 text-sm font-semibold text-rose-300"
+                      className={
+                        preferredSet.has(skill)
+                          ? "rounded-full border border-dashed border-amber-400/30 bg-amber-400/5 px-3 py-1 text-sm font-medium text-amber-300/80"
+                          : "rounded-full border border-rose-400/20 bg-rose-400/10 px-3 py-1 text-sm font-semibold text-rose-300"
+                      }
                     >
                       {skill}
                     </span>
@@ -1077,6 +1165,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                         setSeniority("");
                         setMinSalary(0);
                         setMinMatch(0);
+                        setMatchYouFilter(true);
                       }}
                     >
                       {t.jobMatches.clearAll}
@@ -1090,6 +1179,32 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                       {filtersOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                     </button>
                   </div>
+                </div>
+
+                {/* Always visible regardless of filtersOpen (unlike the dropdown/slider filters
+                    below) - this is the one filter that governs whether ANY personalization is
+                    applied at all, so it stays reachable even with the rest of the panel
+                    collapsed. See categorizedJobs above for exactly what toggling it changes. */}
+                <div className="mt-5 flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3.5">
+                  <div className={isRTL ? "text-right" : "text-left"}>
+                    <p className="text-[15px] font-semibold text-white">{t.jobMatches.matchYouFilterLabel}</p>
+                    <p className="mt-0.5 text-xs text-[#aeb4d6]">{t.jobMatches.matchYouFilterHint}</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={matchYouFilter}
+                    onClick={() => setMatchYouFilter((prev) => !prev)}
+                    className={`relative h-[26px] w-[46px] shrink-0 rounded-full transition ${
+                      matchYouFilter ? "bg-[#7f4cff]" : "bg-white/15"
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-[3px] h-[20px] w-[20px] rounded-full bg-white shadow transition-all ${
+                        matchYouFilter ? (isRTL ? "right-[23px]" : "left-[23px]") : isRTL ? "right-[3px]" : "left-[3px]"
+                      }`}
+                    />
+                  </button>
                 </div>
 
                 {filtersOpen && (
@@ -1313,9 +1428,50 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                 </p>
               </div>
 
+              <AiDisclaimer className="mb-5" />
+
               <p className={`text-[15px] text-[#aeb4d6] ${isRTL ? "text-right" : "text-left"}`}>
                 {matchingJobsCount} {t.jobMatches.jobsMatchCriteria}
               </p>
+
+              {/* Only worth showing once there's actually a second bucket to switch to - a
+                  candidate with zero vocational jobs in their filtered results never sees an
+                  empty, pointless tab, and the split itself is meaningless once matchYouFilter
+                  is off (every job already shows together, unsplit). See categorizedJobs/
+                  vocationalJobsCount above for what each tab actually contains and why they're
+                  never mixed. */}
+              {matchYouFilter && hasAnalysis === true && vocationalJobsCount > 0 && (
+                <div className={`mt-5 flex flex-wrap gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
+                  <button
+                    type="button"
+                    onClick={() => setJobCategory("profession")}
+                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                      jobCategory === "profession"
+                        ? "border-[#7f4cff]/50 bg-[#7f4cff]/20 text-white"
+                        : "border-white/10 bg-white/5 text-[#c4cae9] hover:bg-white/10"
+                    }`}
+                  >
+                    {t.jobMatches.professionMatchesTab}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setJobCategory("vocational")}
+                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                      jobCategory === "vocational"
+                        ? "border-[#7f4cff]/50 bg-[#7f4cff]/20 text-white"
+                        : "border-white/10 bg-white/5 text-[#c4cae9] hover:bg-white/10"
+                    }`}
+                  >
+                    {t.jobMatches.vocationalJobsTab} ({vocationalJobsCount})
+                  </button>
+                </div>
+              )}
+
+              {matchYouFilter && jobCategory === "vocational" && (
+                <p className={`mt-3 text-xs leading-5 text-white/45 ${isRTL ? "text-right" : "text-left"}`}>
+                  {t.jobMatches.vocationalJobsNote}
+                </p>
+              )}
             </section>
 
             <section className="space-y-5">

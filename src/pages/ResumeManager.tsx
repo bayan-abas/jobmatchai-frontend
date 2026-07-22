@@ -19,6 +19,7 @@ import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { apiFetch, apiFetchBlob, ApiError } from "../utils/api";
 import { clearMatchScoreSession } from "../utils/matchScoreSession";
+import AiDisclaimer from "../components/AiDisclaimer";
 
 type AnalysisResult = {
   score: number;
@@ -589,6 +590,8 @@ function ResumeManager() {
                     </p>
                   </div>
                 </div>
+
+                <AiDisclaimer />
 
                 <article className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-7 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
                   <div className="flex flex-col items-center justify-center text-center">

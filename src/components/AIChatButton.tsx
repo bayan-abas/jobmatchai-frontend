@@ -4,6 +4,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../utils/api";
 import AiMessageContent from "./AiMessageContent";
+import AiDisclaimer from "./AiDisclaimer";
 
 type Message = {
   id: number;
@@ -223,6 +224,8 @@ function AIChatButton() {
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-4">
+            <AiDisclaimer className="mb-4" />
+
             <div className={`mb-4 flex flex-wrap gap-2 ${isRTL ? "justify-end" : "justify-start"}`}>
               {content.quickPrompts.map((item) => (
                 <button

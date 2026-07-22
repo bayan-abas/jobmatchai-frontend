@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Loader2, Sparkles, User, Briefcase, TrendingUp, AlertTriangle, ClipboardCheck, Target, X } from "lucide-react";
 import { apiFetch } from "../utils/api";
 import { getMatchTier } from "../utils/matchScore";
+import AiDisclaimer from "./AiDisclaimer";
 
 type CandidateSummaryData = {
   hasAnalysis: boolean;
@@ -157,6 +158,8 @@ function CandidateAiSummaryModal({
             {data.message || s.noAnalysis || "This candidate has not completed a CV analysis yet, so an AI summary is not available."}
           </p>
         )}
+
+        {!loading && !error && data && data.hasAnalysis && <AiDisclaimer className="mb-5" />}
 
         {!loading && !error && data && data.hasAnalysis && typeof data.matchScore === "number" && (() => {
           const tier = getMatchTier(data.matchScore);
