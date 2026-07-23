@@ -672,7 +672,7 @@ function CompanyApplications() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedApplication?.id]);
+  }, [selectedApplication?.id, language]);
 
   const openContactModal = (app: ApplicationItem) => {
     setMessageText(

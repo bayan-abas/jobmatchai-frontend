@@ -32,18 +32,27 @@ type CandidateAiSummaryModalProps = {
   onScoreReady?: (matchScore: number, matchLabel: string, recommendation: string) => void;
 };
 
-// Keyed by applicationId so re-opening the modal for the same candidate reuses
-// the already-fetched summary instead of calling the backend (and OpenAI) again.
-const summaryCache = new Map<number, CandidateSummaryData>();
+// Keyed by `${applicationId}:${language}` so re-opening the modal for the same candidate in the
+// SAME language reuses the already-fetched summary instead of calling the backend (and OpenAI)
+// again - but switching the UI language always falls through to a fresh fetch instead of
+// silently showing the previous language's cached text (the backend itself caches per-language,
+// so that fetch is cheap - see CandidateSummaryService - this is just the frontend's OWN memo,
+// which must not short-circuit before the language-aware fetch it's memoizing ever runs again).
+const summaryCache = new Map<string, CandidateSummaryData>();
 
 // Tracks a fetch that's still in flight. If the modal is closed and reopened for
-// the same candidate before the first request finishes (the AI call can take a
+// the same candidate+language before the first request finishes (the AI call can take a
 // few seconds), we must await the SAME promise instead of firing a second POST —
 // otherwise the backend could see two overlapping "no cached row yet" requests.
-const pendingFetches = new Map<number, Promise<CandidateSummaryData>>();
+const pendingFetches = new Map<string, Promise<CandidateSummaryData>>();
+
+function summaryCacheKey(applicationId: number, language: string): string {
+  return `${applicationId}:${language}`;
+}
 
 function fetchSummary(applicationId: number, language: string): Promise<CandidateSummaryData> {
-  const existing = pendingFetches.get(applicationId);
+  const cacheKey = summaryCacheKey(applicationId, language);
+  const existing = pendingFetches.get(cacheKey);
   if (existing) {
     return existing;
   }
@@ -51,10 +60,10 @@ function fetchSummary(applicationId: number, language: string): Promise<Candidat
   const promise = apiFetch(`/api/applications/${applicationId}/ai-summary?language=${language}`, {
     method: "POST",
   }).finally(() => {
-    pendingFetches.delete(applicationId);
+    pendingFetches.delete(cacheKey);
   });
 
-  pendingFetches.set(applicationId, promise);
+  pendingFetches.set(cacheKey, promise);
   return promise;
 }
 
@@ -69,13 +78,16 @@ function CandidateAiSummaryModal({
   onScoreReady,
 }: CandidateAiSummaryModalProps) {
   const s = t.companyApplicationsPage?.aiSummaryModal || {};
-  const [data, setData] = useState<CandidateSummaryData | null>(summaryCache.get(applicationId) || null);
-  const [loading, setLoading] = useState(!summaryCache.has(applicationId));
+  const cacheKey = summaryCacheKey(applicationId, language);
+  const [data, setData] = useState<CandidateSummaryData | null>(summaryCache.get(cacheKey) || null);
+  const [loading, setLoading] = useState(!summaryCache.has(cacheKey));
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (summaryCache.has(applicationId)) {
-      setData(summaryCache.get(applicationId) || null);
+    const key = summaryCacheKey(applicationId, language);
+
+    if (summaryCache.has(key)) {
+      setData(summaryCache.get(key) || null);
       setLoading(false);
       return;
     }
@@ -87,7 +99,7 @@ function CandidateAiSummaryModal({
     fetchSummary(applicationId, language)
       .then((result: CandidateSummaryData) => {
         if (cancelled) return;
-        summaryCache.set(applicationId, result);
+        summaryCache.set(key, result);
         setData(result);
       })
       .catch(() => {
