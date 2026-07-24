@@ -198,6 +198,17 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
   try {
     response = await fetch(url, requestInit);
   } catch (networkError) {
+    // The browser blocks the request before it ever reaches the network - a CORS preflight
+    // rejection, DNS failure, connection refused, mixed content, etc. - and fetch() only ever
+    // throws a bare TypeError for all of these, by design of the browser security model: no
+    // status, no body, no indication of which one. This is the single choke point every caller
+    // passes through, so log full request context here once instead of every call site's catch
+    // block guessing blind and showing a generic "Server connection failed" with nothing to go on.
+    console.error(`apiFetch: network-level failure for ${method} ${url}`, {
+      requestBody: options.body,
+      error: networkError,
+    });
+
     // A GET is safe to retry once - it's read-only, so a brief connection blip (e.g. the
     // backend momentarily unavailable right after a long AI call) doesn't risk a duplicate
     // side effect the way blindly retrying a POST/PUT/DELETE would.
@@ -221,6 +232,7 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
     const message =
       (data && typeof data === "object" && "message" in data && (data as { message?: string }).message) ||
       `Request failed with status ${response.status}`;
+    console.error(`apiFetch: ${method} ${url} failed with ${response.status}`, { responseBody: data });
     throw new ApiError(message, response.status);
   }
 
