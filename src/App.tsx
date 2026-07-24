@@ -6,6 +6,7 @@ import { ConfirmProvider } from "./components/ui/ConfirmDialog";
 import { useLanguage } from "./context/LanguageContext";
 import { translations } from "./translations";
 import LoadingScreen from "./components/LoadingScreen";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const HomePage = lazy(() => import("./pages/HomePage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -72,49 +73,53 @@ function AnimatedRoutes() {
         exit={{ opacity: 0, y: -8 }}
         transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
       >
-        <Suspense fallback={<RouteFallback />}>
-          <Routes location={location}>
-            {/* Public */}
-            <Route path="/" element={<HomePage />} />
-            <Route path="/jobs" element={<PublicJobsPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/register/candidate" element={<RegisterPage />} />
-            <Route path="/register/company" element={<CompanyRegisterPage />} />
+        {/* Keyed by pathname so navigating to a different route after a render error
+            remounts a fresh boundary instead of staying stuck on the error screen. */}
+        <ErrorBoundary key={location.pathname}>
+          <Suspense fallback={<RouteFallback />}>
+            <Routes location={location}>
+              {/* Public */}
+              <Route path="/" element={<HomePage />} />
+              <Route path="/jobs" element={<PublicJobsPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/register/candidate" element={<RegisterPage />} />
+              <Route path="/register/company" element={<CompanyRegisterPage />} />
 
-            {/* Candidate */}
-            <Route path="/candidate-dashboard" element={<ProtectedRoute requiredRole="candidate"><CandidateLayout><CandidateDashboard /></CandidateLayout></ProtectedRoute>} />
-            <Route path="/job-matches"         element={<ProtectedRoute requiredRole="candidate"><CandidateLayout><JobMatches /></CandidateLayout></ProtectedRoute>} />
-            <Route path="/external-jobs"       element={<ProtectedRoute requiredRole="candidate"><CandidateLayout><ExternalJobsPage /></CandidateLayout></ProtectedRoute>} />
-            <Route path="/job-details/:jobType/:jobId" element={<ProtectedRoute requiredRole="candidate"><CandidateLayout><JobDetailsPage /></CandidateLayout></ProtectedRoute>} />
-            <Route path="/favorites"           element={<ProtectedRoute requiredRole="candidate"><CandidateLayout><FavoritesPage /></CandidateLayout></ProtectedRoute>} />
-            <Route path="/applications"        element={<ProtectedRoute requiredRole="candidate"><CandidateLayout><Applications /></CandidateLayout></ProtectedRoute>} />
-            <Route path="/profile"             element={<ProtectedRoute requiredRole="candidate"><CandidateLayout><ProfilePage /></CandidateLayout></ProtectedRoute>} />
-            <Route path="/resume-manager"      element={<ProtectedRoute requiredRole="candidate"><CandidateLayout><ResumeManager /></CandidateLayout></ProtectedRoute>} />
-            <Route path="/notifications"       element={<ProtectedRoute requiredRole="candidate"><CandidateLayout><NotificationsPage /></CandidateLayout></ProtectedRoute>} />
-            <Route path="/payment"             element={<ProtectedRoute requiredRole="candidate"><PaymentPage /></ProtectedRoute>} />
-            <Route path="/payment/success"     element={<ProtectedRoute requiredRole="candidate"><PaymentSuccessPage /></ProtectedRoute>} />
-            <Route path="/payment/cancel"      element={<ProtectedRoute requiredRole="candidate"><PaymentCancelPage /></ProtectedRoute>} />
+              {/* Candidate */}
+              <Route path="/candidate-dashboard" element={<ProtectedRoute requiredRole="candidate"><CandidateLayout><CandidateDashboard /></CandidateLayout></ProtectedRoute>} />
+              <Route path="/job-matches"         element={<ProtectedRoute requiredRole="candidate"><CandidateLayout><JobMatches /></CandidateLayout></ProtectedRoute>} />
+              <Route path="/external-jobs"       element={<ProtectedRoute requiredRole="candidate"><CandidateLayout><ExternalJobsPage /></CandidateLayout></ProtectedRoute>} />
+              <Route path="/job-details/:jobType/:jobId" element={<ProtectedRoute requiredRole="candidate"><CandidateLayout><JobDetailsPage /></CandidateLayout></ProtectedRoute>} />
+              <Route path="/favorites"           element={<ProtectedRoute requiredRole="candidate"><CandidateLayout><FavoritesPage /></CandidateLayout></ProtectedRoute>} />
+              <Route path="/applications"        element={<ProtectedRoute requiredRole="candidate"><CandidateLayout><Applications /></CandidateLayout></ProtectedRoute>} />
+              <Route path="/profile"             element={<ProtectedRoute requiredRole="candidate"><CandidateLayout><ProfilePage /></CandidateLayout></ProtectedRoute>} />
+              <Route path="/resume-manager"      element={<ProtectedRoute requiredRole="candidate"><CandidateLayout><ResumeManager /></CandidateLayout></ProtectedRoute>} />
+              <Route path="/notifications"       element={<ProtectedRoute requiredRole="candidate"><CandidateLayout><NotificationsPage /></CandidateLayout></ProtectedRoute>} />
+              <Route path="/payment"             element={<ProtectedRoute requiredRole="candidate"><PaymentPage /></ProtectedRoute>} />
+              <Route path="/payment/success"     element={<ProtectedRoute requiredRole="candidate"><PaymentSuccessPage /></ProtectedRoute>} />
+              <Route path="/payment/cancel"      element={<ProtectedRoute requiredRole="candidate"><PaymentCancelPage /></ProtectedRoute>} />
 
-            {/* Company */}
-            <Route path="/company-dashboard"      element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyDashboard /></CompanyLayout></ProtectedRoute>} />
-            <Route path="/company-job-postings"   element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyJobPostings /></CompanyLayout></ProtectedRoute>} />
-            <Route path="/company-job-details/:jobId" element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyJobDetailsPage /></CompanyLayout></ProtectedRoute>} />
-            <Route path="/post-job"               element={<ProtectedRoute requiredRole="company"><CompanyLayout><PostJob /></CompanyLayout></ProtectedRoute>} />
-            <Route path="/company-applications"   element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyApplications /></CompanyLayout></ProtectedRoute>} />
-            <Route path="/company-profile"        element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyProfile /></CompanyLayout></ProtectedRoute>} />
-            <Route path="/company-notifications"  element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyNotifications /></CompanyLayout></ProtectedRoute>} />
+              {/* Company */}
+              <Route path="/company-dashboard"      element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyDashboard /></CompanyLayout></ProtectedRoute>} />
+              <Route path="/company-job-postings"   element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyJobPostings /></CompanyLayout></ProtectedRoute>} />
+              <Route path="/company-job-details/:jobId" element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyJobDetailsPage /></CompanyLayout></ProtectedRoute>} />
+              <Route path="/post-job"               element={<ProtectedRoute requiredRole="company"><CompanyLayout><PostJob /></CompanyLayout></ProtectedRoute>} />
+              <Route path="/company-applications"   element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyApplications /></CompanyLayout></ProtectedRoute>} />
+              <Route path="/company-profile"        element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyProfile /></CompanyLayout></ProtectedRoute>} />
+              <Route path="/company-notifications"  element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyNotifications /></CompanyLayout></ProtectedRoute>} />
 
-            {/* The Candidates page was removed in favor of Applications - keep this so old
-                bookmarks/links don't land on a dead route. */}
-            <Route path="/company-candidates" element={<Navigate to="/company-applications" replace />} />
+              {/* The Candidates page was removed in favor of Applications - keep this so old
+                  bookmarks/links don't land on a dead route. */}
+              <Route path="/company-candidates" element={<Navigate to="/company-applications" replace />} />
 
-            {/* Catch-all: any unmatched path gets a real 404 page instead of rendering blank. */}
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </Suspense>
+              {/* Catch-all: any unmatched path gets a real 404 page instead of rendering blank. */}
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
       </motion.div>
     </AnimatePresence>
   );
