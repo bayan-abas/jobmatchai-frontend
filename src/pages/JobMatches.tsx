@@ -612,11 +612,14 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
 
     // Tracked locally (not via React state, which wouldn't be readable synchronously inside the
     // onDone callback below) - true the moment any job in THIS pass came back as a stale fallback
-    // (see backend JobMatchScore#stale / matchScoreSession.ts's own doc comments). Drives the
-    // auto-retry scheduling after the batch settles: the candidate must always see a real
-    // percentage, never an error, per product requirement - a stale fallback already satisfies
-    // that, but the fresh number still needs to arrive on its own without any manual refresh.
-    let sawStale = false;
+    // (see backend JobMatchScore#stale / matchScoreSession.ts's own doc comments) OR a hard error
+    // with no fallback available (fieldRelated === null - e.g. a brand-new job with no prior
+    // score at all, which the queue-backlog timeout fix reduces but doesn't guarantee to zero for
+    // an unusually large batch). Drives the auto-retry scheduling after the batch settles - this
+    // is the secondary safety net, not the primary fix (see matching.queue.await-timeout-ms's own
+    // comment for the actual root-cause fix), so it must also cover the no-fallback case, not
+    // just the stale one.
+    let needsRetry = false;
 
     // Always resolved fresh (never assumed/cached client-side) before touching the session
     // cache - this is what lets a deleted/replaced CV self-correct: a stale bucket left over
@@ -633,8 +636,8 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
         language,
         (jobId, entry) => {
           setHasAnalysis(true);
-          if (entry.stale) {
-            sawStale = true;
+          if (entry.stale || entry.fieldRelated === null) {
+            needsRetry = true;
           }
           setMatchScores((prev) => {
             const next = new Map(prev);
@@ -660,13 +663,15 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
           setHasAnalysis(hasAnalysisResult);
           setMatchScoresLoading(false);
 
-          // Auto-retry, silently in the background, for whatever came back stale this pass -
-          // stale entries are never written into the session cache (see matchScoreSession.ts),
-          // so re-running this same effect genuinely re-requests just those jobs from the
-          // backend; anything already fresh resolves instantly from cache. Bumping
-          // matchRetryNonce is exactly what the existing manual "Retry" button already does,
-          // just triggered automatically instead of waiting for a click.
-          if (sawStale && !controller.signal.aborted && staleRetryCountRef.current < MAX_STALE_RETRIES) {
+          // Auto-retry, silently in the background, for whatever came back stale OR hard-errored
+          // this pass - neither is written into the session cache (see matchScoreSession.ts), so
+          // re-running this same effect genuinely re-requests just those jobs from the backend;
+          // anything already fresh resolves instantly from cache. Bumping matchRetryNonce is
+          // exactly what the existing manual "Retry" button already does, just triggered
+          // automatically instead of waiting for a click. Secondary safety net only - the actual
+          // fix is the backend's queue-await-timeout increase (see application.properties), which
+          // should make this rarely fire at all.
+          if (needsRetry && !controller.signal.aborted && staleRetryCountRef.current < MAX_STALE_RETRIES) {
             staleRetryCountRef.current += 1;
             const delayMs = 8000 + staleRetryCountRef.current * 4000;
             window.setTimeout(() => {
@@ -674,7 +679,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                 setMatchRetryNonce((n) => n + 1);
               }
             }, delayMs);
-          } else if (!sawStale) {
+          } else if (!needsRetry) {
             staleRetryCountRef.current = 0;
           }
         },
