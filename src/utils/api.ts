@@ -226,3 +226,48 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
 
   return data;
 }
+
+// A cloud host that spins the backend down after a period of inactivity (e.g. Render's free
+// tier) makes the FIRST request after a while either hang for 30-60+ seconds while the instance
+// wakes up, or fail outright with a network error / 502-504 while it's still starting. apiFetch's
+// own single 400ms retry (above) is meant for a brief connectivity blip, not this - a page whose
+// only load attempt fails during a cold start previously showed a dead-end "make sure the backend
+// is running" message with no way forward except a manual refresh. This wraps any apiFetch call
+// with several retries over an increasing (capped) delay, so a page that calls this instead only
+// ever shows a real, terminal error after the backend has had a realistic chance to finish waking
+// up - the caller never needs to ask the user to refresh.
+export async function apiFetchWithRetry(
+  path: string,
+  options: RequestInit = {},
+  config: {
+    maxAttempts?: number;
+    baseDelayMs?: number;
+    maxDelayMs?: number;
+    onRetry?: (attempt: number, maxAttempts: number) => void;
+  } = {}
+): Promise<any> {
+  const maxAttempts = config.maxAttempts ?? 7;
+  const baseDelayMs = config.baseDelayMs ?? 1000;
+  const maxDelayMs = config.maxDelayMs ?? 8000;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await apiFetch(path, options);
+    } catch (error) {
+      // A real 4xx (bad request, unauthorized, not found, validation error) fails identically
+      // no matter how many times it's retried - only a network-level failure (no ApiError at
+      // all, i.e. fetch() itself never got a response) or a 5xx (exactly what a waking-up or
+      // momentarily overloaded backend returns) is worth retrying.
+      const isRetryable = !(error instanceof ApiError) || error.status >= 500;
+      if (!isRetryable || attempt === maxAttempts) {
+        throw error;
+      }
+      config.onRetry?.(attempt, maxAttempts);
+      const delay = Math.min(baseDelayMs * 2 ** (attempt - 1), maxDelayMs);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+  // Unreachable - the loop above always either returns or throws - but keeps TypeScript happy
+  // about every code path returning a value.
+  throw new ApiError("Request failed", 0);
+}

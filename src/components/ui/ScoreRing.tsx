@@ -20,19 +20,26 @@ type ScoreRingProps = {
 // instead of a hard pie-slice edge.
 function ScoreRing({ percent, size = 88, label, pulse = false, className = "" }: ScoreRingProps) {
   const reduceMotion = useReducedMotion();
-  const tier = percent !== null ? getMatchTier(percent) : null;
+  // Clamped once, immediately, so every other computation below (tier color, ring fraction,
+  // count-up animation, and the rendered label) reads from the SAME safe value - a caller that
+  // passes a negative or >100 number (a bug upstream, or a legacy pre-validation value read back
+  // from storage) can never make it to the screen as anything other than 0-100. Previously only
+  // the ring's fraction was clamped here; the animated text label was not, so an out-of-range
+  // `percent` rendered a wrong/negative number even though the ring itself looked fine.
+  const clampedPercent = percent !== null ? Math.max(0, Math.min(100, percent)) : null;
+  const tier = clampedPercent !== null ? getMatchTier(clampedPercent) : null;
   const stroke = size * 0.09;
   const radius = size / 2 - stroke;
   const circumference = 2 * Math.PI * radius;
-  const fraction = percent !== null ? Math.max(0, Math.min(100, percent)) / 100 : 0;
+  const fraction = clampedPercent !== null ? clampedPercent / 100 : 0;
 
-  const [displayed, setDisplayed] = useState(reduceMotion ? percent ?? 0 : 0);
+  const [displayed, setDisplayed] = useState(reduceMotion ? clampedPercent ?? 0 : 0);
   const frameRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (percent === null) return;
+    if (clampedPercent === null) return;
     if (reduceMotion) {
-      setDisplayed(percent);
+      setDisplayed(clampedPercent);
       return;
     }
 
@@ -43,7 +50,7 @@ function ScoreRing({ percent, size = 88, label, pulse = false, className = "" }:
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / durationMs);
       const eased = 1 - Math.pow(1 - t, 3);
-      setDisplayed(Math.round(from + (percent - from) * eased));
+      setDisplayed(Math.round(from + (clampedPercent - from) * eased));
       if (t < 1) {
         frameRef.current = requestAnimationFrame(tick);
       }
@@ -54,13 +61,13 @@ function ScoreRing({ percent, size = 88, label, pulse = false, className = "" }:
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [percent, reduceMotion]);
+  }, [clampedPercent, reduceMotion]);
 
   return (
     <div className={`relative shrink-0 ${pulse ? "animate-pulse" : ""} ${className}`} style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
         <circle cx={size / 2} cy={size / 2} r={radius} stroke="rgba(255,255,255,0.1)" strokeWidth={stroke} fill="none" />
-        {percent !== null && (
+        {clampedPercent !== null && (
           <motion.circle
             cx={size / 2}
             cy={size / 2}
@@ -78,7 +85,7 @@ function ScoreRing({ percent, size = 88, label, pulse = false, className = "" }:
       </svg>
       <div className="absolute inset-0 flex items-center justify-center rounded-full bg-[#252654] text-white shadow-inner" style={{ margin: stroke }}>
         <span className="font-extrabold" style={{ fontSize: size * 0.22 }}>
-          {label ?? (percent !== null ? `${displayed}%` : "—")}
+          {label ?? (clampedPercent !== null ? `${displayed}%` : "—")}
         </span>
       </div>
     </div>

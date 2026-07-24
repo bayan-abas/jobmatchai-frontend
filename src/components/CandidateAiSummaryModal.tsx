@@ -187,7 +187,12 @@ function CandidateAiSummaryModal({
         {!loading && !error && data && data.hasAnalysis && <AiDisclaimer className="mb-5" />}
 
         {!loading && !error && data && data.hasAnalysis && typeof data.matchScore === "number" && (() => {
-          const tier = getMatchTier(data.matchScore);
+          // Clamped once and reused everywhere below - previously only the bar's width was
+          // clamped, so an out-of-range matchScore (a bug upstream, or a legacy value read back
+          // from storage) rendered a wrong/negative number in the text label even though the
+          // bar itself looked fine.
+          const clampedScore = Math.max(0, Math.min(100, data.matchScore));
+          const tier = getMatchTier(clampedScore);
           return (
             <div className={`mb-5 rounded-2xl border ${tier.border} ${tier.bg} p-5`}>
               <div className={`mb-3 flex items-center justify-between gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
@@ -197,7 +202,7 @@ function CandidateAiSummaryModal({
                 </h3>
                 <span className={`flex items-center gap-2 text-2xl font-extrabold ${tier.text}`}>
                   <span>{tier.emoji}</span>
-                  {data.matchScore}%
+                  {clampedScore}%
                 </span>
               </div>
               <p className={`mb-3 text-sm font-semibold ${tier.text}`}>
@@ -206,7 +211,7 @@ function CandidateAiSummaryModal({
               <div className="h-2.5 w-full overflow-hidden rounded-full bg-white/10">
                 <div
                   className={`h-full rounded-full ${tier.bar} transition-all`}
-                  style={{ width: `${Math.max(0, Math.min(100, data.matchScore))}%` }}
+                  style={{ width: `${clampedScore}%` }}
                 />
               </div>
             </div>
