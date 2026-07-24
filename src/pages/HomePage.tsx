@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { useLanguage } from "../context/LanguageContext";
+import { Button, Reveal, useToast } from "../components/ui";
 
 type Language = "en" | "ar" | "he";
 
@@ -249,6 +251,7 @@ function HomePage() {
   const { language, setLanguage } = useLanguage();
   const t = translations[language as Language];
   const isRTL = language === "ar" || language === "he";
+  const toast = useToast();
 
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [message, setMessage] = useState("");
@@ -262,7 +265,7 @@ function HomePage() {
 
   const handleSendMessage = () => {
     if (!message.trim()) return;
-    alert(t.modalSuccess);
+    toast.success(t.modalSuccess);
     setMessage("");
     setIsContactOpen(false);
   };
@@ -325,19 +328,13 @@ function HomePage() {
           </div>
 
 
-          <button
-            onClick={() => navigate("/login")}
-            className="rounded-[16px] px-5 py-3 text-sm font-bold text-[#dce7ff] transition hover:bg-white/5 hover:text-white"
-          >
+          <Button variant="ghost" onClick={() => navigate("/login")}>
             {t.login}
-          </button>
+          </Button>
 
-          <button
-            onClick={() => scrollToSection("career-cta")}
-            className="rounded-[16px] bg-gradient-to-r from-[#6d7cff] via-[#7c5cff] to-[#a855f7] px-5 py-3 text-sm font-extrabold text-white shadow-[0_14px_35px_rgba(124,92,255,0.28)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_45px_rgba(124,92,255,0.35)]"
-          >
+          <Button variant="primary" onClick={() => scrollToSection("career-cta")}>
             {t.started}
-          </button>
+          </Button>
         </div>
       </nav>
 
@@ -345,7 +342,7 @@ function HomePage() {
         id="home"
         className="relative z-20 flex min-h-[calc(100vh-96px)] flex-col items-center justify-center px-6 pb-20 pt-6 text-center"
       >
-        <div className="mb-8 inline-flex items-center rounded-full border border-[#7c7cff]/30 bg-[#5d5cff]/15 px-6 py-3 text-[15px] font-medium text-[#c8d3ff] shadow-[0_8px_30px_rgba(93,92,255,0.15)] backdrop-blur-md">
+        <div className="mb-8 inline-flex items-center rounded-full border border-[#7c7cff]/30 bg-[#5d5cff]/15 px-6 py-3 text-[15px] font-medium text-[#c8d3ff] shadow-[0_8px_30px_rgba(93,92,255,0.15)] backdrop-blur-md max-[480px]:px-4 max-[480px]:py-2 max-[480px]:text-[13px]">
           ✧ {t.heroBadge}
         </div>
 
@@ -389,16 +386,15 @@ function HomePage() {
             ["10K+", t.stat2],
             ["50K+", t.stat3],
             ["500+", t.stat4],
-          ].map(([value, label]) => (
-            <div
-              key={value}
-              className="min-w-[230px] rounded-[28px] border border-white/10 bg-white/[0.045] px-9 py-8 text-center shadow-[0_16px_45px_rgba(0,0,0,0.16)] backdrop-blur-[12px]"
-            >
-              <h3 className="mb-2 text-[42px] font-extrabold text-white">
-                {value}
-              </h3>
-              <p className="text-[16px] text-[#c9d6ed]">{label}</p>
-            </div>
+          ].map(([value, label], index) => (
+            <Reveal key={value} delay={index * 0.08} y={20}>
+              <div className="min-w-[230px] rounded-[28px] border border-white/10 bg-white/[0.045] px-9 py-8 text-center shadow-[0_16px_45px_rgba(0,0,0,0.16)] backdrop-blur-[12px]">
+                <h3 className="mb-2 text-[42px] font-extrabold text-white">
+                  {value}
+                </h3>
+                <p className="text-[16px] text-[#c9d6ed]">{label}</p>
+              </div>
+            </Reveal>
           ))}
         </div>
       </section>
@@ -407,7 +403,7 @@ function HomePage() {
         id="features"
         className="relative z-20 px-8 py-[90px] max-[900px]:px-5"
       >
-        <div className="mx-auto mb-14 max-w-[950px] text-center">
+        <Reveal className="mx-auto mb-14 max-w-[950px] text-center">
           <h2 className="text-[52px] font-extrabold leading-[1.2] tracking-[-1.4px] max-[900px]:text-[34px]">
             {t.featuresTitle}
           </h2>
@@ -419,7 +415,7 @@ function HomePage() {
             {language === "he" &&
               "האלגוריתמים החכמים שלנו מנתחים נקודות מידע רבות כדי ליצור את ההתאמות המדויקות ביותר בין מועמדים להזדמנויות."}
           </p>
-        </div>
+        </Reveal>
 
         <div className="mx-auto grid max-w-[1520px] grid-cols-4 gap-6 max-[1300px]:grid-cols-2 max-[700px]:grid-cols-1">
           {[
@@ -427,19 +423,20 @@ function HomePage() {
             [t.feature2Title, t.feature2Text, "🎯"],
             [t.feature3Title, t.feature3Text, "⚡"],
             [t.feature4Title, t.feature4Text, "🛡️"],
-          ].map(([title, text, icon]) => (
-            <div
-              key={title}
-              className={`rounded-[28px] border border-white/10 bg-white/[0.045] p-6 shadow-[0_16px_45px_rgba(0,0,0,0.12)] backdrop-blur-[10px] ${
-                isRTL ? "text-right" : "text-left"
-              }`}
-            >
-              <div className="mb-6 flex h-[48px] w-[48px] items-center justify-center rounded-[14px] bg-[#6e59ff]/25 text-[22px]">
-                {icon}
+          ].map(([title, text, icon], index) => (
+            <Reveal key={title} delay={index * 0.08}>
+              <div
+                className={`h-full rounded-[28px] border border-white/10 bg-white/[0.045] p-6 shadow-[0_16px_45px_rgba(0,0,0,0.12)] backdrop-blur-[10px] ${
+                  isRTL ? "text-right" : "text-left"
+                }`}
+              >
+                <div className="mb-6 flex h-[48px] w-[48px] items-center justify-center rounded-[14px] bg-[#6e59ff]/25 text-[22px]">
+                  {icon}
+                </div>
+                <h3 className="mb-3 text-[20px] font-bold text-white">{title}</h3>
+                <p className="text-[16px] leading-[1.8] text-[#c5d0e8]">{text}</p>
               </div>
-              <h3 className="mb-3 text-[20px] font-bold text-white">{title}</h3>
-              <p className="text-[16px] leading-[1.8] text-[#c5d0e8]">{text}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </section>
@@ -448,7 +445,7 @@ function HomePage() {
         id="about"
         className="relative z-20 px-8 py-[90px] max-[900px]:px-5"
       >
-        <div className="mx-auto mb-14 max-w-[900px] text-center">
+        <Reveal className="mx-auto mb-14 max-w-[900px] text-center">
           <p className="mb-3 text-[13px] font-bold uppercase tracking-[1.6px] text-[#7dd3fc]">
             {t.aboutTag}
           </p>
@@ -456,26 +453,27 @@ function HomePage() {
             {t.aboutTitle}
           </h2>
           <span className="mt-5 inline-block h-1 w-[90px] rounded-full bg-gradient-to-r from-[#38bdf8] to-[#8b5cf6]" />
-        </div>
+        </Reveal>
 
         <div className="mx-auto grid max-w-[1320px] grid-cols-3 gap-6 max-[1200px]:grid-cols-2 max-[800px]:grid-cols-1">
           {[
             ["01", t.about1Title, t.about1Text],
             ["02", t.about2Title, t.about2Text],
             ["03", t.about3Title, t.about3Text],
-          ].map(([num, title, text]) => (
-            <div
-              key={num}
-              className={`rounded-[28px] border border-white/[0.08] bg-white/[0.045] p-8 shadow-[0_16px_45px_rgba(0,0,0,0.12)] transition hover:-translate-y-1 hover:bg-white/[0.06] ${
-                isRTL ? "text-right" : "text-left"
-              }`}
-            >
-              <div className="mb-5 flex h-[58px] w-[58px] items-center justify-center rounded-[18px] bg-gradient-to-br from-[#38bdf8] to-[#8b5cf6] text-[18px] font-extrabold text-white">
-                {num}
+          ].map(([num, title, text], index) => (
+            <Reveal key={num} delay={index * 0.08}>
+              <div
+                className={`h-full rounded-[28px] border border-white/[0.08] bg-white/[0.045] p-8 shadow-[0_16px_45px_rgba(0,0,0,0.12)] transition hover:-translate-y-1 hover:bg-white/[0.06] ${
+                  isRTL ? "text-right" : "text-left"
+                }`}
+              >
+                <div className="mb-5 flex h-[58px] w-[58px] items-center justify-center rounded-[18px] bg-gradient-to-br from-[#38bdf8] to-[#8b5cf6] text-[18px] font-extrabold text-white">
+                  {num}
+                </div>
+                <h3 className="mb-4 text-[22px] font-bold text-white">{title}</h3>
+                <p className="text-[15px] leading-[1.95] text-[#d4def2]">{text}</p>
               </div>
-              <h3 className="mb-4 text-[22px] font-bold text-white">{title}</h3>
-              <p className="text-[15px] leading-[1.95] text-[#d4def2]">{text}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </section>
@@ -484,7 +482,7 @@ function HomePage() {
         id="how-it-works"
         className="relative z-20 px-8 pb-[90px] pt-[90px] max-[900px]:px-5"
       >
-        <div className="mx-auto mb-14 max-w-[900px] text-center">
+        <Reveal className="mx-auto mb-14 max-w-[900px] text-center">
           <p className="mb-3 text-[13px] font-bold uppercase tracking-[1.6px] text-[#7dd3fc]">
             {t.howTag}
           </p>
@@ -492,7 +490,7 @@ function HomePage() {
             {t.howTitle}
           </h2>
           <span className="mt-5 inline-block h-1 w-[90px] rounded-full bg-gradient-to-r from-[#38bdf8] to-[#8b5cf6]" />
-        </div>
+        </Reveal>
 
         <div className="mx-auto grid max-w-[1080px] gap-5">
           {[
@@ -500,31 +498,33 @@ function HomePage() {
             ["02", t.step2Title, t.step2Text],
             ["03", t.step3Title, t.step3Text],
             ["04", t.step4Title, t.step4Text],
-          ].map(([num, title, text]) => (
-            <div
-              key={num}
-              className={`flex gap-5 rounded-[24px] border border-white/[0.08] bg-white/[0.045] px-7 py-6 shadow-[0_16px_45px_rgba(0,0,0,0.1)] max-[900px]:flex-col ${
-                isRTL ? "text-right" : "text-left"
-              }`}
-            >
-              <div className="flex h-[62px] min-w-[62px] items-center justify-center rounded-[20px] bg-gradient-to-br from-[#38bdf8] to-[#8b5cf6] text-[18px] font-extrabold text-white">
-                {num}
+          ].map(([num, title, text], index) => (
+            <Reveal key={num} delay={index * 0.08}>
+              <div
+                className={`flex gap-5 rounded-[24px] border border-white/[0.08] bg-white/[0.045] px-7 py-6 shadow-[0_16px_45px_rgba(0,0,0,0.1)] max-[900px]:flex-col ${
+                  isRTL ? "text-right" : "text-left"
+                }`}
+              >
+                <div className="flex h-[62px] min-w-[62px] items-center justify-center rounded-[20px] bg-gradient-to-br from-[#38bdf8] to-[#8b5cf6] text-[18px] font-extrabold text-white">
+                  {num}
+                </div>
+                <div>
+                  <h3 className="mb-2 mt-1 text-[22px] font-bold text-white">
+                    {title}
+                  </h3>
+                  <p className="text-[15px] leading-[1.9] text-[#d2dcf0]">{text}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="mb-2 mt-1 text-[22px] font-bold text-white">
-                  {title}
-                </h3>
-                <p className="text-[15px] leading-[1.9] text-[#d2dcf0]">{text}</p>
-              </div>
-            </div>
+            </Reveal>
           ))}
         </div>
       </section>
 
-      <section
-        id="career-cta"
-        className="relative z-20 px-8 pb-[120px] pt-[20px] max-[900px]:px-5"
-      >
+      <Reveal as="div">
+        <section
+          id="career-cta"
+          className="relative z-20 px-8 pb-[120px] pt-[20px] max-[900px]:px-5"
+        >
         <div className="mx-auto max-w-[1500px] rounded-[30px] border border-white/10 bg-[linear-gradient(135deg,rgba(35,32,90,0.9),rgba(32,59,104,0.82))] px-8 py-14 shadow-[0_24px_70px_rgba(0,0,0,0.28)] backdrop-blur-[10px] max-[900px]:px-5">
           <div className="mx-auto max-w-[900px] text-center">
             <h2 className="text-[48px] font-extrabold tracking-[-1.4px] text-white max-[900px]:text-[32px]">
@@ -552,57 +552,68 @@ function HomePage() {
             </div>
           </div>
         </div>
-      </section>
+        </section>
+      </Reveal>
 
-      {isContactOpen && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 px-5 backdrop-blur-[8px]">
-          <div
-            className={`w-full max-w-[560px] rounded-[30px] border border-white/10 bg-[rgba(15,23,42,0.96)] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.45)] ${
-              isRTL ? "text-right" : "text-left"
-            }`}
+      <AnimatePresence>
+        {isContactOpen && (
+          <motion.div
+            className="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 px-5 backdrop-blur-[8px]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            onClick={() => setIsContactOpen(false)}
           >
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-[24px] font-bold text-white">
-                {t.modalTitle}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setIsContactOpen(false)}
-                className="flex h-[36px] w-[36px] items-center justify-center rounded-full bg-white/5 text-white/70 transition hover:bg-white/10 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder={t.modalPlaceholder}
-              className="min-h-[150px] w-full resize-none rounded-[18px] border border-white/10 bg-white/[0.04] p-4 text-[15px] text-white outline-none placeholder:text-[#92a1bf]"
-            />
-
-            <div
-              className="mt-5 flex gap-3"
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="contact-modal-title"
+              initial={{ opacity: 0, scale: 0.94, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 8 }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              onClick={(e) => e.stopPropagation()}
+              className={`w-full max-w-[560px] rounded-[30px] border border-white/10 bg-[rgba(15,23,42,0.96)] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.45)] ${
+                isRTL ? "text-right" : "text-left"
+              }`}
             >
-              <button
-                type="button"
-                onClick={handleSendMessage}
-                className="flex-1 rounded-[16px] bg-gradient-to-r from-[#38bdf8] to-[#6366f1] px-5 py-3 text-[15px] font-bold text-white shadow-[0_14px_30px_rgba(56,189,248,0.22)] transition hover:-translate-y-0.5"
-              >
-                {t.modalSend}
-              </button>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 id="contact-modal-title" className="text-[24px] font-bold text-white">
+                  {t.modalTitle}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setIsContactOpen(false)}
+                  aria-label={t.modalClose}
+                  className="flex h-[36px] w-[36px] items-center justify-center rounded-full bg-white/5 text-white/70 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+                >
+                  ✕
+                </button>
+              </div>
 
-              <button
-                type="button"
-                onClick={() => setIsContactOpen(false)}
-                className="rounded-[16px] border border-white/15 bg-white/[0.03] px-5 py-3 text-[15px] font-bold text-white transition hover:bg-white/[0.07]"
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={t.modalPlaceholder}
+                className="min-h-[150px] w-full resize-none rounded-[18px] border border-white/10 bg-white/[0.04] p-4 text-[15px] text-white outline-none placeholder:text-[#92a1bf]"
+              />
+
+              <div
+                className="mt-5 flex gap-3"
               >
-                {t.modalClose}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                <Button type="button" fullWidth onClick={handleSendMessage}>
+                  {t.modalSend}
+                </Button>
+
+                <Button type="button" variant="secondary" onClick={() => setIsContactOpen(false)}>
+                  {t.modalClose}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

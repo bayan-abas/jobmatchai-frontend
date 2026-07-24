@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { AnimatePresence } from "motion/react";
 import {
   UserRound,
   Mail,
@@ -20,6 +21,14 @@ import { ISRAELI_CITIES } from "../utils/israeliCities";
 import { JOB_TITLES, EXPERIENCE_OPTIONS, ALL_SKILLS } from "../utils/candidateOptions";
 import SearchableSelect from "../components/SearchableSelect";
 import EmailVerificationModal from "../components/EmailVerificationModal";
+import { Button, FormField, Input, useToast } from "../components/ui";
+
+type FieldErrors = Partial<
+  Record<
+    "fullName" | "email" | "password" | "confirmPassword" | "phone" | "location" | "currentTitle" | "experience",
+    string
+  >
+>;
 
 function CandidateRegisterPage() {
   const navigate = useNavigate();
@@ -27,6 +36,7 @@ function CandidateRegisterPage() {
   const { login } = useAuth();
   const t = translations[language];
   const isRTL = language === "ar" || language === "he";
+  const toast = useToast();
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -44,8 +54,8 @@ function CandidateRegisterPage() {
   const [skills, setSkills] = useState<string[]>([]);
   const [resumeName, setResumeName] = useState("");
   const [resumeFile, setResumeFile] = useState<File | null>(null);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Holds everything handleVerifyAndRegister needs once the modal's code is confirmed - the
   // account isn't created until then, so this is the only place these cleaned-up values live
@@ -99,10 +109,12 @@ function CandidateRegisterPage() {
     setSkills((prev) => prev.filter((skill) => skill !== skillToRemove));
   };
 
-  const handleRegister = async (e: React.FormEvent) => { 
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
+
+    if (isSubmitting) return;
+
+    setFieldErrors({});
 
     const {
       fullName,
@@ -124,59 +136,59 @@ function CandidateRegisterPage() {
     const cleanLocation = location.trim();
     const cleanSummary = summary.trim();
 
-    if (
-      !cleanFullName ||
-      !cleanEmail ||
-      !cleanPassword ||
-      !cleanConfirmPassword ||
-      !cleanPhone ||
-      !cleanLocation ||
-      !currentTitle ||
-      !experience
-    ) {
-      setError(
-        t?.candidateRegisterPage?.errors?.requiredFields ||
-          "Please fill in all required fields."
-      );
+    const requiredMessage = t?.common?.required || "Required";
+    const missing: FieldErrors = {};
+    if (!cleanFullName) missing.fullName = requiredMessage;
+    if (!cleanEmail) missing.email = requiredMessage;
+    if (!cleanPassword) missing.password = requiredMessage;
+    if (!cleanConfirmPassword) missing.confirmPassword = requiredMessage;
+    if (!cleanPhone) missing.phone = requiredMessage;
+    if (!cleanLocation) missing.location = requiredMessage;
+    if (!currentTitle) missing.currentTitle = requiredMessage;
+    if (!experience) missing.experience = requiredMessage;
+
+    if (Object.keys(missing).length > 0) {
+      setFieldErrors(missing);
       return;
     }
 
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailPattern.test(cleanEmail)) {
-      setError(
-        t?.candidateRegisterPage?.errors?.invalidEmail ||
-          "Please enter a valid email address."
-      );
+      setFieldErrors({
+        email: t?.candidateRegisterPage?.errors?.invalidEmail || "Please enter a valid email address.",
+      });
       return;
     }
 
     if (cleanPassword.length < 6) {
-      setError(
-        t?.candidateRegisterPage?.errors?.passwordLength ||
-          "Password must be at least 6 characters."
-      );
+      setFieldErrors({
+        password: t?.candidateRegisterPage?.errors?.passwordLength || "Password must be at least 6 characters.",
+      });
       return;
     }
 
     if (!/[A-Za-z]/.test(cleanPassword) || !/\d/.test(cleanPassword)) {
-      setError(
-        t?.candidateRegisterPage?.errors?.passwordComplexity ||
-          "Password must contain both letters and numbers."
-      );
+      setFieldErrors({
+        password:
+          t?.candidateRegisterPage?.errors?.passwordComplexity ||
+          "Password must contain both letters and numbers.",
+      });
       return;
     }
 
     if (cleanPassword !== cleanConfirmPassword) {
-      setError(
-        t?.candidateRegisterPage?.errors?.passwordMismatch ||
-          "Passwords do not match."
-      );
+      setFieldErrors({
+        confirmPassword: t?.candidateRegisterPage?.errors?.passwordMismatch || "Passwords do not match.",
+      });
       return;
     }
+
     const candidateSummary =
       cleanSummary ||
       t?.candidateRegisterPage?.defaultSummary ||
       "Passionate professional looking for great opportunities and continuous growth.";
+
+    setIsSubmitting(true);
 
     try {
       await apiFetch("/api/auth/send-verification-code", {
@@ -197,11 +209,13 @@ function CandidateRegisterPage() {
       setShowVerificationModal(true);
     } catch (error) {
       console.error(error);
-      setError(
+      toast.error(
         error instanceof ApiError
           ? error.message
           : t?.verificationModal?.sendCodeFailed || "Couldn't send a verification code. Please try again."
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -275,9 +289,7 @@ function CandidateRegisterPage() {
     }
 
     setShowVerificationModal(false);
-    setSuccess(
-      t?.candidateRegisterPage?.success || "Candidate account created successfully!"
-    );
+    toast.success(t?.candidateRegisterPage?.success || "Candidate account created successfully!");
 
     setTimeout(() => {
       navigate("/candidate-dashboard");
@@ -292,21 +304,22 @@ function CandidateRegisterPage() {
     });
   };
 
-  const inputClass = `w-full rounded-2xl border border-white/10 bg-white/5 ${
-    isRTL ? "pr-12 pl-4 text-right" : "pl-12 pr-4 text-left"
-  } py-3.5 text-white placeholder:text-white/40 outline-none transition focus:border-cyan-400/60 focus:bg-white/10`;
+  const selectInputClass = (hasError?: boolean) =>
+    `w-full rounded-control border bg-white/5 py-3.5 text-white outline-none transition placeholder:text-white/40 focus:bg-white/10 ${
+      hasError ? "border-danger-400/60 focus:border-danger-400" : "border-white/10 focus:border-brand-400/60"
+    } ${isRTL ? "pr-12 pl-4 text-right" : "pl-12 pr-4 text-left"}`;
 
-  const textareaClass = `w-full rounded-2xl border border-white/10 bg-white/5 ${
+  const textareaClass = `w-full rounded-control border border-white/10 bg-white/5 ${
     isRTL ? "pr-12 pl-4 text-right" : "pl-12 pr-4 text-left"
-  } py-3.5 text-white placeholder:text-white/40 outline-none transition resize-none focus:border-cyan-400/60 focus:bg-white/10`;
+  } py-3.5 text-white placeholder:text-white/40 outline-none transition resize-none focus:border-brand-400/60 focus:bg-white/10`;
 
   return (
     <div
       dir={isRTL ? "rtl" : "ltr"}
       className="min-h-screen bg-[linear-gradient(135deg,#17184a_0%,#1a1b56_40%,#17234f_100%)] px-4 py-10"
     >
-      <div className="mx-auto max-w-6xl overflow-hidden rounded-[32px] border border-white/10 bg-white/5 shadow-[0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-        <div className="grid min-h-[760px] lg:grid-cols-2">
+      <div className="mx-auto max-w-6xl overflow-hidden rounded-panel border border-white/10 bg-white/5 shadow-elevated backdrop-blur-xl">
+        <div className="grid lg:min-h-[760px] lg:grid-cols-2">
           <div className="relative hidden overflow-hidden lg:flex">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.22),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(139,92,246,0.22),transparent_30%)]" />
             <div className="relative z-10 flex w-full flex-col justify-between p-10">
@@ -354,12 +367,9 @@ function CandidateRegisterPage() {
 
           <div className="p-6 sm:p-8 lg:p-10">
             <div className="mb-6 flex items-center justify-between gap-3">
-              <button
-                onClick={() => navigate(-1)}
-                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
-              >
+              <Button variant="secondary" size="sm" onClick={() => navigate(-1)}>
                 {t?.common?.back || "Back"}
-              </button>
+              </Button>
 
               <div className="flex items-center gap-2">
                 <button
@@ -408,154 +418,161 @@ function CandidateRegisterPage() {
               </p>
             </div>
 
-            <form onSubmit={handleRegister} className="space-y-5">
+            <form onSubmit={handleRegister} className="space-y-5" noValidate>
               <div className="grid gap-5 md:grid-cols-2">
-                <div className="relative">
-                  <UserRound
-                    className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${
-                      isRTL ? "right-4" : "left-4"
-                    }`}
-                    size={18}
-                  />
-                  <input
+                <FormField label={t?.common?.fullName || "Full Name"} htmlFor="candidate-fullName" error={fieldErrors.fullName}>
+                  <Input
+                    id="candidate-fullName"
                     type="text"
                     name="fullName"
+                    icon={<UserRound size={18} />}
                     placeholder={t?.common?.fullName || "Full Name"}
                     value={formData.fullName}
                     onChange={handleChange}
-                    className={inputClass}
+                    disabled={isSubmitting}
+                    hasError={!!fieldErrors.fullName}
                   />
-                </div>
+                </FormField>
 
-                <div className="relative">
-                  <Mail
-                    className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${
-                      isRTL ? "right-4" : "left-4"
-                    }`}
-                    size={18}
-                  />
-                  <input
+                <FormField label={t?.common?.email || "Email Address"} htmlFor="candidate-email" error={fieldErrors.email}>
+                  <Input
+                    id="candidate-email"
                     type="email"
                     name="email"
+                    icon={<Mail size={18} />}
                     placeholder={t?.common?.email || "Email Address"}
                     value={formData.email}
                     onChange={handleChange}
-                    className={inputClass}
+                    disabled={isSubmitting}
+                    hasError={!!fieldErrors.email}
                   />
-                </div>
+                </FormField>
 
-                <div className="relative">
-                  <Lock
-                    className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${
-                      isRTL ? "right-4" : "left-4"
-                    }`}
-                    size={18}
-                  />
-                  <input
+                <FormField label={t?.common?.password || "Password"} htmlFor="candidate-password" error={fieldErrors.password}>
+                  <Input
+                    id="candidate-password"
                     type="password"
                     name="password"
+                    icon={<Lock size={18} />}
                     placeholder={t?.common?.password || "Password"}
                     value={formData.password}
                     onChange={handleChange}
-                    className={inputClass}
+                    disabled={isSubmitting}
+                    hasError={!!fieldErrors.password}
                   />
-                </div>
+                </FormField>
 
-                <div className="relative">
-                  <Lock
-                    className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${
-                      isRTL ? "right-4" : "left-4"
-                    }`}
-                    size={18}
-                  />
-                  <input
+                <FormField
+                  label={t?.common?.confirmPassword || "Confirm Password"}
+                  htmlFor="candidate-confirmPassword"
+                  error={fieldErrors.confirmPassword}
+                >
+                  <Input
+                    id="candidate-confirmPassword"
                     type="password"
                     name="confirmPassword"
-                    placeholder={
-                      t?.common?.confirmPassword || "Confirm Password"
-                    }
+                    icon={<Lock size={18} />}
+                    placeholder={t?.common?.confirmPassword || "Confirm Password"}
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    className={inputClass}
+                    disabled={isSubmitting}
+                    hasError={!!fieldErrors.confirmPassword}
                   />
-                </div>
+                </FormField>
 
-                <div className="relative">
-                  <Phone
-                    className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${
-                      isRTL ? "right-4" : "left-4"
-                    }`}
-                    size={18}
-                  />
-                  <input
+                <FormField
+                  label={t?.candidateRegisterPage?.phone || "Phone Number"}
+                  htmlFor="candidate-phone"
+                  error={fieldErrors.phone}
+                >
+                  <Input
+                    id="candidate-phone"
                     type="text"
                     name="phone"
-                    placeholder={
-                      t?.candidateRegisterPage?.phone || "Phone Number"
-                    }
+                    icon={<Phone size={18} />}
+                    placeholder={t?.candidateRegisterPage?.phone || "Phone Number"}
                     value={formData.phone}
                     onChange={handleChange}
-                    className={inputClass}
+                    disabled={isSubmitting}
+                    hasError={!!fieldErrors.phone}
                   />
-                </div>
+                </FormField>
 
-                <div className="relative">
-                  <MapPin
-                    className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${
-                      isRTL ? "right-4" : "left-4"
-                    }`}
-                    size={18}
-                  />
-                  <SearchableSelect
-                    value={formData.location}
-                    onChange={(value) =>
-                      setFormData((prev) => ({ ...prev, location: value }))
-                    }
-                    options={ISRAELI_CITIES}
-                    placeholder={t?.candidateRegisterPage?.location || "Location"}
-                    className={inputClass}
-                  />
-                </div>
+                <FormField
+                  label={t?.candidateRegisterPage?.location || "Location"}
+                  htmlFor="candidate-location"
+                  error={fieldErrors.location}
+                >
+                  <div className="relative">
+                    <MapPin
+                      className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-white/40 ${
+                        isRTL ? "right-4" : "left-4"
+                      }`}
+                      size={18}
+                    />
+                    <SearchableSelect
+                      value={formData.location}
+                      onChange={(value) =>
+                        setFormData((prev) => ({ ...prev, location: value }))
+                      }
+                      options={ISRAELI_CITIES}
+                      placeholder={t?.candidateRegisterPage?.location || "Location"}
+                      className={selectInputClass(!!fieldErrors.location)}
+                    />
+                  </div>
+                </FormField>
 
-                <div className="relative">
-                  <Briefcase
-                    className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${
-                      isRTL ? "right-4" : "left-4"
-                    }`}
-                    size={18}
-                  />
-                  <SearchableSelect
-                    value={formData.currentTitle}
-                    onChange={(value) =>
-                      setFormData((prev) => ({ ...prev, currentTitle: value }))
-                    }
-                    options={JOB_TITLES}
-                    placeholder={
-                      t?.candidateRegisterPage?.selectTitle || "Select Current Title"
-                    }
-                    className={inputClass}
-                  />
-                </div>
+                <FormField
+                  label={t?.candidateRegisterPage?.selectTitle || "Select Current Title"}
+                  htmlFor="candidate-title"
+                  error={fieldErrors.currentTitle}
+                >
+                  <div className="relative">
+                    <Briefcase
+                      className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-white/40 ${
+                        isRTL ? "right-4" : "left-4"
+                      }`}
+                      size={18}
+                    />
+                    <SearchableSelect
+                      value={formData.currentTitle}
+                      onChange={(value) =>
+                        setFormData((prev) => ({ ...prev, currentTitle: value }))
+                      }
+                      options={JOB_TITLES}
+                      placeholder={
+                        t?.candidateRegisterPage?.selectTitle || "Select Current Title"
+                      }
+                      className={selectInputClass(!!fieldErrors.currentTitle)}
+                    />
+                  </div>
+                </FormField>
 
-                <div className="relative">
-                  <Sparkles
-                    className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${
-                      isRTL ? "right-4" : "left-4"
-                    }`}
-                    size={18}
-                  />
-                  <SearchableSelect
-                    value={formData.experience}
-                    onChange={(value) =>
-                      setFormData((prev) => ({ ...prev, experience: value }))
-                    }
-                    options={EXPERIENCE_OPTIONS}
-                    placeholder={
-                      t?.candidateRegisterPage?.experience || "Years of Experience"
-                    }
-                    className={inputClass}
-                  />
-                </div>
+                <FormField
+                  label={t?.candidateRegisterPage?.experience || "Years of Experience"}
+                  htmlFor="candidate-experience"
+                  error={fieldErrors.experience}
+                >
+                  <div className="relative">
+                    <Sparkles
+                      className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-white/40 ${
+                        isRTL ? "right-4" : "left-4"
+                      }`}
+                      size={18}
+                    />
+                    <SearchableSelect
+                      value={formData.experience}
+                      onChange={(value) =>
+                        setFormData((prev) => ({ ...prev, experience: value }))
+                      }
+                      options={EXPERIENCE_OPTIONS}
+                      placeholder={
+                        t?.candidateRegisterPage?.experience || "Years of Experience"
+                      }
+                      className={selectInputClass(!!fieldErrors.experience)}
+                    />
+                  </div>
+                </FormField>
 
                 <div className="md:col-span-2">
                   <label className="mb-2 block text-sm font-medium text-white/75">
@@ -569,17 +586,13 @@ function CandidateRegisterPage() {
                         onChange={setSelectedSkill}
                         options={ALL_SKILLS.filter((skill) => !skills.includes(skill))}
                         placeholder={t?.candidateRegisterPage?.selectSkill || "Select a skill"}
-                        className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 text-white outline-none transition focus:border-cyan-400/60 focus:bg-white/10"
+                        className="w-full rounded-control border border-white/10 bg-white/5 px-4 py-3.5 text-white outline-none transition focus:border-brand-400/60 focus:bg-white/10"
                       />
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={addSkill}
-                      className="rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-6 py-3.5 font-bold text-white shadow-[0_12px_30px_rgba(34,211,238,0.25)] transition hover:scale-[1.01]"
-                    >
+                    <Button type="button" onClick={addSkill}>
                       {t?.candidateRegisterPage?.addSkill || "Add"}
-                    </button>
+                    </Button>
                   </div>
 
                   {skills.length > 0 && (
@@ -603,24 +616,30 @@ function CandidateRegisterPage() {
                   )}
                 </div>
 
-                <div className="relative md:col-span-2">
-                  <FileText
-                    className={`absolute top-5 text-white/40 ${
-                      isRTL ? "right-4" : "left-4"
-                    }`}
-                    size={18}
-                  />
-                  <textarea
-                    name="summary"
-                    value={formData.summary}
-                    onChange={handleChange}
-                    rows={5}
-                    placeholder={
-                      t?.candidateRegisterPage?.summaryPlaceholder ||
-                      "Write a short summary about yourself, your background, your goals, and what kind of opportunities you are looking for..."
-                    }
-                    className={textareaClass}
-                  />
+                <div className="md:col-span-2">
+                  <FormField label={t?.common?.description || "Summary"} htmlFor="candidate-summary">
+                    <div className="relative">
+                      <FileText
+                        className={`pointer-events-none absolute top-5 text-white/40 ${
+                          isRTL ? "right-4" : "left-4"
+                        }`}
+                        size={18}
+                      />
+                      <textarea
+                        id="candidate-summary"
+                        name="summary"
+                        value={formData.summary}
+                        onChange={handleChange}
+                        disabled={isSubmitting}
+                        rows={5}
+                        placeholder={
+                          t?.candidateRegisterPage?.summaryPlaceholder ||
+                          "Write a short summary about yourself, your background, your goals, and what kind of opportunities you are looking for..."
+                        }
+                        className={textareaClass}
+                      />
+                    </div>
+                  </FormField>
                 </div>
 
                 <div className="md:col-span-2">
@@ -632,7 +651,7 @@ function CandidateRegisterPage() {
                   <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.03] p-4 transition hover:bg-white/[0.05]">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-300">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-400/10 text-brand-400">
                           <Upload size={18} />
                         </div>
 
@@ -649,7 +668,7 @@ function CandidateRegisterPage() {
                         </div>
                       </div>
 
-                      <label className="cursor-pointer rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-5 py-3 text-sm font-bold text-white shadow-[0_12px_30px_rgba(34,211,238,0.25)] transition hover:scale-[1.01]">
+                      <label className="cursor-pointer rounded-control bg-gradient-to-r from-brand-500 to-brand-400 px-5 py-3 text-sm font-bold text-white shadow-brand-glow transition hover:scale-[1.01]">
                         {t?.candidateRegisterPage?.chooseFile || "Choose File"}
                         <input
                           type="file"
@@ -664,7 +683,7 @@ function CandidateRegisterPage() {
                       <button
                         type="button"
                         onClick={removeResume}
-                        className="mt-3 text-sm font-medium text-red-300 transition hover:text-red-200"
+                        className="mt-3 text-sm font-medium text-danger-300 transition hover:text-danger-400"
                       >
                         {t?.candidateRegisterPage?.removeFile || "Remove file"}
                       </button>
@@ -673,34 +692,15 @@ function CandidateRegisterPage() {
                 </div>
               </div>
 
-              {error && (
-                <div className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                  {error}
-                </div>
-              )}
-
-              {success && (
-                <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
-                  {success}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="w-full rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-6 py-4 text-base font-bold text-white shadow-[0_12px_30px_rgba(34,211,238,0.25)] transition hover:scale-[1.01]"
-              >
+              <Button type="submit" fullWidth loading={isSubmitting}>
                 {t?.candidateRegisterPage?.createAccount ||
                   "Create Candidate Account"}
-              </button>
+              </Button>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => navigate("/login")}
-                  className="rounded-2xl border border-white/15 bg-white/[0.03] px-5 py-3.5 font-semibold text-[#dce7ff] transition hover:bg-white/[0.06]"
-                >
+                <Button type="button" variant="secondary" onClick={() => navigate("/login")}>
                   {t?.common?.alreadyHaveAccount || "Already have an account?"}
-                </button>
+                </Button>
 
                 <button
                   type="button"
@@ -716,16 +716,18 @@ function CandidateRegisterPage() {
         </div>
       </div>
 
-      {showVerificationModal && pendingRegistration && (
-        <EmailVerificationModal
-          email={pendingRegistration.email}
-          t={t}
-          isRTL={isRTL}
-          onVerify={handleVerifyAndRegister}
-          onResend={handleResendCode}
-          onClose={() => setShowVerificationModal(false)}
-        />
-      )}
+      <AnimatePresence>
+        {showVerificationModal && pendingRegistration && (
+          <EmailVerificationModal
+            email={pendingRegistration.email}
+            t={t}
+            isRTL={isRTL}
+            onVerify={handleVerifyAndRegister}
+            onResend={handleResendCode}
+            onClose={() => setShowVerificationModal(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

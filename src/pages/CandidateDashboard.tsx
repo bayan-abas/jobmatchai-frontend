@@ -4,11 +4,11 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { computeProfileCompleteness } from "./ProfilePage";
-import { getRingColor } from "../utils/jobInference";
 import { apiFetch } from "../utils/api";
 import { streamSessionMatches, fetchCurrentCvIdentity, NO_CV_IDENTITY } from "../utils/matchScoreSession";
 import { FREE_PLAN_LIMIT } from "../utils/applicationLimit";
 import LoadingScreen from "../components/LoadingScreen";
+import { Reveal, ScoreRing, EmptyState, Button, Badge, applicationStatusTone } from "../components/ui";
 import {
   BriefcaseBusiness,
   Globe2,
@@ -24,6 +24,7 @@ import {
   Wifi,
   CheckCircle2,
   Loader2,
+  FileX,
 } from "lucide-react";
 
 type RecentApplication = {
@@ -34,7 +35,6 @@ type RecentApplication = {
   percent: number | null;
   status: string;
   days: string;
-  statusClass: string;
 };
 
 type MatchItem = {
@@ -98,54 +98,6 @@ type RecentlyViewedItem = {
   companyName?: string;
   location?: string;
 };
-
-function getStatusClass(status: string) {
-  const clean = status.toLowerCase();
-
-  if (clean.includes("short")) {
-    return "border border-violet-400/20 bg-violet-500/12 text-violet-300";
-  }
-
-  if (clean.includes("ai")) {
-    return "border border-emerald-400/20 bg-emerald-500/12 text-emerald-300";
-  }
-
-  if (clean.includes("applied")) {
-    return "border border-cyan-400/20 bg-cyan-500/12 text-cyan-300";
-  }
-
-  return "border border-yellow-400/20 bg-yellow-500/12 text-yellow-300";
-}
-
-function ScoreRing({ value }: { value: number | null }) {
-  if (value === null) {
-    return (
-      <div className="relative h-[88px] w-[88px] shrink-0">
-        <div className="h-full w-full animate-pulse rounded-full bg-[#2a2c5a]" />
-        <div className="absolute inset-[8px] flex items-center justify-center rounded-full bg-[#252654] text-[11px] font-semibold text-white/50 shadow-inner">
-          N/A
-        </div>
-      </div>
-    );
-  }
-
-  const ringColor = getRingColor("scored", value);
-
-  return (
-    <div className="relative h-[88px] w-[88px] shrink-0">
-      <div
-        className="h-full w-full rounded-full transition-all duration-[1800ms] ease-out"
-        style={{
-          background: `conic-gradient(${ringColor} ${value * 3.6}deg, #2a2c5a 0deg)`,
-          boxShadow: `0 0 24px ${ringColor}22`,
-        }}
-      />
-      <div className="absolute inset-[8px] flex items-center justify-center rounded-full bg-[#252654] text-[20px] font-extrabold text-white shadow-inner">
-        {value}%
-      </div>
-    </div>
-  );
-}
 
 function CandidateDashboard() {
   const navigate = useNavigate();
@@ -277,7 +229,6 @@ function CandidateDashboard() {
               percent: null,
               status: app.status || "Under Review",
               days: app.appliedDate || "Recently",
-              statusClass: getStatusClass(app.status || "Under Review"),
             }))
         );
       } catch (error) {
@@ -568,7 +519,7 @@ function CandidateDashboard() {
             </div>
 
             <div className={`min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
-              <h1 className="text-[42px] font-extrabold leading-tight text-white">
+              <h1 className="text-[42px] font-extrabold leading-tight text-white max-[640px]:text-[28px]">
                 {`${t.dashboard.welcome}, ${userName}`} 👋
               </h1>
               <p className="mt-2 text-[17px] text-[#aeb4d6]">
@@ -585,91 +536,98 @@ function CandidateDashboard() {
         )}
 
         <section className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {stats.map((stat) => (
-            <button
-              key={stat.label}
-              type="button"
-              onClick={stat.onClick}
-              className={`rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-6 py-6 text-inherit shadow-[0_18px_50px_rgba(0,0,0,0.16)] transition hover:border-white/20 hover:bg-[rgba(50,52,108,0.96)] ${
-                stat.onClick ? "cursor-pointer" : "cursor-default"
-              }`}
-            >
-              <div className="mb-6 flex items-start justify-between">
-                <div
-                  className={`flex h-12 w-12 items-center justify-center rounded-2xl ${stat.iconBg} ${stat.iconColor}`}
-                >
-                  {stat.icon}
+          {stats.map((stat, index) => (
+            <Reveal key={stat.label} delay={Math.min(index * 0.05, 0.3)}>
+              <button
+                type="button"
+                onClick={stat.onClick}
+                className={`w-full rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-6 py-6 text-inherit shadow-[0_18px_50px_rgba(0,0,0,0.16)] transition hover:border-white/20 hover:bg-[rgba(50,52,108,0.96)] ${
+                  stat.onClick ? "cursor-pointer" : "cursor-default"
+                }`}
+              >
+                <div className="mb-6 flex items-start justify-between">
+                  <div
+                    className={`flex h-12 w-12 items-center justify-center rounded-2xl ${stat.iconBg} ${stat.iconColor}`}
+                  >
+                    {stat.icon}
+                  </div>
+                  <ChevronRight
+                    size={20}
+                    className={`text-white/30 ${isRTL ? "rotate-180" : ""}`}
+                  />
                 </div>
-                <ChevronRight
-                  size={20}
-                  className={`text-white/30 ${isRTL ? "rotate-180" : ""}`}
-                />
-              </div>
 
-              {stat.loading ? (
-                <div className={isRTL ? "text-right" : "text-left"}>
-                  <Loader2 size={26} className="mb-2 animate-spin text-white/70" />
-                  <p className="text-[15px] font-bold leading-snug text-white">
-                    {t.dashboard.matchesLoadingTitle}
-                  </p>
-                  <p className="mt-1 text-[13px] leading-snug text-[#aeb4d6]">
-                    {t.dashboard.matchesLoadingSubtitle}
-                  </p>
-                </div>
-              ) : stat.noAnalysis ? (
-                // No CV means matchedJobsCount's "0" would misleadingly read as "we checked and
-                // you match nothing" rather than "we haven't been able to check yet" - a CTA in
-                // its place is the honest version of this tile until a CV is on file.
-                <div className={isRTL ? "text-right" : "text-left"}>
-                  <p className="text-[15px] font-bold leading-snug text-white">
-                    {t.dashboard.noCvTitle}
-                  </p>
-                  <p className="mt-1 text-[13px] leading-snug text-[#aeb4d6]">
-                    {t.dashboard.noCvSubtitle}
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <h2 className="mb-1 text-[40px] font-extrabold leading-none text-white">
-                    {stat.value}
-                  </h2>
-                  <p className="text-[15px] text-[#aeb4d6]">{stat.label}</p>
-                </>
-              )}
-            </button>
+                {stat.loading ? (
+                  <div className={isRTL ? "text-right" : "text-left"}>
+                    <Loader2 size={26} className="mb-2 animate-spin text-white/70" />
+                    <p className="text-[15px] font-bold leading-snug text-white">
+                      {t.dashboard.matchesLoadingTitle}
+                    </p>
+                    <p className="mt-1 text-[13px] leading-snug text-[#aeb4d6]">
+                      {t.dashboard.matchesLoadingSubtitle}
+                    </p>
+                  </div>
+                ) : stat.noAnalysis ? (
+                  // No CV means matchedJobsCount's "0" would misleadingly read as "we checked and
+                  // you match nothing" rather than "we haven't been able to check yet" - a CTA in
+                  // its place is the honest version of this tile until a CV is on file.
+                  <div className={isRTL ? "text-right" : "text-left"}>
+                    <p className="text-[15px] font-bold leading-snug text-white">
+                      {t.dashboard.noCvTitle}
+                    </p>
+                    <p className="mt-1 text-[13px] leading-snug text-[#aeb4d6]">
+                      {t.dashboard.noCvSubtitle}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <h2 className="mb-1 text-[40px] font-extrabold leading-none text-white">
+                      {stat.value}
+                    </h2>
+                    <p className="text-[15px] text-[#aeb4d6]">{stat.label}</p>
+                  </>
+                )}
+              </button>
+            </Reveal>
           ))}
         </section>
 
         <section className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div
-            onClick={() => navigate("/job-matches")}
-            className="cursor-pointer rounded-[28px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.14)] transition hover:-translate-y-1 hover:bg-white/[0.065]"
-          >
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#5e66ff1f] text-[#7c88ff]">
-              <BriefcaseBusiness size={22} />
+          <Reveal delay={0}>
+            <div
+              onClick={() => navigate("/job-matches")}
+              className="cursor-pointer rounded-[28px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.14)] transition hover:-translate-y-1 hover:bg-white/[0.065]"
+            >
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#5e66ff1f] text-[#7c88ff]">
+                <BriefcaseBusiness size={22} />
+              </div>
+              <div className="text-4xl font-extrabold text-white">{jobStats.internal}</div>
+              <p className="mt-1 text-[15px] text-white/60">{t.jobStats.internal}</p>
             </div>
-            <div className="text-4xl font-extrabold text-white">{jobStats.internal}</div>
-            <p className="mt-1 text-[15px] text-white/60">{t.jobStats.internal}</p>
-          </div>
+          </Reveal>
 
-          <div
-            onClick={() => navigate("/external-jobs")}
-            className="cursor-pointer rounded-[28px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.14)] transition hover:-translate-y-1 hover:bg-white/[0.065]"
-          >
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#22d3ee1f] text-[#67e8f9]">
-              <Globe2 size={22} />
+          <Reveal delay={0.05}>
+            <div
+              onClick={() => navigate("/external-jobs")}
+              className="cursor-pointer rounded-[28px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.14)] transition hover:-translate-y-1 hover:bg-white/[0.065]"
+            >
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#22d3ee1f] text-[#67e8f9]">
+                <Globe2 size={22} />
+              </div>
+              <div className="text-4xl font-extrabold text-white">{jobStats.external}</div>
+              <p className="mt-1 text-[15px] text-white/60">{t.jobStats.external}</p>
             </div>
-            <div className="text-4xl font-extrabold text-white">{jobStats.external}</div>
-            <p className="mt-1 text-[15px] text-white/60">{t.jobStats.external}</p>
-          </div>
+          </Reveal>
 
-          <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.14)]">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#a855f71f] text-[#d8b4fe]">
-              <Layers size={22} />
+          <Reveal delay={0.1}>
+            <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.14)]">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#a855f71f] text-[#d8b4fe]">
+                <Layers size={22} />
+              </div>
+              <div className="text-4xl font-extrabold text-white">{jobStats.total}</div>
+              <p className="mt-1 text-[15px] text-white/60">{t.jobStats.total}</p>
             </div>
-            <div className="text-4xl font-extrabold text-white">{jobStats.total}</div>
-            <p className="mt-1 text-[15px] text-white/60">{t.jobStats.total}</p>
-          </div>
+          </Reveal>
         </section>
 
         <section className="mb-8 grid grid-cols-1 gap-6 xl:grid-cols-[1.25fr_0.95fr]">
@@ -701,29 +659,30 @@ function CandidateDashboard() {
 
             <div className="space-y-5">
               {topMatches.length === 0 ? (
-                <div className="rounded-[28px] border border-white/10 bg-[rgba(50,52,108,0.78)] px-5 py-8 text-center text-white/60">
-                  {hasAnalysis === false ? (
-                    <button
-                      type="button"
-                      onClick={() => navigate("/resume-manager")}
-                      className="rounded-full border border-[#7c88ff]/30 bg-[#7c88ff]/15 px-4 py-2 text-[14px] font-semibold text-[#c4b5fd] transition hover:bg-[#7c88ff]/25"
-                    >
-                      {t.dashboard.noCvSubtitle}
-                    </button>
-                  ) : (
-                    t.dashboard.noMatchesYet || "No job matches yet."
-                  )}
-                </div>
+                hasAnalysis === false ? (
+                  <EmptyState
+                    icon={<BriefcaseBusiness size={26} />}
+                    title={t.dashboard.noCvTitle}
+                    description={t.dashboard.noCvSubtitle}
+                    action={
+                      <Button variant="secondary" size="sm" onClick={() => navigate("/resume-manager")}>
+                        {t.dashboard.profileBox.uploadResume}
+                      </Button>
+                    }
+                  />
+                ) : (
+                  <EmptyState icon={<BriefcaseBusiness size={26} />} title={t.dashboard.noMatchesYet} />
+                )
               ) : (
-                topMatches.map((job) => (
+                topMatches.map((job, index) => (
+                  <Reveal key={`${job.jobType}-${job.id}`} delay={Math.min(index * 0.05, 0.3)}>
                   <article
-                    key={`${job.jobType}-${job.id}`}
                     onClick={() => navigate(`/job-details/${job.jobType}/${job.id}`)}
                     className="group cursor-pointer rounded-[28px] border border-white/10 bg-[rgba(50,52,108,0.78)] px-5 py-5 transition hover:border-white/20 hover:bg-[rgba(56,58,118,0.95)]"
                   >
                     <div className="flex flex-col gap-5 md:flex-row md:items-center">
                       <div className="flex flex-col items-center justify-center md:justify-start">
-                        <ScoreRing value={job.score} />
+                        <ScoreRing percent={job.score} />
                       </div>
 
                       <div className="flex-1">
@@ -774,6 +733,7 @@ function CandidateDashboard() {
                       </div>
                     </div>
                   </article>
+                  </Reveal>
                 ))
               )}
             </div>
@@ -807,13 +767,11 @@ function CandidateDashboard() {
 
             <div className="space-y-4">
               {applications.length === 0 ? (
-                <div className="rounded-[26px] border border-white/10 bg-[rgba(50,52,108,0.78)] px-5 py-8 text-center text-white/60">
-                  No recent applications yet.
-                </div>
+                <EmptyState icon={<FileX size={26} />} title={t.dashboard.applications.none} />
               ) : (
-                applications.map((app) => (
+                applications.map((app, index) => (
+                  <Reveal key={app.id} delay={Math.min(index * 0.05, 0.3)}>
                   <article
-                    key={app.id}
                     onClick={() =>
                       navigate("/applications", {
                         state: { selectedApplicationId: app.id },
@@ -822,18 +780,14 @@ function CandidateDashboard() {
                     className="group cursor-pointer rounded-[26px] border border-white/10 bg-[rgba(50,52,108,0.78)] px-5 py-5 transition hover:border-white/20 hover:bg-[rgba(56,58,118,0.95)]"
                   >
                     <div className="flex items-start gap-4">
-                      <ScoreRing value={app.percent} />
+                      <ScoreRing percent={app.percent} />
 
                       <div className="min-w-0 flex-1">
                         <div className="mb-2 flex flex-wrap items-center gap-3">
                           <h4 className="truncate text-[20px] font-extrabold text-white">
                             {app.title}
                           </h4>
-                          <span
-                            className={`rounded-full px-3 py-1 text-sm font-semibold ${app.statusClass}`}
-                          >
-                            {app.status}
-                          </span>
+                          <Badge tone={applicationStatusTone(app.status)}>{app.status}</Badge>
                         </div>
 
                         <div className="mb-2 flex items-center gap-2 text-[#c4cae9]">
@@ -860,6 +814,7 @@ function CandidateDashboard() {
                       />
                     </div>
                   </article>
+                  </Reveal>
                 ))
               )}
             </div>

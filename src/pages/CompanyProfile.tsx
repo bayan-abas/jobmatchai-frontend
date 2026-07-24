@@ -26,6 +26,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { apiFetch, ApiError } from "../utils/api";
+import { Input, useToast } from "../components/ui";
 
 type BackendApplicant = {
   matchPercent: number | null;
@@ -45,10 +46,10 @@ function CompanyProfile() {
   const t = translations[language];
   const c = t.companyProfilePage;
   const isRTL = language === "ar" || language === "he";
+  const toast = useToast();
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState("");
 
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -142,7 +143,6 @@ function CompanyProfile() {
   const handleSave = async () => {
     if (!user?.id) return;
 
-    setSaveError("");
     setIsSaving(true);
 
     try {
@@ -164,8 +164,9 @@ function CompanyProfile() {
 
       await refreshUser();
       setIsEditing(false);
+      toast.success(t.feedback.savedSuccessfully);
     } catch {
-      setSaveError(
+      toast.error(
         c.saveError || "Could not save your changes. Please try again."
       );
     } finally {
@@ -300,9 +301,6 @@ function CompanyProfile() {
           </div>
 
             <div className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
-              {saveError && (
-                <p className="text-sm text-rose-300">{saveError}</p>
-              )}
               <button
                 disabled={isSaving}
                 onClick={() => {
@@ -389,12 +387,11 @@ function CompanyProfile() {
                   {c.companyName}
                 </div>
                 {isEditing ? (
-                  <input
+                  <Input
                     type="text"
                     name="companyName"
                     value={companyData.companyName}
                     onChange={handleChange}
-                    className="w-full rounded-xl bg-white/10 px-4 py-3 text-white outline-none"
                   />
                 ) : (
                   <p className="text-lg font-medium">{companyData.companyName}</p>
@@ -407,12 +404,11 @@ function CompanyProfile() {
                   {c.industry}
                 </div>
                 {isEditing ? (
-                  <input
+                  <Input
                     type="text"
                     name="industry"
                     value={companyData.industry}
                     onChange={handleChange}
-                    className="w-full rounded-xl bg-white/10 px-4 py-3 text-white outline-none"
                   />
                 ) : (
                   <p className="text-lg font-medium">{companyData.industry}</p>
@@ -425,12 +421,11 @@ function CompanyProfile() {
                   {c.companySize}
                 </div>
                 {isEditing ? (
-                  <input
+                  <Input
                     type="text"
                     name="companySize"
                     value={companyData.companySize}
                     onChange={handleChange}
-                    className="w-full rounded-xl bg-white/10 px-4 py-3 text-white outline-none"
                   />
                 ) : (
                   <p className="text-lg font-medium">{companyData.companySize}</p>
@@ -443,12 +438,11 @@ function CompanyProfile() {
                   {c.location}
                 </div>
                 {isEditing ? (
-                  <input
+                  <Input
                     type="text"
                     name="location"
                     value={companyData.location}
                     onChange={handleChange}
-                    className="w-full rounded-xl bg-white/10 px-4 py-3 text-white outline-none"
                   />
                 ) : (
                   <p className="text-lg font-medium">{companyData.location}</p>
@@ -461,12 +455,11 @@ function CompanyProfile() {
                   {c.website}
                 </div>
                 {isEditing ? (
-                  <input
+                  <Input
                     type="text"
                     name="website"
                     value={companyData.website}
                     onChange={handleChange}
-                    className="w-full rounded-xl bg-white/10 px-4 py-3 text-white outline-none"
                   />
                 ) : (
                   <p className="break-all text-lg font-medium">{companyData.website}</p>
@@ -489,12 +482,11 @@ function CompanyProfile() {
                   {c.linkedin || "LinkedIn"}
                 </div>
                 {isEditing ? (
-                  <input
+                  <Input
                     type="text"
                     name="linkedin"
                     value={companyData.linkedin}
                     onChange={handleChange}
-                    className="w-full rounded-xl bg-white/10 px-4 py-3 text-white outline-none"
                   />
                 ) : companyData.linkedin.trim() ? (
                   <a
@@ -516,12 +508,11 @@ function CompanyProfile() {
                   {c.github || "GitHub"}
                 </div>
                 {isEditing ? (
-                  <input
+                  <Input
                     type="text"
                     name="github"
                     value={companyData.github}
                     onChange={handleChange}
-                    className="w-full rounded-xl bg-white/10 px-4 py-3 text-white outline-none"
                   />
                 ) : companyData.github.trim() ? (
                   <a
@@ -543,7 +534,7 @@ function CompanyProfile() {
                   {c.founded || "Founded"}
                 </div>
                 {isEditing ? (
-                  <input
+                  <Input
                     type="text"
                     inputMode="numeric"
                     maxLength={4}
@@ -551,7 +542,6 @@ function CompanyProfile() {
                     value={companyData.founded}
                     onChange={handleChange}
                     placeholder="2022"
-                    className="w-full rounded-xl bg-white/10 px-4 py-3 text-white outline-none"
                   />
                 ) : (
                   <p className="text-lg font-medium">
@@ -763,28 +753,28 @@ function CompanyProfile() {
               </p>
 
               <div className="mb-4 space-y-4">
-                <input
+                <Input
                   type="password"
+                  icon={<Lock size={18} />}
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder={c.currentPassword || "Current Password"}
-                  className="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-white outline-none placeholder:text-white/40"
                   disabled={isChangingPassword}
                 />
-                <input
+                <Input
                   type="password"
+                  icon={<Lock size={18} />}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder={c.newPassword || "New Password"}
-                  className="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-white outline-none placeholder:text-white/40"
                   disabled={isChangingPassword}
                 />
-                <input
+                <Input
                   type="password"
+                  icon={<Lock size={18} />}
                   value={confirmNewPassword}
                   onChange={(e) => setConfirmNewPassword(e.target.value)}
                   placeholder={c.confirmNewPassword || "Confirm New Password"}
-                  className="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-white outline-none placeholder:text-white/40"
                   disabled={isChangingPassword}
                 />
               </div>
@@ -863,12 +853,12 @@ function CompanyProfile() {
               <label className="mb-2 block text-sm text-white/60">
                 {c.currentPassword || "Current Password"}
               </label>
-              <input
+              <Input
                 type="password"
+                icon={<Lock size={18} />}
                 value={deletePassword}
                 onChange={(e) => setDeletePassword(e.target.value)}
                 placeholder={c.currentPassword || "Current Password"}
-                className="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-white outline-none placeholder:text-white/40"
                 disabled={isDeleting}
               />
             </div>
@@ -877,12 +867,12 @@ function CompanyProfile() {
               <label className="mb-2 block text-sm text-white/60">
                 {c.deleteConfirmTypeLabel || "Type DELETE to confirm"}
               </label>
-              <input
+              <Input
                 type="text"
+                hasError
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 placeholder="DELETE"
-                className="w-full rounded-xl border border-rose-500/20 bg-white/10 px-4 py-3 text-white outline-none placeholder:text-white/30"
                 disabled={isDeleting}
               />
             </div>

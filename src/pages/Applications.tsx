@@ -20,8 +20,9 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { apiFetch, ApiError } from "../utils/api";
-import { getRingColor } from "../utils/jobInference";
 import { fetchCurrentCvIdentity, NO_CV_IDENTITY } from "../utils/matchScoreSession";
+import { ScoreRing, Badge, applicationStatusTone, EmptyState, ListSkeleton, Reveal } from "../components/ui";
+import type { BadgeTone } from "../components/ui";
 
 type FilterType = "all" | "active" | "accepted";
 type ProgressStep = "applied" | "ai" | "review" | "shortlisted" | "final";
@@ -234,38 +235,31 @@ type MatchInfo =
   | { status: "noScore" }
   | { status: "scored"; percent: number; reason: string };
 
-function ScoreRing({ info }: { info: MatchInfo }) {
-  const safeValue = info.status === "scored" ? info.percent : 0;
-  // Shared with JobMatches.tsx/ExternalJobCard.tsx (see utils/jobInference.ts) - this page used
-  // to have its own hardcoded (and different) color scale, so the same score rendered a
-  // different color depending on which page you were looking at it from.
-  const ringColor = getRingColor(info.status, safeValue);
-
+// Renders the shared ScoreRing for this page's own MatchInfo union (loading/noAnalysis/noScore/
+// scored) - mirrors JobMatches.tsx's own mapping of its (richer) MatchInfo union onto the same
+// component, so a score reads identically wherever a candidate sees it across the app.
+function MatchScoreRing({ info }: { info: MatchInfo }) {
   return (
-    <div className="relative h-[98px] w-[98px] shrink-0">
-      <div
-        className={`h-full w-full rounded-full transition-all duration-[1800ms] ease-out ${
-          info.status === "loading" ? "animate-pulse" : ""
-        }`}
-        style={{
-          background:
-            info.status === "scored"
-              ? `conic-gradient(${ringColor} ${safeValue * 3.6}deg, #2a2c5a 0deg)`
-              : "conic-gradient(#5f648a 360deg, #2a2c5a 0deg)",
-          boxShadow: info.status === "scored" ? `0 0 24px ${ringColor}22` : "0 0 0 rgba(0,0,0,0)",
-        }}
-      />
-      <div className="absolute inset-[8px] flex items-center justify-center rounded-full bg-[#252654] text-[22px] font-extrabold text-white shadow-inner">
-        {info.status === "scored"
-          ? `${info.percent}%`
-          : info.status === "loading"
-            ? ""
-            : info.status === "noScore"
-              ? "—"
-              : "?"}
-      </div>
-    </div>
+    <ScoreRing
+      percent={info.status === "scored" ? info.percent : null}
+      size={98}
+      pulse={info.status === "loading"}
+      label={info.status === "scored" ? undefined : info.status === "loading" ? "" : info.status === "noScore" ? "—" : "?"}
+    />
   );
+}
+
+// This page's terminal application.status ("accepted"/"rejected") is a clean, deterministic
+// signal - unlike its richer reviewStatus label ("Applied"/"AI Screening"/"Under Review"/
+// "Viewed"/"Shortlisted"/"Final Decision"/"Rejected"), it maps onto applicationStatusTone's
+// shared vocabulary immediately for the two outcomes that matter most (success/danger). For the
+// in-progress sub-statuses, applicationStatusTone recognizes "under review" and "shortlisted"
+// out of the box; "AI Screening"/"Viewed"/"Applied" have no dedicated tone in the shared palette
+// and intentionally fall back to its neutral default rather than inventing new tones here.
+function getApplicationTone(app: ApplicationItem): BadgeTone {
+  if (app.status === "accepted") return "success";
+  if (app.status === "rejected") return "danger";
+  return applicationStatusTone(app.reviewStatus);
 }
 
 function Applications() {
@@ -527,27 +521,6 @@ function Applications() {
         : "text-white/70 hover:bg-white/[0.05] hover:text-white border border-transparent"
     }`;
 
-  const statusBadgeClass = (status: string) => {
-    switch (status) {
-      case "Applied":
-        return "bg-cyan-500/12 text-cyan-300 border border-cyan-400/20";
-      case "AI Screening":
-        return "bg-emerald-500/12 text-emerald-300 border border-emerald-400/20";
-      case "Under Review":
-        return "bg-yellow-500/12 text-yellow-300 border border-yellow-400/20";
-      case "Viewed":
-        return "bg-blue-500/12 text-blue-300 border border-blue-400/20";
-      case "Shortlisted":
-        return "bg-violet-500/12 text-violet-300 border border-violet-400/20";
-      case "Final Decision":
-        return "bg-indigo-500/12 text-indigo-300 border border-indigo-400/20";
-      case "Rejected":
-        return "bg-rose-500/12 text-rose-300 border border-rose-400/20";
-      default:
-        return "bg-white/10 text-white/70 border border-white/10";
-    }
-  };
-
   // The final stage's label/icon must reflect the ACTUAL outcome - both "Final Decision"
   // (accepted) and "Rejected" share the same step index/progress value (see
   // getCurrentStepFromStatus/getProgressFromStatus), so without this the timeline's last step
@@ -633,7 +606,7 @@ function Applications() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <h1 className="text-[42px] font-extrabold leading-tight text-white">
+                  <h1 className="text-[42px] font-extrabold leading-tight text-white max-[640px]:text-[28px]">
                     {t.applicationsPage.title}
                   </h1>
                   <p className="mt-2 text-[17px] text-[#aeb4d6]">
@@ -672,13 +645,7 @@ function Applications() {
               </div>
             </section>
 
-            {loading && (
-              <div className="rounded-[30px] border border-white/10 bg-white/[0.05] px-8 py-12 text-center">
-                <h3 className="text-[24px] font-bold text-white">
-                  {t.applicationsPage.loadingApplications || "Loading applications..."}
-                </h3>
-              </div>
-            )}
+            {loading && <ListSkeleton count={4} />}
 
             {!loading && error && (
               <div className="rounded-[30px] border border-red-400/20 bg-red-500/10 px-8 py-12 text-center">
@@ -692,8 +659,8 @@ function Applications() {
                   const matchInfo = getMatchInfo(app);
 
                   return (
+                  <Reveal key={`${app.id}-${index}`} delay={Math.min(index * 0.05, 0.3)}>
                   <article
-                    key={`${app.id}-${index}`}
                     onClick={() => {
                       setSavedScrollY(window.scrollY);
                       setWithdrawError("");
@@ -703,7 +670,7 @@ function Applications() {
                   >
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
                       <div className="flex flex-col items-center justify-center gap-2 lg:justify-start">
-                        <ScoreRing info={matchInfo} />
+                        <MatchScoreRing info={matchInfo} />
 
                         {matchInfo.status === "loading" && (
                           <span className="text-[12px] font-medium text-white/40">
@@ -731,13 +698,9 @@ function Applications() {
                             {app.title}
                           </h2>
 
-                          <span
-                            className={`rounded-full px-3 py-1 text-sm font-semibold ${statusBadgeClass(
-                              app.reviewStatus
-                            )}`}
-                          >
+                          <Badge tone={getApplicationTone(app)}>
                             {getReviewStatusLabel(app.reviewStatus)}
-                          </span>
+                          </Badge>
                         </div>
 
                         <div className="mb-3 flex items-center gap-2 text-[#c4cae9]">
@@ -813,18 +776,16 @@ function Applications() {
                       </div>
                     </div>
                   </article>
+                  </Reveal>
                   );
                 })}
 
                 {filteredApplications.length === 0 && (
-                  <div className="rounded-[30px] border border-white/10 bg-white/[0.05] px-8 py-12 text-center">
-                    <h3 className="text-[24px] font-bold text-white">
-                      {t.applicationsPage.noApplications}
-                    </h3>
-                    <p className="mt-2 text-white/55">
-                      {t.applicationsPage.noApplicationsText}
-                    </p>
-                  </div>
+                  <EmptyState
+                    icon={<FileText size={26} />}
+                    title={t.applicationsPage.noApplications}
+                    description={t.applicationsPage.noApplicationsText}
+                  />
                 )}
               </section>
             )}
@@ -854,7 +815,7 @@ function Applications() {
             <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-7 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
                 <div className="flex flex-col items-center gap-2">
-                  <ScoreRing info={selectedMatchInfo} />
+                  <MatchScoreRing info={selectedMatchInfo} />
 
                   {selectedMatchInfo.status === "loading" && (
                     <span className="text-[12px] font-medium text-white/40">
@@ -890,13 +851,9 @@ function Applications() {
                           {selectedApplication.title}
                         </h1>
 
-                        <span
-                          className={`rounded-full px-4 py-2 text-[15px] font-semibold ${statusBadgeClass(
-                            selectedApplication.reviewStatus
-                          )}`}
-                        >
+                        <Badge tone={getApplicationTone(selectedApplication)} className="px-4 py-2 text-[15px]">
                           {getReviewStatusLabel(selectedApplication.reviewStatus)}
-                        </span>
+                        </Badge>
                       </div>
 
                       <div className="mb-3 flex items-center gap-2 text-[#c4cae9]">

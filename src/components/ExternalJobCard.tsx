@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Building2, MapPin, BriefcaseBusiness, Wallet, ExternalLink, CalendarDays, Sparkles, Bookmark, UploadCloud } from "lucide-react";
-import { getRingColor } from "../utils/jobInference";
 import { formatSalary } from "../utils/formatSalary";
+import { ScoreRing } from "./ui";
 
 export type ExternalJobData = {
   id: number;
@@ -53,13 +53,6 @@ type ExternalJobCardProps = {
 function ExternalJobCard({ job, matchInfo, t, isRTL, onViewDetails, isSaved, onToggleSave }: ExternalJobCardProps) {
   const navigate = useNavigate();
   const p = t.externalJobsPage;
-  const ringColor = getRingColor(
-    matchInfo.status === "scored" || matchInfo.status === "noScore" || matchInfo.status === "error"
-      ? matchInfo.status
-      : "noAnalysis",
-    matchInfo.percent
-  );
-  const numeric = matchInfo.status === "scored" ? matchInfo.percent : 0;
 
   const skills = (job.skills || "")
     .split(/[,;|]/)
@@ -83,38 +76,22 @@ function ExternalJobCard({ job, matchInfo, t, isRTL, onViewDetails, isSaved, onT
     <article className="rounded-[28px] border border-white/10 bg-white/[0.045] p-6 shadow-[0_12px_35px_rgba(0,0,0,0.16)] transition hover:bg-white/[0.06]">
       <div className="flex flex-col gap-6 md:flex-row md:items-start">
         <div className="flex flex-col items-center justify-center md:justify-start">
-          <div
-            className="relative h-[88px] w-[88px] shrink-0"
-            title={matchInfo.status === "noScore" || matchInfo.status === "error" ? matchInfo.reason : undefined}
-          >
-            <div
-              className={`h-full w-full rounded-full transition-all duration-[1800ms] ease-out ${
-                matchInfo.status === "loading" ? "animate-pulse" : ""
-              }`}
-              style={{
-                background:
-                  matchInfo.status === "scored"
-                    ? `conic-gradient(${ringColor} ${numeric * 3.6}deg, #2a2c5a 0deg)`
+          <div title={matchInfo.status === "noScore" || matchInfo.status === "error" ? matchInfo.reason : undefined}>
+            <ScoreRing
+              percent={matchInfo.status === "scored" ? matchInfo.percent : null}
+              pulse={matchInfo.status === "loading"}
+              label={
+                matchInfo.status === "scored"
+                  ? undefined
+                  : matchInfo.status === "loading"
+                    ? ""
                     : matchInfo.status === "error"
-                      ? `conic-gradient(${ringColor} 360deg, #2a2c5a 0deg)`
-                      : "conic-gradient(#5f648a 360deg, #2a2c5a 0deg)",
-                boxShadow:
-                  matchInfo.status === "scored" || matchInfo.status === "error"
-                    ? `0 0 24px ${ringColor}22`
-                    : "0 0 0 rgba(0,0,0,0)",
-              }}
+                      ? "!"
+                      : matchInfo.status === "noScore"
+                        ? "—"
+                        : "?"
+              }
             />
-            <div className="absolute inset-[8px] flex items-center justify-center rounded-full bg-[#252654] text-[18px] font-extrabold text-white shadow-inner">
-              {matchInfo.status === "scored"
-                ? `${matchInfo.percent}%`
-                : matchInfo.status === "loading"
-                  ? ""
-                  : matchInfo.status === "error"
-                    ? "!"
-                    : matchInfo.status === "noScore"
-                      ? "—"
-                      : "?"}
-            </div>
           </div>
 
           {matchInfo.status === "loggedOut" && (

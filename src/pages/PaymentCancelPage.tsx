@@ -14,7 +14,7 @@ function PaymentCancelPage() {
       dir={isRTL ? "rtl" : "ltr"}
       className="min-h-screen bg-[linear-gradient(135deg,#0a0d2e_0%,#101548_45%,#181b58_100%)] px-4 py-10"
     >
-      <div className="mx-auto max-w-[760px] rounded-[32px] border border-white/10 bg-[rgba(44,45,95,0.94)] p-10 text-center shadow-[0_20px_60px_rgba(0,0,0,0.28)]">
+      <div className="mx-auto max-w-[760px] rounded-panel border border-white/10 bg-[rgba(44,45,95,0.94)] p-10 text-center shadow-elevated">
         <div className="mx-auto mb-6 flex h-[88px] w-[88px] items-center justify-center rounded-[28px] bg-amber-500/15 text-amber-300">
           <XCircle size={38} />
         </div>

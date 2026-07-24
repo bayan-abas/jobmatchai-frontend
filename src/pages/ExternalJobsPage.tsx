@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Globe2, Search, DollarSign, SlidersHorizontal, Loader2 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { Globe2, Search, DollarSign, SlidersHorizontal, Loader2, X } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
@@ -11,6 +12,7 @@ import { apiFetch, apiFetchStream } from "../utils/api";
 import { fetchCurrentCvIdentity, NO_CV_IDENTITY } from "../utils/matchScoreSession";
 import { ISRAELI_CITIES } from "../utils/israeliCities";
 import { ISRAELI_REGIONS, getRegionForLocation, type IsraeliRegion } from "../utils/israeliRegions";
+import { EmptyState, ListSkeleton, Reveal } from "../components/ui";
 
 type SortOrder = "match" | "newest" | "oldest";
 
@@ -50,6 +52,7 @@ function ExternalJobsPage() {
   const [industryFilter, setIndustryFilter] = useState("");
   const [minSalary, setMinSalary] = useState(0);
   const [sortOrder, setSortOrder] = useState<SortOrder>("match");
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [matchScores, setMatchScores] = useState<Map<number, MatchScoreEntry>>(new Map());
@@ -241,6 +244,14 @@ function ExternalJobsPage() {
     [jobs]
   );
 
+  const hasActiveFilters =
+    Boolean(regionFilter) ||
+    Boolean(cityFilter) ||
+    Boolean(typeFilter) ||
+    Boolean(industryFilter) ||
+    minSalary > 0 ||
+    sortOrder !== "match";
+
   const getMatchInfo = (job: ExternalJobData): MatchInfo => {
     if (!isLoggedIn) return { status: "loggedOut", percent: 0 };
     if (hasAnalysis === null) return { status: "loading", percent: 0 };
@@ -364,7 +375,7 @@ function ExternalJobsPage() {
               <Globe2 size={26} />
             </div>
             <div className={`min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
-              <h1 className="text-[42px] font-extrabold leading-tight text-white">{p.title}</h1>
+              <h1 className="text-[42px] font-extrabold leading-tight text-white max-[640px]:text-[28px]">{p.title}</h1>
               <p className="mt-2 text-[17px] text-[#aeb4d6]">{p.subtitle}</p>
             </div>
           </div>
@@ -411,7 +422,10 @@ function ExternalJobsPage() {
 
             {/* grid-cols-1 below (not bare "grid") - same overflow bug as the job-card list
                 further down this page: the implicit single column otherwise sizes to its
-                widest child's content instead of the container's width. */}
+                widest child's content instead of the container's width. Search stays inline at
+                every width (primary action); region/city/type/industry/sort/salary collapse
+                behind a "Filters" sheet below lg - the hidden lg:grid block still renders at
+                lg+ so this section keeps its original layout on larger screens unchanged. */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div
                 className={`flex items-center gap-3 rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 lg:col-span-3 ${
@@ -431,87 +445,234 @@ function ExternalJobsPage() {
                 />
               </div>
 
-              <select
-                value={regionFilter}
-                onChange={(e) => {
-                  setRegionFilter(e.target.value as IsraeliRegion | "");
-                  setCityFilter("");
-                }}
-                className="rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none"
+              <button
+                type="button"
+                onClick={() => setFilterDrawerOpen(true)}
+                className={`relative flex items-center justify-center gap-2 rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] font-semibold text-white/85 transition hover:bg-white/[0.08] lg:hidden ${
+                  isRTL ? "flex-row-reverse" : ""
+                }`}
               >
-                <option className="text-black" value="">{p.allRegions}</option>
-                {ISRAELI_REGIONS.map((region) => (
-                  <option className="text-black" key={region} value={region}>
-                    {p.regions?.[region] || region}
-                  </option>
-                ))}
-              </select>
+                <SlidersHorizontal size={18} />
+                {t.common.filters}
+                {hasActiveFilters && (
+                  <span className="absolute right-3 top-2.5 h-2 w-2 rounded-full bg-fuchsia-400" />
+                )}
+              </button>
 
-              {cities.length > 0 && (
+              <div className="hidden lg:col-span-3 lg:grid lg:grid-cols-3 lg:gap-4">
                 <select
-                  value={cityFilter}
-                  onChange={(e) => setCityFilter(e.target.value)}
+                  value={regionFilter}
+                  onChange={(e) => {
+                    setRegionFilter(e.target.value as IsraeliRegion | "");
+                    setCityFilter("");
+                  }}
                   className="rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none"
                 >
-                  <option className="text-black" value="">{p.allCities}</option>
-                  {cities.map((city) => (
-                    <option className="text-black" key={city} value={city}>{city}</option>
+                  <option className="text-black" value="">{p.allRegions}</option>
+                  {ISRAELI_REGIONS.map((region) => (
+                    <option className="text-black" key={region} value={region}>
+                      {p.regions?.[region] || region}
+                    </option>
                   ))}
                 </select>
-              )}
 
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none"
-              >
-                <option className="text-black" value="">{p.allTypes}</option>
-                {types.map((type) => (
-                  <option className="text-black" key={type} value={type}>{type}</option>
-                ))}
-              </select>
+                {cities.length > 0 && (
+                  <select
+                    value={cityFilter}
+                    onChange={(e) => setCityFilter(e.target.value)}
+                    className="rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none"
+                  >
+                    <option className="text-black" value="">{p.allCities}</option>
+                    {cities.map((city) => (
+                      <option className="text-black" key={city} value={city}>{city}</option>
+                    ))}
+                  </select>
+                )}
 
-              <select
-                value={industryFilter}
-                onChange={(e) => setIndustryFilter(e.target.value)}
-                className="rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none lg:col-span-2"
-              >
-                <option className="text-black" value="">{t.jobMatches.allIndustries}</option>
-                {INDUSTRY_KEYS.map((key) => (
-                  <option className="text-black" key={key} value={key}>
-                    {t.jobMatches[key] || key}
-                  </option>
-                ))}
-              </select>
+                <select
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                  className="rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none"
+                >
+                  <option className="text-black" value="">{p.allTypes}</option>
+                  {types.map((type) => (
+                    <option className="text-black" key={type} value={type}>{type}</option>
+                  ))}
+                </select>
 
-              <select
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value as SortOrder)}
-                className={`flex items-center rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none ${isRTL ? "text-right" : "text-left"}`}
-              >
-                <option className="text-black" value="match">{p.sortBestMatch}</option>
-                <option className="text-black" value="newest">{p.sortNewestFirst}</option>
-                <option className="text-black" value="oldest">{p.sortOldestFirst}</option>
-              </select>
+                <select
+                  value={industryFilter}
+                  onChange={(e) => setIndustryFilter(e.target.value)}
+                  className="rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none lg:col-span-2"
+                >
+                  <option className="text-black" value="">{t.jobMatches.allIndustries}</option>
+                  {INDUSTRY_KEYS.map((key) => (
+                    <option className="text-black" key={key} value={key}>
+                      {t.jobMatches[key] || key}
+                    </option>
+                  ))}
+                </select>
 
-              <div className="lg:col-span-3">
-                <label className={`mb-2 flex items-center gap-2 text-[15px] text-[#d7dbf7] ${isRTL ? "flex-row-reverse justify-end" : ""}`}>
-                  <DollarSign size={17} />
-                  <span>{t.jobMatches.minSalary}: ₪{minSalary}k</span>
-                </label>
-                <input
-                  type="range"
-                  min={0}
-                  max={200}
-                  step={5}
-                  value={minSalary}
-                  onChange={(e) => setMinSalary(Number(e.target.value))}
-                  className="h-2 w-full cursor-pointer appearance-none rounded-full bg-[#171a46]"
-                />
+                <select
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+                  className={`flex items-center rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none ${isRTL ? "text-right" : "text-left"}`}
+                >
+                  <option className="text-black" value="match">{p.sortBestMatch}</option>
+                  <option className="text-black" value="newest">{p.sortNewestFirst}</option>
+                  <option className="text-black" value="oldest">{p.sortOldestFirst}</option>
+                </select>
+
+                <div className="lg:col-span-3">
+                  <label className={`mb-2 flex items-center gap-2 text-[15px] text-[#d7dbf7] ${isRTL ? "flex-row-reverse justify-end" : ""}`}>
+                    <DollarSign size={17} />
+                    <span>{t.jobMatches.minSalary}: ₪{minSalary}k</span>
+                  </label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={200}
+                    step={5}
+                    value={minSalary}
+                    onChange={(e) => setMinSalary(Number(e.target.value))}
+                    className="h-2 w-full cursor-pointer appearance-none rounded-full bg-[#171a46]"
+                  />
+                </div>
               </div>
             </div>
           </div>
         </section>
+
+        <AnimatePresence>
+          {filterDrawerOpen && (
+            <div className="fixed inset-0 z-[70] lg:hidden">
+              <motion.button
+                type="button"
+                aria-label={t.common.close}
+                onClick={() => setFilterDrawerOpen(false)}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              />
+              <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-label={t.common.filters}
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", stiffness: 380, damping: 38 }}
+                className={`absolute bottom-0 left-0 right-0 max-h-[80vh] overflow-y-auto rounded-t-[28px] border-t border-white/10 bg-[#111340] px-5 pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3 shadow-floating ${
+                  isRTL ? "text-right" : "text-left"
+                }`}
+              >
+                <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-white/15" />
+                <div className="mb-4 flex items-center justify-between">
+                  <span className="text-[16px] font-bold text-white">{t.common.filters}</span>
+                  <button
+                    type="button"
+                    onClick={() => setFilterDrawerOpen(false)}
+                    aria-label={t.common.close}
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-white/60 transition hover:bg-white/10 hover:text-white"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <select
+                    value={regionFilter}
+                    onChange={(e) => {
+                      setRegionFilter(e.target.value as IsraeliRegion | "");
+                      setCityFilter("");
+                    }}
+                    className="rounded-[16px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none"
+                  >
+                    <option className="text-black" value="">{p.allRegions}</option>
+                    {ISRAELI_REGIONS.map((region) => (
+                      <option className="text-black" key={region} value={region}>
+                        {p.regions?.[region] || region}
+                      </option>
+                    ))}
+                  </select>
+
+                  {cities.length > 0 && (
+                    <select
+                      value={cityFilter}
+                      onChange={(e) => setCityFilter(e.target.value)}
+                      className="rounded-[16px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none"
+                    >
+                      <option className="text-black" value="">{p.allCities}</option>
+                      {cities.map((city) => (
+                        <option className="text-black" key={city} value={city}>{city}</option>
+                      ))}
+                    </select>
+                  )}
+
+                  <select
+                    value={typeFilter}
+                    onChange={(e) => setTypeFilter(e.target.value)}
+                    className="rounded-[16px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none"
+                  >
+                    <option className="text-black" value="">{p.allTypes}</option>
+                    {types.map((type) => (
+                      <option className="text-black" key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={industryFilter}
+                    onChange={(e) => setIndustryFilter(e.target.value)}
+                    className="rounded-[16px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none"
+                  >
+                    <option className="text-black" value="">{t.jobMatches.allIndustries}</option>
+                    {INDUSTRY_KEYS.map((key) => (
+                      <option className="text-black" key={key} value={key}>
+                        {t.jobMatches[key] || key}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+                    className={`flex items-center rounded-[16px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none ${isRTL ? "text-right" : "text-left"}`}
+                  >
+                    <option className="text-black" value="match">{p.sortBestMatch}</option>
+                    <option className="text-black" value="newest">{p.sortNewestFirst}</option>
+                    <option className="text-black" value="oldest">{p.sortOldestFirst}</option>
+                  </select>
+
+                  <div>
+                    <label className={`mb-2 flex items-center gap-2 text-[15px] text-[#d7dbf7] ${isRTL ? "flex-row-reverse justify-end" : ""}`}>
+                      <DollarSign size={17} />
+                      <span>{t.jobMatches.minSalary}: ₪{minSalary}k</span>
+                    </label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={200}
+                      step={5}
+                      value={minSalary}
+                      onChange={(e) => setMinSalary(Number(e.target.value))}
+                      className="h-2 w-full cursor-pointer appearance-none rounded-full bg-[#171a46]"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setFilterDrawerOpen(false)}
+                  className="mt-5 w-full rounded-[16px] bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-4 py-3 text-sm font-bold text-white shadow-[0_12px_28px_rgba(99,102,241,0.28)] transition hover:scale-[1.02]"
+                >
+                  {t.common.applyFilters}
+                </button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
         {isLoggedIn && <AiDisclaimer />}
 
@@ -550,11 +711,7 @@ function ExternalJobsPage() {
             shrink to fit instead. Found live: articles were rendering ~150-750px wider than
             their grid parent at every tested viewport (375/768/1440px). */}
         <section className="grid grid-cols-1 gap-5">
-          {loading && (
-            <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-6 py-12 text-center text-white/65">
-              {p.loading}
-            </div>
-          )}
+          {loading && <ListSkeleton count={4} />}
 
           {/* Job cards render immediately once the list loads (each one starts as its own
               "Calculating match..." ring - see ExternalJobCard) - this banner is purely an
@@ -569,23 +726,22 @@ function ExternalJobsPage() {
           )}
 
           {!loading &&
-            filteredJobs.map((job) => (
-              <ExternalJobCard
-                key={job.id}
-                job={job}
-                matchInfo={getMatchInfo(job)}
-                t={t}
-                isRTL={isRTL}
-                onViewDetails={() => navigate(`/job-details/external/${job.id}`)}
-                isSaved={savedJobIds.has(job.id)}
-                onToggleSave={isLoggedIn ? () => handleToggleSave(job) : undefined}
-              />
+            filteredJobs.map((job, index) => (
+              <Reveal key={job.id} delay={Math.min(index * 0.05, 0.3)}>
+                <ExternalJobCard
+                  job={job}
+                  matchInfo={getMatchInfo(job)}
+                  t={t}
+                  isRTL={isRTL}
+                  onViewDetails={() => navigate(`/job-details/external/${job.id}`)}
+                  isSaved={savedJobIds.has(job.id)}
+                  onToggleSave={isLoggedIn ? () => handleToggleSave(job) : undefined}
+                />
+              </Reveal>
             ))}
 
           {!loading && filteredJobs.length === 0 && (
-            <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-6 py-12 text-center text-white/65">
-              {p.noJobsFound}
-            </div>
+            <EmptyState icon={<Globe2 size={26} />} title={p.noJobsFound} />
           )}
         </section>
       </div>

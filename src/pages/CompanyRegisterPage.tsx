@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { AnimatePresence } from "motion/react";
 import {
   Building2,
   Mail,
@@ -16,11 +17,20 @@ import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { apiFetch, ApiError } from "../utils/api";
 import EmailVerificationModal from "../components/EmailVerificationModal";
+import { Button, FormField, Input, useToast } from "../components/ui";
+
+type FieldErrors = Partial<
+  Record<
+    "companyName" | "email" | "password" | "confirmPassword" | "phone" | "location" | "industry" | "companySize",
+    string
+  >
+>;
 
 function CompanyRegisterPage() {
   const navigate = useNavigate();
   const { language, setLanguage } = useLanguage();
   const { login } = useAuth();
+  const toast = useToast();
 
   const t = translations[language];
   const tr = t.companyRegisterPage;
@@ -39,8 +49,8 @@ function CompanyRegisterPage() {
     description: "",
   });
 
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [pendingRegistration, setPendingRegistration] = useState<null | {
     companyName: string;
@@ -99,8 +109,10 @@ function CompanyRegisterPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
+
+    if (isSubmitting) return;
+
+    setFieldErrors({});
 
     const {
       companyName,
@@ -124,40 +136,44 @@ function CompanyRegisterPage() {
     const cleanWebsite = website.trim();
     const cleanDescription = description.trim();
 
-    if (
-      !cleanCompanyName ||
-      !cleanEmail ||
-      !cleanPassword ||
-      !cleanConfirmPassword ||
-      !cleanPhone ||
-      !cleanLocation ||
-      !industry ||
-      !companySize
-    ) {
-      setError(tr.errors.requiredFields);
+    const requiredMessage = t?.common?.required || "Required";
+    const missing: FieldErrors = {};
+    if (!cleanCompanyName) missing.companyName = requiredMessage;
+    if (!cleanEmail) missing.email = requiredMessage;
+    if (!cleanPassword) missing.password = requiredMessage;
+    if (!cleanConfirmPassword) missing.confirmPassword = requiredMessage;
+    if (!cleanPhone) missing.phone = requiredMessage;
+    if (!cleanLocation) missing.location = requiredMessage;
+    if (!industry) missing.industry = requiredMessage;
+    if (!companySize) missing.companySize = requiredMessage;
+
+    if (Object.keys(missing).length > 0) {
+      setFieldErrors(missing);
       return;
     }
 
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailPattern.test(cleanEmail)) {
-      setError(tr.errors.invalidEmail);
+      setFieldErrors({ email: tr.errors.invalidEmail });
       return;
     }
 
     if (cleanPassword.length < 6) {
-      setError(tr.errors.passwordLength);
+      setFieldErrors({ password: tr.errors.passwordLength });
       return;
     }
 
     if (!/[A-Za-z]/.test(cleanPassword) || !/\d/.test(cleanPassword)) {
-      setError(tr.errors.passwordComplexity);
+      setFieldErrors({ password: tr.errors.passwordComplexity });
       return;
     }
 
     if (cleanPassword !== cleanConfirmPassword) {
-      setError(tr.errors.passwordMismatch);
+      setFieldErrors({ confirmPassword: tr.errors.passwordMismatch });
       return;
     }
+
+    setIsSubmitting(true);
 
     try {
       await apiFetch("/api/auth/send-verification-code", {
@@ -179,11 +195,13 @@ function CompanyRegisterPage() {
       setShowVerificationModal(true);
     } catch (error) {
       console.error(error);
-      setError(
+      toast.error(
         error instanceof ApiError
           ? error.message
           : t?.verificationModal?.sendCodeFailed || "Couldn't send a verification code. Please try again."
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -238,7 +256,7 @@ function CompanyRegisterPage() {
     }
 
     setShowVerificationModal(false);
-    setSuccess(tr.success);
+    toast.success(tr.success);
 
     setTimeout(() => {
       navigate("/company-dashboard");
@@ -253,17 +271,18 @@ function CompanyRegisterPage() {
     });
   };
 
-  const inputClass = `w-full rounded-2xl border border-white/10 bg-white/5 ${
-    isRTL ? "pr-12 pl-4 text-right" : "pl-12 pr-4 text-left"
-  } py-3.5 text-white placeholder:text-white/40 outline-none transition focus:border-cyan-400/60 focus:bg-white/10`;
+  const selectClass = (hasError?: boolean) =>
+    `w-full appearance-none rounded-control border bg-white/5 py-3.5 text-white outline-none transition placeholder:text-white/40 focus:bg-white/10 ${
+      hasError ? "border-danger-400/60 focus:border-danger-400" : "border-white/10 focus:border-brand-400/60"
+    } ${isRTL ? "pr-12 pl-4 text-right" : "pl-12 pr-4 text-left"}`;
 
   return (
     <div
       dir={isRTL ? "rtl" : "ltr"}
       className="min-h-screen bg-[linear-gradient(135deg,#17184a_0%,#1a1b56_40%,#17234f_100%)] px-4 py-10"
     >
-      <div className="mx-auto max-w-6xl overflow-hidden rounded-[32px] border border-white/10 bg-white/5 shadow-[0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-        <div className="grid min-h-[760px] lg:grid-cols-2">
+      <div className="mx-auto max-w-6xl overflow-hidden rounded-panel border border-white/10 bg-white/5 shadow-elevated backdrop-blur-xl">
+        <div className="grid lg:min-h-[760px] lg:grid-cols-2">
           <div className="relative hidden overflow-hidden lg:flex">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.22),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(139,92,246,0.22),transparent_30%)]" />
             <div className="relative z-10 flex w-full flex-col justify-between p-10">
@@ -303,12 +322,9 @@ function CompanyRegisterPage() {
 
           <div className="p-6 sm:p-8 lg:p-10">
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-              <button
-                onClick={() => navigate(-1)}
-                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
-              >
+              <Button variant="secondary" size="sm" onClick={() => navigate(-1)}>
                 {t.common.back}
-              </button>
+              </Button>
 
               <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 p-1">
                 <button
@@ -352,163 +368,190 @@ function CompanyRegisterPage() {
               <p className="mt-2 text-white/60">{tr.subtitle}</p>
             </div>
 
-            <form onSubmit={handleRegister} className="space-y-5">
+            <form onSubmit={handleRegister} className="space-y-5" noValidate>
               <div className="grid gap-5 md:grid-cols-2">
-                <div className="relative">
-                  <Building2 className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${isRTL ? "right-4" : "left-4"}`} size={18} />
-                  <input
+                <FormField label={t.common.companyName} htmlFor="company-name" error={fieldErrors.companyName}>
+                  <Input
+                    id="company-name"
                     type="text"
                     name="companyName"
+                    icon={<Building2 size={18} />}
                     placeholder={t.common.companyName}
                     value={formData.companyName}
                     onChange={handleChange}
-                    className={inputClass}
+                    disabled={isSubmitting}
+                    hasError={!!fieldErrors.companyName}
                   />
-                </div>
+                </FormField>
 
-                <div className="relative">
-                  <Mail className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${isRTL ? "right-4" : "left-4"}`} size={18} />
-                  <input
+                <FormField label={t.common.email} htmlFor="company-email" error={fieldErrors.email}>
+                  <Input
+                    id="company-email"
                     type="email"
                     name="email"
+                    icon={<Mail size={18} />}
                     placeholder={t.common.email}
                     value={formData.email}
                     onChange={handleChange}
-                    className={inputClass}
+                    disabled={isSubmitting}
+                    hasError={!!fieldErrors.email}
                   />
-                </div>
+                </FormField>
 
-                <div className="relative">
-                  <Lock className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${isRTL ? "right-4" : "left-4"}`} size={18} />
-                  <input
+                <FormField label={t.common.password} htmlFor="company-password" error={fieldErrors.password}>
+                  <Input
+                    id="company-password"
                     type="password"
                     name="password"
+                    icon={<Lock size={18} />}
                     placeholder={t.common.password}
                     value={formData.password}
                     onChange={handleChange}
-                    className={inputClass}
+                    disabled={isSubmitting}
+                    hasError={!!fieldErrors.password}
                   />
-                </div>
+                </FormField>
 
-                <div className="relative">
-                  <Lock className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${isRTL ? "right-4" : "left-4"}`} size={18} />
-                  <input
+                <FormField
+                  label={t.common.confirmPassword}
+                  htmlFor="company-confirmPassword"
+                  error={fieldErrors.confirmPassword}
+                >
+                  <Input
+                    id="company-confirmPassword"
                     type="password"
                     name="confirmPassword"
+                    icon={<Lock size={18} />}
                     placeholder={t.common.confirmPassword}
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    className={inputClass}
+                    disabled={isSubmitting}
+                    hasError={!!fieldErrors.confirmPassword}
                   />
-                </div>
+                </FormField>
 
-                <div className="relative">
-                  <Phone className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${isRTL ? "right-4" : "left-4"}`} size={18} />
-                  <input
+                <FormField label={t.candidateRegisterPage.phone} htmlFor="company-phone" error={fieldErrors.phone}>
+                  <Input
+                    id="company-phone"
                     type="text"
                     name="phone"
+                    icon={<Phone size={18} />}
                     placeholder={t.candidateRegisterPage.phone}
                     value={formData.phone}
                     onChange={handleChange}
-                    className={inputClass}
+                    disabled={isSubmitting}
+                    hasError={!!fieldErrors.phone}
                   />
-                </div>
+                </FormField>
 
-                <div className="relative">
-                  <MapPin className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${isRTL ? "right-4" : "left-4"}`} size={18} />
-                  <input
+                <FormField label={tr.companyLocation} htmlFor="company-location" error={fieldErrors.location}>
+                  <Input
+                    id="company-location"
                     type="text"
                     name="location"
+                    icon={<MapPin size={18} />}
                     placeholder={tr.companyLocation}
                     value={formData.location}
                     onChange={handleChange}
-                    className={inputClass}
+                    disabled={isSubmitting}
+                    hasError={!!fieldErrors.location}
                   />
-                </div>
+                </FormField>
 
-                <div className="relative">
-                  <Briefcase className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${isRTL ? "right-4" : "left-4"}`} size={18} />
-                  <select
-                    name="industry"
-                    value={formData.industry}
-                    onChange={handleChange}
-                    className={`${inputClass} appearance-none`}
-                  >
-                    <option value="" className="text-black">
-                      {tr.industry}
-                    </option>
-                    {industries.map((industry) => (
-                      <option key={industry} value={industry} className="text-black">
-                        {industry}
+                <FormField label={tr.industry} htmlFor="company-industry" error={fieldErrors.industry}>
+                  <div className="relative">
+                    <Briefcase
+                      className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-white/40 ${isRTL ? "right-4" : "left-4"}`}
+                      size={18}
+                    />
+                    <select
+                      id="company-industry"
+                      name="industry"
+                      value={formData.industry}
+                      onChange={handleChange}
+                      disabled={isSubmitting}
+                      className={selectClass(!!fieldErrors.industry)}
+                    >
+                      <option value="" className="text-black">
+                        {tr.industry}
                       </option>
-                    ))}
-                  </select>
-                </div>
+                      {industries.map((industry) => (
+                        <option key={industry} value={industry} className="text-black">
+                          {industry}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </FormField>
 
-                <div className="relative">
-                  <Users className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${isRTL ? "right-4" : "left-4"}`} size={18} />
-                  <select
-                    name="companySize"
-                    value={formData.companySize}
-                    onChange={handleChange}
-                    className={`${inputClass} appearance-none`}
-                  >
-                    <option value="" className="text-black">
-                      {tr.companySize}
-                    </option>
-                    {companySizes.map((size) => (
-                      <option key={size} value={size} className="text-black">
-                        {size}
+                <FormField label={tr.companySize} htmlFor="company-size" error={fieldErrors.companySize}>
+                  <div className="relative">
+                    <Users
+                      className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-white/40 ${isRTL ? "right-4" : "left-4"}`}
+                      size={18}
+                    />
+                    <select
+                      id="company-size"
+                      name="companySize"
+                      value={formData.companySize}
+                      onChange={handleChange}
+                      disabled={isSubmitting}
+                      className={selectClass(!!fieldErrors.companySize)}
+                    >
+                      <option value="" className="text-black">
+                        {tr.companySize}
                       </option>
-                    ))}
-                  </select>
+                      {companySizes.map((size) => (
+                        <option key={size} value={size} className="text-black">
+                          {size}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </FormField>
+
+                <div className="md:col-span-2">
+                  <FormField label={tr.website} htmlFor="company-website">
+                    <Input
+                      id="company-website"
+                      type="text"
+                      name="website"
+                      icon={<Globe size={18} />}
+                      placeholder={tr.website}
+                      value={formData.website}
+                      onChange={handleChange}
+                      disabled={isSubmitting}
+                    />
+                  </FormField>
                 </div>
 
-                <div className="relative md:col-span-2">
-                  <Globe className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${isRTL ? "right-4" : "left-4"}`} size={18} />
-                  <input
-                    type="text"
-                    name="website"
-                    placeholder={tr.website}
-                    value={formData.website}
-                    onChange={handleChange}
-                    className={inputClass}
-                  />
-                </div>
-
-                <div className="relative md:col-span-2">
-                  <FileText className={`absolute top-5 text-white/40 ${isRTL ? "right-4" : "left-4"}`} size={18} />
-                  <textarea
-                    name="description"
-                    placeholder={tr.aboutPlaceholder}
-                    value={formData.description}
-                    onChange={handleChange}
-                    rows={5}
-                    className={`w-full rounded-2xl border border-white/10 bg-white/5 ${
-                      isRTL ? "pr-12 pl-4 text-right" : "pl-12 pr-4 text-left"
-                    } py-3.5 text-white placeholder:text-white/40 outline-none transition focus:border-cyan-400/60 focus:bg-white/10 resize-none`}
-                  />
+                <div className="md:col-span-2">
+                  <FormField label={tr.aboutCompany} htmlFor="company-description">
+                    <div className="relative">
+                      <FileText
+                        className={`pointer-events-none absolute top-5 text-white/40 ${isRTL ? "right-4" : "left-4"}`}
+                        size={18}
+                      />
+                      <textarea
+                        id="company-description"
+                        name="description"
+                        placeholder={tr.aboutPlaceholder}
+                        value={formData.description}
+                        onChange={handleChange}
+                        disabled={isSubmitting}
+                        rows={5}
+                        className={`w-full rounded-control border border-white/10 bg-white/5 ${
+                          isRTL ? "pr-12 pl-4 text-right" : "pl-12 pr-4 text-left"
+                        } py-3.5 text-white placeholder:text-white/40 outline-none transition focus:border-brand-400/60 focus:bg-white/10 resize-none`}
+                      />
+                    </div>
+                  </FormField>
                 </div>
               </div>
 
-              {error && (
-                <div className={`rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300 ${isRTL ? "text-right" : "text-left"}`}>
-                  {error}
-                </div>
-              )}
-
-              {success && (
-                <div className={`rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300 ${isRTL ? "text-right" : "text-left"}`}>
-                  {success}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="w-full rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-6 py-4 text-base font-bold text-white shadow-[0_12px_30px_rgba(34,211,238,0.25)] transition hover:scale-[1.01]"
-              >
+              <Button type="submit" fullWidth loading={isSubmitting}>
                 {tr.createAccount}
-              </button>
+              </Button>
 
               <p className="text-sm text-white/55 text-center">
                 {t.common.alreadyHaveAccount}{" "}
@@ -525,16 +568,18 @@ function CompanyRegisterPage() {
         </div>
       </div>
 
-      {showVerificationModal && pendingRegistration && (
-        <EmailVerificationModal
-          email={pendingRegistration.email}
-          t={t}
-          isRTL={isRTL}
-          onVerify={handleVerifyAndRegister}
-          onResend={handleResendCode}
-          onClose={() => setShowVerificationModal(false)}
-        />
-      )}
+      <AnimatePresence>
+        {showVerificationModal && pendingRegistration && (
+          <EmailVerificationModal
+            email={pendingRegistration.email}
+            t={t}
+            isRTL={isRTL}
+            onVerify={handleVerifyAndRegister}
+            onResend={handleResendCode}
+            onClose={() => setShowVerificationModal(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

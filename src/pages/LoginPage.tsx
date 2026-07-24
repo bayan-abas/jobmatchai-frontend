@@ -6,12 +6,12 @@ import {
   Lock,
   Building2,
   UserRound,
-  Loader2,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth, normalizeRole } from "../context/AuthContext";
 import { translations } from "../translations";
 import { apiFetch, ApiError } from "../utils/api";
+import { Button, FormField, Input, useToast } from "../components/ui";
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -19,87 +19,85 @@ function LoginPage() {
   const { language, setLanguage } = useLanguage();
   const t = translations[language];
   const isRTL = language === "ar" || language === "he";
+  const toast = useToast();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
-  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  if (isSubmitting) return;
+    if (isSubmitting) return;
 
-  setError("");
+    setFieldErrors({});
 
-  const normalizedEmail = email.trim().toLowerCase();
-  const normalizedPassword = password.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPassword = password.trim();
 
-  if (!normalizedEmail) {
-    setError(t?.loginPage?.errors?.emailRequired || "Please enter your email.");
-    return;
-  }
+    const errors: { email?: string; password?: string } = {};
+    if (!normalizedEmail) {
+      errors.email = t?.loginPage?.errors?.emailRequired || "Please enter your email.";
+    }
+    if (!normalizedPassword) {
+      errors.password = t?.loginPage?.errors?.passwordRequired || "Please enter your password.";
+    }
 
-  if (!normalizedPassword) {
-    setError(
-      t?.loginPage?.errors?.passwordRequired || "Please enter your password."
-    );
-    return;
-  }
-
-  setIsSubmitting(true);
-
-  try {
-    const data = await apiFetch("/api/users/login", {
-      method: "POST",
-      body: JSON.stringify({
-        email: normalizedEmail,
-        password: normalizedPassword,
-        rememberMe,
-      }),
-    });
-
-    if (!data.success) {
-      setError(data.message || "Login failed.");
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
 
-    const foundUser = data.user;
-    const role = normalizeRole(foundUser.role);
+    setIsSubmitting(true);
 
-    login(data.token, foundUser, rememberMe);
+    try {
+      const data = await apiFetch("/api/users/login", {
+        method: "POST",
+        body: JSON.stringify({
+          email: normalizedEmail,
+          password: normalizedPassword,
+          rememberMe,
+        }),
+      });
 
-    if (role === "candidate") {
-      navigate("/candidate-dashboard");
-      return;
+      if (!data.success) {
+        toast.error(data.message || t?.feedback?.somethingWentWrong || "Login failed.");
+        return;
+      }
+
+      const foundUser = data.user;
+      const role = normalizeRole(foundUser.role);
+
+      login(data.token, foundUser, rememberMe);
+
+      if (role === "candidate") {
+        navigate("/candidate-dashboard");
+        return;
+      }
+
+      if (role === "company") {
+        navigate("/company-dashboard");
+        return;
+      }
+
+      toast.error(t?.feedback?.somethingWentWrong || "Unknown user role.");
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof ApiError ? error.message : t?.feedback?.somethingWentWrong || "Server connection failed.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    if (role === "company") {
-      navigate("/company-dashboard");
-      return;
-    }
-
-    setError("Unknown user role.");
-  } catch (error) {
-    console.error(error);
-    setError(error instanceof ApiError ? error.message : "Server connection failed.");
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-
-  const inputClass = `w-full rounded-2xl border border-white/10 bg-white/5 ${
-    isRTL ? "pr-12 pl-4 text-right" : "pl-12 pr-4 text-left"
-  } py-3.5 text-white placeholder:text-white/40 outline-none transition focus:border-cyan-400/60 focus:bg-white/10`;
+  };
 
   return (
     <div
       dir={isRTL ? "rtl" : "ltr"}
       className="min-h-screen bg-[linear-gradient(135deg,#17184a_0%,#1a1b56_40%,#17234f_100%)] px-4 py-10"
     >
-      <div className="mx-auto max-w-6xl overflow-hidden rounded-[32px] border border-white/10 bg-white/5 shadow-[0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-        <div className="grid min-h-[760px] lg:grid-cols-2">
+      <div className="mx-auto max-w-6xl overflow-hidden rounded-panel border border-white/10 bg-white/5 shadow-elevated backdrop-blur-xl">
+        <div className="grid lg:min-h-[760px] lg:grid-cols-2">
           <div className="relative hidden overflow-hidden lg:flex">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.22),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(139,92,246,0.22),transparent_30%)]" />
             <div className="relative z-10 flex w-full flex-col justify-between p-10">
@@ -152,13 +150,9 @@ const handleLogin = async (e: React.FormEvent) => {
 
           <div className="p-6 sm:p-8 lg:p-10">
             <div className="mb-6 flex items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => navigate("/")}
-                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
-              >
+              <Button variant="secondary" size="sm" onClick={() => navigate("/")}>
                 {t?.common?.back || "Back"}
-              </button>
+              </Button>
 
               <div className="flex items-center gap-2">
                 <button
@@ -207,41 +201,33 @@ const handleLogin = async (e: React.FormEvent) => {
               </p>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-5">
+            <form onSubmit={handleLogin} className="space-y-5" noValidate>
               <div className="space-y-5">
-                <div className="relative">
-                  <Mail
-                    className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${
-                      isRTL ? "right-4" : "left-4"
-                    }`}
-                    size={18}
-                  />
-                  <input
+                <FormField label={t?.common?.email || "Email Address"} htmlFor="login-email" error={fieldErrors.email}>
+                  <Input
+                    id="login-email"
                     type="email"
-                    placeholder={t?.common?.email || "Email Address"}
+                    icon={<Mail size={18} />}
+                    placeholder={t?.common?.enterEmail || "Enter your email"}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isSubmitting}
-                    className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
+                    hasError={!!fieldErrors.email}
                   />
-                </div>
+                </FormField>
 
-                <div className="relative">
-                  <Lock
-                    className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${
-                      isRTL ? "right-4" : "left-4"
-                    }`}
-                    size={18}
-                  />
-                  <input
+                <FormField label={t?.common?.password || "Password"} htmlFor="login-password" error={fieldErrors.password}>
+                  <Input
+                    id="login-password"
                     type="password"
-                    placeholder={t?.common?.password || "Password"}
+                    icon={<Lock size={18} />}
+                    placeholder={t?.common?.enterPassword || "Enter your password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={isSubmitting}
-                    className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
+                    hasError={!!fieldErrors.password}
                   />
-                </div>
+                </FormField>
               </div>
 
               <div className="flex items-center justify-between gap-3 text-sm">
@@ -265,32 +251,21 @@ const handleLogin = async (e: React.FormEvent) => {
                 </button>
               </div>
 
-              {error && (
-                <div className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-6 py-4 text-base font-bold text-white shadow-[0_12px_30px_rgba(34,211,238,0.25)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:scale-100"
-              >
-                {isSubmitting && <Loader2 size={18} className="animate-spin" />}
+              <Button type="submit" fullWidth loading={isSubmitting}>
                 {isSubmitting
                   ? t?.common?.signingIn || "Signing in..."
                   : t?.common?.login || "Sign In"}
-              </button>
+              </Button>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
                   onClick={() => navigate("/register/candidate")}
-                  className="rounded-2xl border border-white/15 bg-white/[0.03] px-5 py-3.5 font-semibold text-[#dce7ff] transition hover:bg-white/[0.06]"
                 >
                   {t?.loginPage?.createCandidate ||
                     "Create Candidate Account"}
-                </button>
+                </Button>
 
                 <button
                   type="button"

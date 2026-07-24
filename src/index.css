@@ -1,9 +1,102 @@
 @import "tailwindcss";
 
+/* Design tokens - Tailwind v4 CSS-native theme. These formalize the palette, radii, and
+   shadows already used ad-hoc (as raw hex/px arbitrary values) across every page into named,
+   reusable utilities (bg-brand-500, rounded-card, shadow-elevated, etc.) - existing arbitrary
+   values elsewhere keep rendering identically, this is additive, not a re-theme. */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Brand: the app's existing purple/violet identity (#7f4cff -> #a855f7 gradients) */
+  --color-brand-300: #b7a3ff;
+  --color-brand-400: #9d7bff;
+  --color-brand-500: #7f4cff;
+  --color-brand-600: #6a35eb;
+  --color-brand-700: #5726c2;
+
+  /* Accent: the existing cyan/blue used for secondary CTAs and info */
+  --color-accent-300: #7dd3fc;
+  --color-accent-400: #38bdf8;
+  --color-accent-500: #22d3ee;
+  --color-accent-600: #0ea5c7;
+
+  /* Semantic status colors - already used throughout, just named consistently */
+  --color-success-300: #6ee7b7;
+  --color-success-400: #34d399;
+  --color-success-500: #22c55e;
+  --color-success-600: #16a34a;
+
+  --color-danger-300: #fda4af;
+  --color-danger-400: #fb7185;
+  --color-danger-500: #f43f5e;
+  --color-danger-600: #e11d48;
+
+  --color-warning-300: #fcd34d;
+  --color-warning-400: #fbbf24;
+  --color-warning-500: #f59e0b;
+  --color-warning-600: #d97706;
+
+  --color-info-300: #7dd3fc;
+  --color-info-400: #38bdf8;
+  --color-info-500: #0ea5e9;
+
+  /* Ink: the near-white/muted text tones already repeated across every page */
+  --color-ink-100: #ffffff;
+  --color-ink-200: #e2e6ff;
+  --color-ink-300: #c9d6ed;
+  --color-ink-400: #aeb4d6;
+  --color-ink-500: #9ca3c5;
+  --color-ink-600: #6b7495;
+
+  /* Radius scale consolidating the rounded-[14px..32px] values sprinkled everywhere */
+  --radius-control: 0.875rem; /* 14px - inputs, small buttons, chips */
+  --radius-card: 1.25rem; /* 20px - list items, compact cards */
+  --radius-panel: 1.75rem; /* 28px - large surface cards, modals */
+
+  /* Elevation shadows matching the existing shadow-[0_Npx_Npx_rgba(...)] glows */
+  --shadow-elevated: 0 18px 50px rgba(0, 0, 0, 0.18);
+  --shadow-floating: 0 24px 70px rgba(0, 0, 0, 0.35);
+  --shadow-brand-glow: 0 12px 30px rgba(127, 76, 255, 0.28);
+
+  /* Motion durations kept short/subtle per the "no excessive animation" requirement */
+  --ease-out-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Root cause of the white flash during route transitions: every PAGE paints its own full-bleed
+   gradient on its own top-level div, but that div fades via opacity during the AnimatePresence
+   route transition (see App.tsx) - while it's semi-transparent, whatever is BEHIND it shows
+   through. Without an explicit background here, that's the browser's default white. Setting the
+   same dark tone every page's gradient starts from (as a base layer, not a replacement for any
+   page's own gradient) means the fade blends dark-into-dark at every opacity level instead of
+   dark-into-white, with zero visible flash - this must live on html/body/#root (not just one of
+   them), since any of the three painting white would still show through the others. */
+html,
+body,
+#root {
+  background-color: #0a0d2e;
+}
+
 html {
   scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
+  font-family: var(--font-sans);
+}
+
+/* prefers-reduced-motion is primarily handled by MotionConfig at the React layer (see App.tsx),
+   this is the CSS-only backstop for the handful of plain Tailwind `animate-*` utilities
+   (animate-pulse/animate-bounce) already used outside the motion/react tree. `animate-spin`
+   is deliberately excluded - freezing an in-progress loading spinner reads as "the app hung"
+   rather than "motion was reduced," which is a worse outcome than a plain rotation. */
+@media (prefers-reduced-motion: reduce) {
+  *:not(.animate-spin),
+  *:not(.animate-spin)::before,
+  *:not(.animate-spin)::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

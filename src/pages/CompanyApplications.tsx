@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { AnimatePresence } from "motion/react";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
 import { apiFetch, apiFetchBlob, ApiError } from "../utils/api";
@@ -7,6 +8,16 @@ import { getMatchTier, getMatchLabel } from "../utils/matchScore";
 import CandidateAiSummaryModal from "../components/CandidateAiSummaryModal";
 import AcceptApplicationModal, { type ContactMethod } from "../components/AcceptApplicationModal";
 import RejectApplicationModal from "../components/RejectApplicationModal";
+import {
+  ScoreRing as SharedScoreRing,
+  Badge,
+  applicationStatusTone,
+  EmptyState,
+  ListSkeleton,
+  Reveal,
+  Skeleton,
+  useToast,
+} from "../components/ui";
 import {
   ArrowLeft,
   FileText,
@@ -301,6 +312,7 @@ function CompanyApplications() {
   const page = t.companyApplicationsPage || {};
   const common = t.common || {};
   const isRTL = language === "ar" || language === "he";
+  const toast = useToast();
 
   const [activeTab, setActiveTab] = useState<
     "All" | "New" | "Screening" | "Shortlisted" | "Decided"
@@ -445,18 +457,6 @@ function CompanyApplications() {
   const getScoreBadgeLabel = (match: number | null, matchLabel: string | null) => {
     if (match === null) return page.notScoredYet || "Not scored yet";
     return matchLabel || getMatchLabel(match);
-  };
-
-  // Real backend status (Applied / AI Screening / Under Review / Shortlisted / Accepted /
-  // Rejected) rendered as-is - never a computed stage bucket - so the badge can't say
-  // something the application's actual status field doesn't. Colors mirror the identical
-  // status badge on the Company Dashboard's Recent Activity card for consistency.
-  const getStatusBadgeStyles = (status: string) => {
-    const normalized = (status || "").toLowerCase();
-    if (normalized === "shortlisted") return "bg-cyan-500/10 text-cyan-300 border-cyan-400/25";
-    if (normalized === "accepted") return "bg-emerald-500/10 text-emerald-300 border-emerald-400/25";
-    if (normalized === "rejected") return "bg-rose-500/10 text-rose-300 border-rose-400/25";
-    return "bg-amber-500/10 text-amber-300 border-amber-400/25";
   };
 
   const applyStatusUpdate = async (
@@ -759,7 +759,7 @@ function CompanyApplications() {
       const blobUrl = URL.createObjectURL(blob);
       window.open(blobUrl, "_blank");
     } catch (err) {
-      alert(
+      toast.error(
         err instanceof ApiError
           ? err.message
           : page.downloadResumeError || "Could not download this candidate's resume."
@@ -858,15 +858,11 @@ function CompanyApplications() {
               )}
             </div>
 
-            {loading && (
-              <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-10 text-center text-white/65">
-                Loading applications...
-              </div>
-            )}
+            {loading && <ListSkeleton count={4} />}
 
             {!loading && (
             <div className="space-y-5">
-              {sortedApplications.map((app) => {
+              {sortedApplications.map((app, index) => {
                 const aiRank = rankByApplicationId.get(app.id);
                 // Same "already decided" check as the detail modal's detailIsFinal - once a
                 // company has accepted or rejected a candidate, Accept/Reject here must be
@@ -875,8 +871,8 @@ function CompanyApplications() {
                 const isFinal = ["accepted", "rejected"].includes((app.status || "").toLowerCase());
 
                 return (
+                <Reveal key={app.id} delay={Math.min(index * 0.05, 0.3)}>
                 <div
-                  key={app.id}
                   className="min-w-0 rounded-[28px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.18)] md:p-6"
                 >
                   <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
@@ -906,13 +902,9 @@ function CompanyApplications() {
                             {getScoreBadgeLabel(app.match, app.matchLabel)}
                           </span>
 
-                          <span
-                            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${getStatusBadgeStyles(
-                              app.status
-                            )}`}
-                          >
+                          <Badge tone={applicationStatusTone(app.status)}>
                             {app.status || "Applied"}
-                          </span>
+                          </Badge>
                         </div>
 
                         <p className="truncate text-[16px] text-white/70 md:text-[18px]">{app.email}</p>
@@ -925,33 +917,30 @@ function CompanyApplications() {
                     </div>
 
                     <div className="flex shrink-0 items-center justify-center xl:justify-start">
-                      {app.match !== null ? (() => {
-                        const tier = getMatchTier(app.match);
-                        return (
-                          <div className="flex flex-col items-center gap-1">
-                            <ScoreRing value={app.match} color={tier.ring} />
-                            <span className={`flex items-center gap-1 text-[12px] font-bold ${tier.text}`}>
-                              <span>{tier.emoji}</span>
-                              {app.match}% {page.matchLabel || "Match"}
-                            </span>
-                            <span className="text-[11px] font-semibold text-white/45">
-                              {app.matchLabel || getMatchLabel(app.match)}
-                            </span>
-                            <span className={`mt-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${tier.bg} ${tier.text} ${tier.border}`}>
-                              {recommendationLabel(app.recommendation, page)}
-                            </span>
-                          </div>
-                        );
-                      })() : (
-                        <div className="flex flex-col items-center gap-1">
-                          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full border border-white/10 bg-white/5 text-center text-[13px] font-semibold text-white/30">
-                            —
-                          </div>
+                      <div className="flex flex-col items-center gap-1">
+                        <SharedScoreRing percent={app.match} size={72} />
+                        {app.match !== null ? (() => {
+                          const tier = getMatchTier(app.match);
+                          return (
+                            <>
+                              <span className={`flex items-center gap-1 text-[12px] font-bold ${tier.text}`}>
+                                <span>{tier.emoji}</span>
+                                {app.match}% {page.matchLabel || "Match"}
+                              </span>
+                              <span className="text-[11px] font-semibold text-white/45">
+                                {app.matchLabel || getMatchLabel(app.match)}
+                              </span>
+                              <span className={`mt-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${tier.bg} ${tier.text} ${tier.border}`}>
+                                {recommendationLabel(app.recommendation, page)}
+                              </span>
+                            </>
+                          );
+                        })() : (
                           <span className="text-[11px] font-semibold text-white/40">
                             {page.notScoredYet || "Not scored yet"}
                           </span>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex flex-wrap justify-center gap-2 xl:shrink-0 xl:justify-end">
@@ -995,14 +984,15 @@ function CompanyApplications() {
                     </div>
                   </div>
                 </div>
+                </Reveal>
                 );
               })}
 
               {sortedApplications.length === 0 && (
-                <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-10 text-center text-white/65">
-                  {page.noApplicationsInTab ||
-                    "No applications found in this tab."}
-                </div>
+                <EmptyState
+                  icon={<FileText size={26} />}
+                  title={page.noApplicationsInTab || "No applications found in this tab."}
+                />
               )}
             </div>
             )}
@@ -1036,13 +1026,9 @@ function CompanyApplications() {
                       >
                         {getScoreBadgeLabel(selectedApplication.match, selectedApplication.matchLabel)}
                       </span>
-                      <span
-                        className={`inline-flex items-center rounded-full border px-4 py-2 text-sm font-bold ${getStatusBadgeStyles(
-                          selectedApplication.status
-                        )}`}
-                      >
+                      <Badge tone={applicationStatusTone(selectedApplication.status)} className="px-4 py-2 text-sm">
                         {selectedApplication.status || "Applied"}
-                      </span>
+                      </Badge>
                     </div>
 
                     <p className="mb-4 text-[18px] text-white/70 md:text-[28px]">
@@ -1104,10 +1090,10 @@ function CompanyApplications() {
                   </div>
 
                   <div className="mb-6 grid gap-4 md:grid-cols-3">
-                    <StatCard
-                      label={page.matchScore || "Match Score"}
-                      value={selectedApplication.match !== null ? `${selectedApplication.match}%` : "—"}
-                    />
+                    <div className="flex flex-col items-center justify-center gap-2 rounded-[20px] border border-white/10 bg-white/[0.04] p-5 text-center">
+                      <SharedScoreRing percent={selectedApplication.match} size={64} />
+                      <div className="text-sm text-white/50">{page.matchScore || "Match Score"}</div>
+                    </div>
                     <StatCard
                       label={page.applicationDate || "Application Date"}
                       value={formatDate(selectedApplication.date) || "—"}
@@ -1124,9 +1110,10 @@ function CompanyApplications() {
                     </h3>
 
                     {inlineAiSummaryLoading && (
-                      <div className="flex items-center gap-3 text-white/60">
-                        <Loader2 size={18} className="animate-spin" />
-                        <span className="text-sm">{page.generatingSummary || "Loading AI summary..."}</span>
+                      <div className="space-y-2.5">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-5/6" />
+                        <Skeleton className="h-4 w-2/3" />
                       </div>
                     )}
 
@@ -1348,13 +1335,9 @@ function CompanyApplications() {
 
                   <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-white/60">
                     <span className="font-semibold text-white">{page.currentStatus || "Current Status"}:</span>
-                    <span
-                      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${getStatusBadgeStyles(
-                        selectedApplication.status
-                      )}`}
-                    >
+                    <Badge tone={applicationStatusTone(selectedApplication.status)}>
                       {selectedApplication.status || "Applied"}
-                    </span>
+                    </Badge>
                   </div>
 
                   <div className="mb-5 rounded-[18px] border border-white/10 bg-white/[0.04] p-4">
@@ -1376,12 +1359,12 @@ function CompanyApplications() {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-2 gap-2.5 max-[380px]:grid-cols-1">
                     <button
                       type="button"
                       onClick={() => handleAccept(selectedApplication.id)}
                       disabled={isUpdatingStatus || detailIsFinal}
-                      className="inline-flex items-center justify-center gap-2 rounded-[12px] bg-emerald-500/20 px-3.5 py-2.5 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/30 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[12px] bg-emerald-500/20 px-3.5 py-2.5 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/30 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <CheckCircle2 size={16} />
                       {page.accept || "Accept"}
@@ -1391,7 +1374,7 @@ function CompanyApplications() {
                       type="button"
                       onClick={() => handleReject(selectedApplication.id)}
                       disabled={isUpdatingStatus || detailIsFinal}
-                      className="inline-flex items-center justify-center gap-2 rounded-[12px] bg-rose-500/20 px-3.5 py-2.5 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/30 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[12px] bg-rose-500/20 px-3.5 py-2.5 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/30 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <XCircle size={16} />
                       {page.reject || "Reject"}
@@ -1788,70 +1771,60 @@ function CompanyApplications() {
           </>
         )}
 
-        {aiSummaryApplication && (
-          <CandidateAiSummaryModal
-            applicationId={aiSummaryApplication.id}
-            candidateName={aiSummaryApplication.name}
-            jobTitle={aiSummaryApplication.jobTitle}
-            language={language}
-            t={t}
-            isRTL={isRTL}
-            onClose={() => {
-              const closedId = aiSummaryApplication.id;
-              setAiSummaryApplication(null);
-              // If this was opened for the application currently on screen, refresh the inline
-              // summary too - it's now guaranteed cached (just generated), so this is a cache hit.
-              if (selectedApplication?.id === closedId) {
-                fetchInlineAiSummary(closedId);
+        <AnimatePresence>
+          {aiSummaryApplication && (
+            <CandidateAiSummaryModal
+              applicationId={aiSummaryApplication.id}
+              candidateName={aiSummaryApplication.name}
+              jobTitle={aiSummaryApplication.jobTitle}
+              language={language}
+              t={t}
+              isRTL={isRTL}
+              onClose={() => {
+                const closedId = aiSummaryApplication.id;
+                setAiSummaryApplication(null);
+                // If this was opened for the application currently on screen, refresh the inline
+                // summary too - it's now guaranteed cached (just generated), so this is a cache hit.
+                if (selectedApplication?.id === closedId) {
+                  fetchInlineAiSummary(closedId);
+                }
+              }}
+              onScoreReady={(matchScore, matchLabel, recommendation) =>
+                applyAiMatchScore(aiSummaryApplication.id, matchScore, matchLabel, recommendation)
               }
-            }}
-            onScoreReady={(matchScore, matchLabel, recommendation) =>
-              applyAiMatchScore(aiSummaryApplication.id, matchScore, matchLabel, recommendation)
-            }
-          />
-        )}
+            />
+          )}
+        </AnimatePresence>
 
         {/* Rendered as a sibling of the list/detail ternary above (like aiSummaryApplication's
             modal just above), not nested inside the detail-view branch - handleAccept/handleReject
             are called from the LIST view's per-row buttons, so a modal that only existed inside
             the detail branch never rendered no matter what the user clicked. */}
-        {acceptTarget && (
-          <AcceptApplicationModal
-            candidateName={acceptTarget.name}
-            jobTitle={acceptTarget.jobTitle}
-            t={t}
-            isRTL={isRTL}
-            onConfirm={handleConfirmAccept}
-            onCancel={() => setAcceptTarget(null)}
-          />
-        )}
+        <AnimatePresence>
+          {acceptTarget && (
+            <AcceptApplicationModal
+              candidateName={acceptTarget.name}
+              jobTitle={acceptTarget.jobTitle}
+              t={t}
+              isRTL={isRTL}
+              onConfirm={handleConfirmAccept}
+              onCancel={() => setAcceptTarget(null)}
+            />
+          )}
+        </AnimatePresence>
 
-        {rejectTarget && (
-          <RejectApplicationModal
-            candidateName={rejectTarget.name}
-            jobTitle={rejectTarget.jobTitle}
-            t={t}
-            isRTL={isRTL}
-            onConfirm={handleConfirmReject}
-            onCancel={() => setRejectTarget(null)}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ScoreRing({ value, color = "#8690ff" }: { value: number; color?: string }) {
-  return (
-    <div className="relative h-[72px] w-[72px]">
-      <div
-        className="h-full w-full rounded-full"
-        style={{
-          background: `conic-gradient(${color} ${value * 3.6}deg, rgba(255,255,255,0.12) 0deg)`,
-        }}
-      />
-      <div className="absolute inset-[6px] flex items-center justify-center rounded-full bg-[#2a2d63] text-[18px] font-extrabold text-white">
-        {value}%
+        <AnimatePresence>
+          {rejectTarget && (
+            <RejectApplicationModal
+              candidateName={rejectTarget.name}
+              jobTitle={rejectTarget.jobTitle}
+              t={t}
+              isRTL={isRTL}
+              onConfirm={handleConfirmReject}
+              onCancel={() => setRejectTarget(null)}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

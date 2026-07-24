@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { AnimatePresence } from "motion/react";
 import {
   ArrowLeft,
   BriefcaseBusiness,
@@ -24,7 +25,6 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import {
-  getRingColor as getSharedRingColor,
   inferIndustry as sharedInferIndustry,
   inferLevel as sharedInferLevel,
   inferExperience as sharedInferExperience,
@@ -34,10 +34,10 @@ import { formatSalary } from "../utils/formatSalary";
 import { apiFetch } from "../utils/api";
 import { streamSessionMatches, fetchCurrentCvIdentity } from "../utils/matchScoreSession";
 import { FREE_PLAN_LIMIT } from "../utils/applicationLimit";
-import LoadingScreen from "../components/LoadingScreen";
 import PreInterviewModal from "../components/PreInterviewModal";
 import ApplicationSuccessModal from "../components/ApplicationSuccessModal";
 import AiDisclaimer from "../components/AiDisclaimer";
+import { ScoreRing, EmptyState, ListSkeleton, Reveal } from "../components/ui";
 
 type BackendJob = {
   id?: number;
@@ -653,9 +653,6 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
     (minMatch !== 0 ? 1 : 0) +
     (matchYouFilter ? 0 : 1);
 
-  const getRingColor = (info: MatchInfo) =>
-    getSharedRingColor(info.status, info.status === "scored" ? info.percent : 0);
-
   const isJobSaved = (job: Job) => {
     return typeof job.id === "number" && savedJobIds.has(job.id);
   };
@@ -802,8 +799,6 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
 
   const renderJobCard = (job: Job, index: number, fromSaved = false) => {
     const matchInfo = getMatchInfo(job);
-    const ringColor = getRingColor(matchInfo);
-    const numeric = matchInfo.status === "scored" ? matchInfo.percent : 0;
 
     return (
       <article
@@ -814,7 +809,6 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
         <div className="flex flex-col gap-6 md:flex-row md:items-center">
           <div className="flex flex-col items-center justify-center md:justify-start">
             <div
-              className="relative h-[98px] w-[98px]"
               title={
                 matchInfo.status === "noScore" || matchInfo.status === "error"
                   ? matchInfo.reason
@@ -823,37 +817,24 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                     : undefined
               }
             >
-              <div
-                className={`h-full w-full rounded-full transition-all duration-[1800ms] ease-out ${
-                  matchInfo.status === "loading" ? "animate-pulse" : ""
-                }`}
-                style={{
-                  background:
-                    matchInfo.status === "scored"
-                      ? `conic-gradient(${ringColor} ${numeric * 3.6}deg, #2a2c5a 0deg)`
+              <ScoreRing
+                percent={matchInfo.status === "scored" ? matchInfo.percent : null}
+                size={98}
+                pulse={matchInfo.status === "loading"}
+                label={
+                  matchInfo.status === "scored"
+                    ? undefined
+                    : matchInfo.status === "loading"
+                      ? ""
                       : matchInfo.status === "error"
-                        ? `conic-gradient(${ringColor} 360deg, #2a2c5a 0deg)`
-                        : "conic-gradient(#5f648a 360deg, #2a2c5a 0deg)",
-                  boxShadow:
-                    matchInfo.status === "scored" || matchInfo.status === "error"
-                      ? `0 0 24px ${ringColor}22`
-                      : "0 0 0 rgba(0,0,0,0)",
-                }}
+                        ? "!"
+                        : matchInfo.status === "noScore"
+                          ? "—"
+                          : matchInfo.status === "insufficientData"
+                            ? "ⓘ"
+                            : "?"
+                }
               />
-
-              <div className="absolute inset-[8px] flex items-center justify-center rounded-full bg-[#252654] text-[22px] font-extrabold text-white shadow-inner">
-                {matchInfo.status === "scored"
-                  ? `${matchInfo.percent}%`
-                  : matchInfo.status === "loading"
-                    ? ""
-                    : matchInfo.status === "error"
-                      ? "!"
-                      : matchInfo.status === "noScore"
-                        ? "—"
-                        : matchInfo.status === "insufficientData"
-                          ? "ⓘ"
-                          : "?"}
-              </div>
             </div>
 
             {matchInfo.status === "loading" && (
@@ -1061,10 +1042,6 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
     );
   };
 
-  if (loading) {
-    return <LoadingScreen message="Finding the best job matches for your profile..." />;
-  }
-
   return (
     <div
       dir={isRTL ? "rtl" : "ltr"}
@@ -1114,7 +1091,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                 </div>
 
                 <div className="min-w-0">
-                  <h1 className="text-[42px] font-extrabold leading-tight text-white">
+                  <h1 className="text-[42px] font-extrabold leading-tight text-white max-[640px]:text-[28px]">
                     {t.jobMatches.title}
                   </h1>
                   <p className="mt-2 text-[17px] text-[#aeb4d6]">
@@ -1126,12 +1103,6 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
               {fetchError && (
                 <div className="mb-5 rounded-2xl border border-rose-400/30 bg-rose-400/10 px-5 py-4 text-rose-200">
                   {fetchError}
-                </div>
-              )}
-
-              {!fetchError && jobs.length === 0 && (
-                <div className="mb-5 rounded-2xl border border-yellow-400/30 bg-yellow-400/10 px-5 py-4 text-yellow-100">
-                  No jobs found in the database yet.
                 </div>
               )}
 
@@ -1475,7 +1446,21 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
             </section>
 
             <section className="space-y-5">
-              {paginatedJobs.map((job, index) => renderJobCard(job, index))}
+              {loading && <ListSkeleton count={4} />}
+
+              {!loading &&
+                paginatedJobs.map((job, index) => (
+                  <Reveal key={`${job.title}-${job.company}-${index}`} delay={Math.min(index * 0.05, 0.3)}>
+                    {renderJobCard(job, index)}
+                  </Reveal>
+                ))}
+
+              {!loading && paginatedJobs.length === 0 && (
+                <EmptyState
+                  icon={<BriefcaseBusiness size={26} />}
+                  title={jobs.length === 0 ? t.jobMatches.noJobsFound : t.jobMatches.noFilteredMatches}
+                />
+              )}
             </section>
 
             {totalPages > 1 && (
@@ -1530,38 +1515,45 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
 
             {savedJobs.length > 0 ? (
               <section className="space-y-5">
-                {savedJobs.map((job, index) => renderJobCard(job, index, true))}
+                {savedJobs.map((job, index) => (
+                  <Reveal key={`${job.title}-${job.company}-${index}`} delay={Math.min(index * 0.05, 0.3)}>
+                    {renderJobCard(job, index, true)}
+                  </Reveal>
+                ))}
               </section>
             ) : (
-              <div className="rounded-[30px] border border-white/10 bg-white/[0.05] px-7 py-10 text-center">
-                <p className="text-[18px] font-semibold text-white">No saved jobs yet</p>
-                <p className="mt-2 text-[#aeb4d6]">
-                  Save jobs from the matches list and they will appear here.
-                </p>
-              </div>
+              <EmptyState
+                icon={<Bookmark size={26} />}
+                title={t.jobMatches.noSavedJobsTitle}
+                description={t.jobMatches.noSavedJobsText}
+              />
             )}
           </section>
         )}
 
-        {pendingApplyJob && (
-          <PreInterviewModal
-            jobTitle={pendingApplyJob.title}
-            isSubmitting={applyingJobId === pendingApplyJob.id}
-            onCancel={() => setPendingApplyJob(null)}
-            onSubmit={handleSubmitApplication}
-          />
-        )}
+        <AnimatePresence>
+          {pendingApplyJob && (
+            <PreInterviewModal
+              jobTitle={pendingApplyJob.title}
+              isSubmitting={applyingJobId === pendingApplyJob.id}
+              onCancel={() => setPendingApplyJob(null)}
+              onSubmit={handleSubmitApplication}
+            />
+          )}
+        </AnimatePresence>
 
-        {justAppliedJob && (
-          <ApplicationSuccessModal
-            jobTitle={justAppliedJob.title}
-            companyName={justAppliedJob.company}
-            copy={t.jobDetails.applySuccessModal}
-            isRTL={isRTL}
-            onClose={() => setJustAppliedJob(null)}
-            onViewApplications={() => navigate("/applications")}
-          />
-        )}
+        <AnimatePresence>
+          {justAppliedJob && (
+            <ApplicationSuccessModal
+              jobTitle={justAppliedJob.title}
+              companyName={justAppliedJob.company}
+              copy={t.jobDetails.applySuccessModal}
+              isRTL={isRTL}
+              onClose={() => setJustAppliedJob(null)}
+              onViewApplications={() => navigate("/applications")}
+            />
+          )}
+        </AnimatePresence>
 
         {showUpgradeModal && (
           <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">

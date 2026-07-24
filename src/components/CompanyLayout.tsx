@@ -41,29 +41,30 @@ function CompanyLayout({ children }: CompanyLayoutProps) {
             <button
               type="button"
               onClick={() => navigate("/company-notifications")}
-              className="relative flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-[#e2e6ff] transition hover:bg-white/[0.08] hover:text-white"
+              aria-label={t.companySidebar.notifications}
+              className="relative flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-ink-200 transition-colors hover:bg-white/[0.08] hover:text-white active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
             >
               <Bell size={20} />
               {unreadCount > 0 && (
-                <span className={`absolute -top-1 flex h-[20px] w-[20px] items-center justify-center rounded-full bg-[#ff4b8b] text-[11px] font-bold text-white shadow-lg ${isRTL ? "-left-1" : "-right-1"}`}>
+                <span className={`absolute -top-1 flex h-[20px] w-[20px] items-center justify-center rounded-full bg-danger-500 text-[11px] font-bold text-white shadow-lg ${isRTL ? "-left-1" : "-right-1"}`}>
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
             </button>
             <div className="h-9 w-px shrink-0 bg-white/10 max-[560px]:hidden" />
             <div className={`flex shrink-0 items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 max-[560px]:hidden`}>
-              <div className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#7f4cff] to-[#a855f7] text-[16px] font-bold text-white shadow-[0_8px_18px_rgba(127,76,255,0.35)]">
+              <div className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-300 text-[16px] font-bold text-white shadow-brand-glow">
                 {companyName.charAt(0).toUpperCase()}
               </div>
               <div className={isRTL ? "text-right" : "text-left"}>
                 <p className="text-[14px] font-semibold text-white">{companyName}</p>
-                <p className="text-[12px] text-[#aeb4d6]">{t.dashboard.roles.company}</p>
+                <p className="text-[12px] text-ink-400">{t.dashboard.roles.company}</p>
               </div>
             </div>
           </div>
         </header>
 
-        <main className="pb-[72px] pt-[78px] max-[980px]:pb-[80px]">{children}</main>
+        <main className="pb-[72px] pt-[78px] max-[980px]:pb-[calc(80px+env(safe-area-inset-bottom))]">{children}</main>
         <AIChatButton />
       </div>
 

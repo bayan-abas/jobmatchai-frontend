@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { motion } from "motion/react";
 import { useLanguage } from "../context/LanguageContext";
 
 function NotFoundPage() {
@@ -37,33 +38,40 @@ function NotFoundPage() {
       dir={isRTL ? "rtl" : "ltr"}
       className="flex min-h-screen flex-col items-center justify-center bg-[linear-gradient(135deg,#17184a_0%,#1a1b56_40%,#17234f_100%)] px-6 text-center text-white"
     >
-      <div className="mb-4 text-[120px] font-extrabold leading-none tracking-[-4px] text-transparent bg-gradient-to-r from-[#38bdf8] to-[#8b5cf6] bg-clip-text">
-        {c.code}
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+        className="flex flex-col items-center rounded-panel border border-white/10 bg-white/[0.03] px-8 py-12 shadow-elevated max-[480px]:px-5 max-[480px]:py-9"
+      >
+        <div className="mb-4 bg-gradient-to-r from-brand-400 to-accent-400 bg-clip-text text-[120px] font-extrabold leading-none tracking-[-4px] text-transparent max-[420px]:text-[84px]">
+          {c.code}
+        </div>
 
-      <h1 className="mb-3 text-[32px] font-extrabold text-white">{c.title}</h1>
+        <h1 className="mb-3 text-[32px] font-extrabold text-white">{c.title}</h1>
 
-      <p className="mb-10 max-w-[420px] text-[17px] leading-7 text-white/60">
-        {c.subtitle}
-      </p>
+        <p className="mb-10 max-w-[420px] text-[17px] leading-7 text-ink-300">
+          {c.subtitle}
+        </p>
 
-      <div className="flex flex-wrap justify-center gap-4">
-        <button
-          type="button"
-          onClick={() => navigate("/")}
-          className="rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-8 py-3.5 font-bold text-white shadow-[0_12px_30px_rgba(34,211,238,0.22)] transition hover:scale-[1.02]"
-        >
-          {c.home}
-        </button>
+        <div className="flex flex-wrap justify-center gap-4">
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="rounded-control bg-gradient-to-r from-brand-500 to-brand-400 px-8 py-3.5 font-bold text-white shadow-brand-glow transition hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0d2e]"
+          >
+            {c.home}
+          </button>
 
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="rounded-2xl border border-white/15 bg-white/5 px-8 py-3.5 font-bold text-white transition hover:bg-white/10"
-        >
-          {c.back}
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="rounded-control border border-white/15 bg-white/5 px-8 py-3.5 font-bold text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0d2e]"
+          >
+            {c.back}
+          </button>
+        </div>
+      </motion.div>
     </div>
   );
 }

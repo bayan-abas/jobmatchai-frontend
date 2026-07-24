@@ -8,6 +8,7 @@ import { FREE_PLAN_LIMIT } from "../utils/applicationLimit";
 import { ISRAELI_CITIES } from "../utils/israeliCities";
 import { JOB_TITLES, EXPERIENCE_OPTIONS, ALL_SKILLS } from "../utils/candidateOptions";
 import SearchableSelect from "../components/SearchableSelect";
+import { FormField, Input, useToast } from "../components/ui";
 import {
   ArrowLeft,
   User,
@@ -61,21 +62,19 @@ function ProfilePage() {
   const { user, refreshUser, logout } = useAuth();
   const t = translations[language];
   const isRTL = language === "ar" || language === "he";
+  const toast = useToast();
 
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState("");
 
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [changePasswordError, setChangePasswordError] = useState("");
   const [changePasswordSuccess, setChangePasswordSuccess] = useState(false);
 
   const [userName, setUserName] = useState(user?.name || "");
@@ -165,7 +164,6 @@ function ProfilePage() {
   const handleSaveChanges = async () => {
     if (!user?.id) return;
 
-    setSaveError("");
     setIsSaving(true);
 
     try {
@@ -184,10 +182,9 @@ function ProfilePage() {
 
       await refreshUser();
       setIsEditing(false);
+      toast.success(t.feedback.savedSuccessfully);
     } catch {
-      setSaveError(
-        t.profilePage.saveError || "Could not save your changes. Please try again."
-      );
+      toast.error(t.profilePage.saveError || "Could not save your changes. Please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -198,31 +195,22 @@ function ProfilePage() {
     setCurrentPassword("");
     setNewPassword("");
     setConfirmNewPassword("");
-    setChangePasswordError("");
     setChangePasswordSuccess(false);
   };
 
   const handleChangePassword = async () => {
-    setChangePasswordError("");
-
     if (!currentPassword) {
-      setChangePasswordError(
-        t.profilePage.currentPasswordRequired || "Please enter your current password."
-      );
+      toast.error(t.profilePage.currentPasswordRequired || "Please enter your current password.");
       return;
     }
 
     if (newPassword.length < 6) {
-      setChangePasswordError(
-        t.profilePage.passwordLength || "New password must be at least 6 characters."
-      );
+      toast.error(t.profilePage.passwordLength || "New password must be at least 6 characters.");
       return;
     }
 
     if (newPassword !== confirmNewPassword) {
-      setChangePasswordError(
-        t.profilePage.passwordsDontMatch || "New passwords do not match."
-      );
+      toast.error(t.profilePage.passwordsDontMatch || "New passwords do not match.");
       return;
     }
 
@@ -238,7 +226,7 @@ function ProfilePage() {
       setNewPassword("");
       setConfirmNewPassword("");
     } catch (err) {
-      setChangePasswordError(
+      toast.error(
         err instanceof ApiError
           ? err.message
           : t.profilePage.changePasswordError || "Could not change your password. Please try again."
@@ -251,7 +239,6 @@ function ProfilePage() {
   const handleDeleteAccount = async () => {
     if (!user?.id) return;
 
-    setDeleteError("");
     setIsDeleting(true);
 
     try {
@@ -259,10 +246,7 @@ function ProfilePage() {
       logout();
       navigate("/login");
     } catch {
-      setDeleteError(
-        t.profilePage.deleteError ||
-          "Could not delete your account. Please try again."
-      );
+      toast.error(t.profilePage.deleteError || "Could not delete your account. Please try again.");
       setIsDeleting(false);
     }
   };
@@ -318,12 +302,6 @@ function ProfilePage() {
               )}
             </div>
 
-            {saveError && (
-              <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                {saveError}
-              </div>
-            )}
-
             <div
               className={`mb-6 flex items-start gap-4`}
             >
@@ -332,7 +310,7 @@ function ProfilePage() {
               </div>
 
               <div className={`min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
-                <h1 className="text-[42px] font-extrabold leading-tight text-white">
+                <h1 className="text-[42px] font-extrabold leading-tight text-white max-[640px]:text-[28px]">
                   {t.profilePage.title}
                 </h1>
                 <p className="mt-2 text-[17px] text-[#aeb4d6]">
@@ -444,25 +422,26 @@ function ProfilePage() {
               </h2>
 
               <div className="grid grid-cols-2 gap-x-10 gap-y-8 max-[760px]:grid-cols-1">
-                <div>
-                  <div
-                    className={`mb-2 flex items-center gap-3 text-[#b7bedf]`}
-                  >
-                    <User size={18} />
-                    <span className="text-[15px]">{t.common.fullName}</span>
-                  </div>
-                  {isEditing ? (
-                    <input
+                {isEditing ? (
+                  <FormField label={t.common.fullName} htmlFor="profile-name">
+                    <Input
+                      id="profile-name"
+                      icon={<User size={18} />}
                       value={userName}
                       onChange={(e) => setUserName(e.target.value)}
-                      className={inputClass}
                     />
-                  ) : (
+                  </FormField>
+                ) : (
+                  <div>
+                    <div className="mb-2 flex items-center gap-3 text-[#b7bedf]">
+                      <User size={18} />
+                      <span className="text-[15px]">{t.common.fullName}</span>
+                    </div>
                     <p className="text-[18px] font-semibold text-white">
                       {userName}
                     </p>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 <div>
                   <div
@@ -476,38 +455,31 @@ function ProfilePage() {
                   </p>
                 </div>
 
-                <div>
-                  <div
-                    className={`mb-2 flex items-center gap-3 text-[#b7bedf]`}
-                  >
-                    <Phone size={18} />
-                    <span className="text-[15px]">
-                      {t.candidateRegisterPage.phone}
-                    </span>
-                  </div>
-                  {isEditing ? (
-                    <input
+                {isEditing ? (
+                  <FormField label={t.candidateRegisterPage.phone} htmlFor="profile-phone">
+                    <Input
+                      id="profile-phone"
+                      icon={<Phone size={18} />}
                       value={userPhone}
                       onChange={(e) => setUserPhone(e.target.value)}
-                      className={inputClass}
                     />
-                  ) : (
+                  </FormField>
+                ) : (
+                  <div>
+                    <div className="mb-2 flex items-center gap-3 text-[#b7bedf]">
+                      <Phone size={18} />
+                      <span className="text-[15px]">
+                        {t.candidateRegisterPage.phone}
+                      </span>
+                    </div>
                     <p className="text-[18px] font-semibold text-white">
                       {userPhone}
                     </p>
-                  )}
-                </div>
-
-                <div>
-                  <div
-                    className={`mb-2 flex items-center gap-3 text-[#b7bedf]`}
-                  >
-                    <MapPin size={18} />
-                    <span className="text-[15px]">
-                      {t.candidateRegisterPage.location}
-                    </span>
                   </div>
-                  {isEditing ? (
+                )}
+
+                {isEditing ? (
+                  <FormField label={t.candidateRegisterPage.location}>
                     <SearchableSelect
                       value={userLocation}
                       onChange={setUserLocation}
@@ -515,23 +487,23 @@ function ProfilePage() {
                       placeholder={t.candidateRegisterPage.location}
                       className={inputClass}
                     />
-                  ) : (
+                  </FormField>
+                ) : (
+                  <div>
+                    <div className="mb-2 flex items-center gap-3 text-[#b7bedf]">
+                      <MapPin size={18} />
+                      <span className="text-[15px]">
+                        {t.candidateRegisterPage.location}
+                      </span>
+                    </div>
                     <p className="text-[18px] font-semibold text-white">
                       {userLocation}
                     </p>
-                  )}
-                </div>
-
-                <div>
-                  <div
-                    className={`mb-2 flex items-center gap-3 text-[#b7bedf]`}
-                  >
-                    <Briefcase size={18} />
-                    <span className="text-[15px]">
-                      {t.profilePage.currentTitle}
-                    </span>
                   </div>
-                  {isEditing ? (
+                )}
+
+                {isEditing ? (
+                  <FormField label={t.profilePage.currentTitle}>
                     <SearchableSelect
                       value={userTitle}
                       onChange={setUserTitle}
@@ -539,23 +511,23 @@ function ProfilePage() {
                       placeholder={t.profilePage.currentTitle}
                       className={inputClass}
                     />
-                  ) : (
+                  </FormField>
+                ) : (
+                  <div>
+                    <div className="mb-2 flex items-center gap-3 text-[#b7bedf]">
+                      <Briefcase size={18} />
+                      <span className="text-[15px]">
+                        {t.profilePage.currentTitle}
+                      </span>
+                    </div>
                     <p className="text-[18px] font-semibold text-white">
                       {userTitle}
                     </p>
-                  )}
-                </div>
-
-                <div>
-                  <div
-                    className={`mb-2 flex items-center gap-3 text-[#b7bedf]`}
-                  >
-                    <Briefcase size={18} />
-                    <span className="text-[15px]">
-                      {t.profilePage.experience}
-                    </span>
                   </div>
-                  {isEditing ? (
+                )}
+
+                {isEditing ? (
+                  <FormField label={t.profilePage.experience}>
                     <SearchableSelect
                       value={userExperience}
                       onChange={setUserExperience}
@@ -563,28 +535,40 @@ function ProfilePage() {
                       placeholder={t.profilePage.experience}
                       className={inputClass}
                     />
-                  ) : (
+                  </FormField>
+                ) : (
+                  <div>
+                    <div className="mb-2 flex items-center gap-3 text-[#b7bedf]">
+                      <Briefcase size={18} />
+                      <span className="text-[15px]">
+                        {t.profilePage.experience}
+                      </span>
+                    </div>
                     <p className="text-[18px] font-semibold text-white">
                       {userExperience}
                     </p>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
 
               <div className="mt-10">
-                <p className="mb-3 text-[15px] text-[#b7bedf]">
-                  {t.profilePage.professionalSummary}
-                </p>
                 {isEditing ? (
-                  <textarea
-                    value={userSummary}
-                    onChange={(e) => setUserSummary(e.target.value)}
-                    className={textareaClass}
-                  />
+                  <FormField label={t.profilePage.professionalSummary}>
+                    <textarea
+                      value={userSummary}
+                      onChange={(e) => setUserSummary(e.target.value)}
+                      className={textareaClass}
+                    />
+                  </FormField>
                 ) : (
-                  <p className="max-w-[900px] text-[17px] leading-9 text-[#edf0ff]">
-                    {userSummary}
-                  </p>
+                  <>
+                    <p className="mb-3 text-[15px] text-[#b7bedf]">
+                      {t.profilePage.professionalSummary}
+                    </p>
+                    <p className="max-w-[900px] text-[17px] leading-9 text-[#edf0ff]">
+                      {userSummary}
+                    </p>
+                  </>
                 )}
               </div>
             </div>
@@ -669,7 +653,6 @@ function ProfilePage() {
               <button
                 type="button"
                 onClick={() => {
-                  setChangePasswordError("");
                   setChangePasswordSuccess(false);
                   setShowChangePasswordModal(true);
                 }}
@@ -698,10 +681,7 @@ function ProfilePage() {
 
               <button
                 type="button"
-                onClick={() => {
-                  setDeleteError("");
-                  setShowDeleteModal(true);
-                }}
+                onClick={() => setShowDeleteModal(true)}
                 className="rounded-[16px] border border-[rgba(255,88,120,0.45)] bg-transparent px-6 py-3 text-[15px] font-bold text-[#ff7d9d] transition hover:bg-[rgba(255,88,120,0.08)]"
               >
                 {t.profilePage.deleteAccount || "Delete My Account"}
@@ -914,37 +894,31 @@ function ProfilePage() {
                 </p>
 
                 <div className="mb-4 space-y-4">
-                  <input
+                  <Input
                     type="password"
+                    icon={<Lock size={18} />}
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder={t.profilePage.currentPassword || "Current password"}
-                    className={inputClass}
                     disabled={isChangingPassword}
                   />
-                  <input
+                  <Input
                     type="password"
+                    icon={<Lock size={18} />}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder={t.profilePage.newPassword || "New password"}
-                    className={inputClass}
                     disabled={isChangingPassword}
                   />
-                  <input
+                  <Input
                     type="password"
+                    icon={<Lock size={18} />}
                     value={confirmNewPassword}
                     onChange={(e) => setConfirmNewPassword(e.target.value)}
                     placeholder={t.profilePage.confirmNewPassword || "Confirm new password"}
-                    className={inputClass}
                     disabled={isChangingPassword}
                   />
                 </div>
-
-                {changePasswordError && (
-                  <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                    {changePasswordError}
-                  </div>
-                )}
 
                 <div className="grid grid-cols-2 gap-4 max-[420px]:grid-cols-1">
                   <button
@@ -1008,12 +982,6 @@ function ProfilePage() {
               {t.profilePage.deleteConfirmText ||
                 "This will permanently remove your account and all associated data (applications, saved jobs, CV, notifications). This action cannot be undone."}
             </p>
-
-            {deleteError && (
-              <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                {deleteError}
-              </div>
-            )}
 
             <div className="grid grid-cols-2 gap-4 max-[420px]:grid-cols-1">
               <button

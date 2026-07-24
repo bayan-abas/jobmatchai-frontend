@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { AnimatePresence } from "motion/react";
 import {
   ArrowLeft,
   Building2,
@@ -27,6 +28,7 @@ import PreInterviewModal from "../components/PreInterviewModal";
 import ApplicationSuccessModal from "../components/ApplicationSuccessModal";
 import AiDisclaimer from "../components/AiDisclaimer";
 import { apiFetch } from "../utils/api";
+import { Badge, ScoreRing } from "../components/ui";
 
 type JobType = "internal" | "external";
 
@@ -418,15 +420,9 @@ function JobDetailsPage() {
                   <h1 className="text-[28px] font-extrabold text-white lg:text-[34px]">
                     {job.title || "Untitled Job"}
                   </h1>
-                  <span
-                    className={`rounded-full px-4 py-1.5 text-sm font-semibold ${
-                      jobType === "external"
-                        ? "border border-cyan-400/20 bg-cyan-400/10 text-cyan-300"
-                        : "border border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
-                    }`}
-                  >
+                  <Badge tone={jobType === "external" ? "info" : "success"}>
                     {jobType === "external" ? d.externalJobBadge : d.internalJobBadge}
-                  </span>
+                  </Badge>
                 </div>
 
                 <div className={`mb-4 flex items-center gap-2 text-[#c4cae9] ${isRTL ? "flex-row-reverse" : ""}`}>
@@ -808,30 +804,22 @@ function JobDetailsPage() {
             <div className="space-y-6">
               <div className="sticky top-6 rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
                 <div className="flex flex-col items-center text-center">
-                  <div className="relative h-[130px] w-[130px]">
-                    <div
-                      className={`h-full w-full rounded-full ${matchStatus === "loading" ? "animate-pulse" : ""}`}
-                      style={{
-                        background:
-                          matchStatus === "scored"
-                            ? `conic-gradient(${ringColor} ${percent * 3.6}deg, #2a2c5a 0deg)`
-                            : matchStatus === "error"
-                              ? `conic-gradient(${ringColor} 360deg, #2a2c5a 0deg)`
-                              : "conic-gradient(#5f648a 360deg, #2a2c5a 0deg)",
-                      }}
-                    />
-                    <div className="absolute inset-[10px] flex items-center justify-center rounded-full bg-[#252654] text-[32px] font-extrabold text-white">
-                      {matchStatus === "scored"
-                        ? `${percent}%`
+                  <ScoreRing
+                    size={130}
+                    percent={matchStatus === "scored" ? percent : null}
+                    pulse={matchStatus === "loading"}
+                    label={
+                      matchStatus === "scored"
+                        ? undefined
                         : matchStatus === "loading"
                           ? ""
                           : matchStatus === "error"
                             ? "!"
                             : matchStatus === "noScore"
                               ? "—"
-                              : "?"}
-                    </div>
-                  </div>
+                              : "?"
+                    }
+                  />
 
                   {matchStatus === "scored" && (
                     <span
@@ -1109,36 +1097,42 @@ function JobDetailsPage() {
         )}
       </div>
 
-      {selectedSkill && (
-        <SkillExplanationModal
-          skillName={selectedSkill}
-          jobTitle={job?.title}
-          language={language}
-          t={t}
-          isRTL={isRTL}
-          onClose={() => setSelectedSkill(null)}
-        />
-      )}
+      <AnimatePresence>
+        {selectedSkill && (
+          <SkillExplanationModal
+            skillName={selectedSkill}
+            jobTitle={job?.title}
+            language={language}
+            t={t}
+            isRTL={isRTL}
+            onClose={() => setSelectedSkill(null)}
+          />
+        )}
+      </AnimatePresence>
 
-      {showPreInterviewModal && (
-        <PreInterviewModal
-          jobTitle={job?.title}
-          isSubmitting={applying}
-          onCancel={() => setShowPreInterviewModal(false)}
-          onSubmit={handleSubmitApplication}
-        />
-      )}
+      <AnimatePresence>
+        {showPreInterviewModal && (
+          <PreInterviewModal
+            jobTitle={job?.title}
+            isSubmitting={applying}
+            onCancel={() => setShowPreInterviewModal(false)}
+            onSubmit={handleSubmitApplication}
+          />
+        )}
+      </AnimatePresence>
 
-      {showApplySuccessModal && job && (
-        <ApplicationSuccessModal
-          jobTitle={job.title || ""}
-          companyName={job.companyName || ""}
-          copy={d.applySuccessModal}
-          isRTL={isRTL}
-          onClose={() => setShowApplySuccessModal(false)}
-          onViewApplications={() => navigate("/applications")}
-        />
-      )}
+      <AnimatePresence>
+        {showApplySuccessModal && job && (
+          <ApplicationSuccessModal
+            jobTitle={job.title || ""}
+            companyName={job.companyName || ""}
+            copy={d.applySuccessModal}
+            isRTL={isRTL}
+            onClose={() => setShowApplySuccessModal(false)}
+            onViewApplications={() => navigate("/applications")}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

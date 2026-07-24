@@ -9,9 +9,16 @@ type LanguageContextType = {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
+// Single source of truth for "is this language RTL" - previously every component repeated
+// `language === "ar" || language === "he"` inline. Exported so new/redesigned components can
+// share one definition instead of re-deriving it (see useIsRTL below).
+export function isRTLLanguage(lang: Language): boolean {
+  return lang === "ar" || lang === "he";
+}
+
 // Apply direction to <html> immediately so it's ready before first render
 function applyDirection(lang: Language) {
-  const isRTL = lang === "ar" || lang === "he";
+  const isRTL = isRTLLanguage(lang);
   document.documentElement.dir = isRTL ? "rtl" : "ltr";
   document.documentElement.lang = lang;
 }
@@ -54,4 +61,11 @@ export function useLanguage() {
   }
 
   return context;
+}
+
+// Shared replacement for the `const isRTL = language === "ar" || language === "he"` line
+// duplicated across most page/component files.
+export function useIsRTL(): boolean {
+  const { language } = useLanguage();
+  return isRTLLanguage(language);
 }

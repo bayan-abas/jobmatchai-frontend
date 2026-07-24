@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { X, MailCheck, Loader2 } from "lucide-react";
+import { motion } from "motion/react";
+import { X, MailCheck } from "lucide-react";
+import { Button } from "./ui";
 
 type EmailVerificationModalProps = {
   email: string;
@@ -64,22 +66,36 @@ function EmailVerificationModal({ email, t, isRTL, onVerify, onResend, onClose }
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
-      <div
+    <motion.div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
+    >
+      <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="email-verification-modal-title"
         dir={isRTL ? "rtl" : "ltr"}
-        className="w-full max-w-[440px] rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.96)] p-7 shadow-[0_24px_90px_rgba(0,0,0,0.55)]"
+        initial={{ opacity: 0, scale: 0.94, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.94, y: 8 }}
+        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-[440px] rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.96)] p-7 shadow-[0_24px_90px_rgba(0,0,0,0.55)] max-[480px]:rounded-[22px] max-[480px]:p-5"
       >
         <div className={`mb-5 flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
           <div className={`flex items-center gap-2.5 ${isRTL ? "flex-row-reverse" : ""}`}>
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-400/10 text-cyan-300">
               <MailCheck size={20} />
             </div>
-            <h2 className="text-[20px] font-extrabold text-white">{v.title}</h2>
+            <h2 id="email-verification-modal-title" className="text-[20px] font-extrabold text-white">{v.title}</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/70 transition hover:bg-white/[0.12] hover:text-white"
+            aria-label={t.common?.close || "Close"}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/70 transition hover:bg-white/[0.12] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
           >
             <X size={18} />
           </button>
@@ -100,31 +116,35 @@ function EmailVerificationModal({ email, t, isRTL, onVerify, onResend, onClose }
           onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
           onKeyDown={(e) => e.key === "Enter" && handleVerify()}
           placeholder="000000"
-          className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-5 py-3.5 text-center text-[24px] font-bold tracking-[0.5em] text-white outline-none focus:border-cyan-400/50"
+          className="w-full rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-3.5 text-center text-[24px] font-bold tracking-[0.5em] text-white outline-none focus:border-cyan-400/50 max-[380px]:px-2 max-[380px]:text-[20px] max-[380px]:tracking-[0.3em]"
         />
 
-        {error && <p className="mt-3 text-sm text-red-300">{error}</p>}
+        {error && <p className="mt-3 text-sm text-danger-300">{error}</p>}
 
-        <button
+        <Button
           type="button"
+          fullWidth
+          className="mt-6 rounded-full"
+          loading={verifying}
+          disabled={code.length !== 6}
           onClick={handleVerify}
-          disabled={verifying || code.length !== 6}
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#7f4cff] to-[#a855f7] px-4 py-3.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(99,102,241,0.28)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {verifying && <Loader2 size={16} className="animate-spin" />}
           {verifying ? v.verifying : v.verifyButton}
-        </button>
+        </Button>
 
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          fullWidth
+          className="mt-4"
+          loading={resending}
+          disabled={cooldown > 0}
           onClick={handleResend}
-          disabled={cooldown > 0 || resending}
-          className="mt-4 w-full text-center text-sm font-semibold text-cyan-300 transition hover:text-cyan-200 disabled:cursor-not-allowed disabled:text-white/30"
         >
-          {cooldown > 0 ? `${v.resendButton} (${cooldown}s)` : resending ? v.resending : v.resendButton}
-        </button>
-      </div>
-    </div>
+          {cooldown > 0 ? `${v.resendButton} (${cooldown}s)` : v.resendButton}
+        </Button>
+      </motion.div>
+    </motion.div>
   );
 }
 

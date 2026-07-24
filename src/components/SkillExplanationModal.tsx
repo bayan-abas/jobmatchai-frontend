@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { motion } from "motion/react";
 import { X, Lightbulb, MapPinned, GraduationCap, ListChecks } from "lucide-react";
 import { apiFetch } from "../utils/api";
 
@@ -48,21 +49,38 @@ function SkillExplanationModal({ skillName, jobTitle, language, t, isRTL, onClos
   }, [skillName, jobTitle, language]);
 
   return (
-    <div
+    <motion.div
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
       onClick={onClose}
     >
-      <div
+      <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="skill-explanation-modal-title"
         dir={isRTL ? "rtl" : "ltr"}
+        initial={{ opacity: 0, scale: 0.94, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.94, y: 8 }}
+        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[85vh] w-full max-w-[560px] overflow-y-auto rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.96)] p-7 shadow-[0_24px_90px_rgba(0,0,0,0.55)]"
+        className="max-h-[85vh] w-full max-w-[560px] overflow-y-auto rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.96)] p-7 shadow-[0_24px_90px_rgba(0,0,0,0.55)] max-[480px]:rounded-[22px] max-[480px]:p-5"
       >
-        <div className={`mb-6 flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
-          <h2 className="text-[24px] font-extrabold text-white">{skillName}</h2>
+        <div className={`mb-6 flex items-center justify-between gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <h2
+            id="skill-explanation-modal-title"
+            className="min-w-0 break-words text-[22px] font-extrabold text-white max-[480px]:text-[19px]"
+          >
+            {skillName}
+          </h2>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/70 transition hover:bg-white/[0.12] hover:text-white"
+            aria-label={t.common?.close || "Close"}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/70 transition hover:bg-white/[0.12] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
           >
             <X size={18} />
           </button>
@@ -143,8 +161,8 @@ function SkillExplanationModal({ skillName, jobTitle, language, t, isRTL, onClos
             )}
           </div>
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { motion } from "motion/react";
 import { X, Send } from "lucide-react";
 import { PRE_INTERVIEW_QUESTIONS } from "../utils/preInterviewQuestions";
+import { Button } from "./ui";
 
 type PreInterviewModalProps = {
   jobTitle?: string;
@@ -21,23 +23,35 @@ function PreInterviewModal({ jobTitle, isSubmitting, onCancel, onSubmit }: PreIn
   };
 
   return (
-    <div
+    <motion.div
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 px-4 backdrop-blur-[2px]"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
       onClick={onCancel}
     >
-      <div
-        className="relative max-h-[85vh] w-full max-w-[560px] overflow-y-auto rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,#09152f_0%,#0d1730_100%)] p-8 text-white shadow-[0_30px_80px_rgba(0,0,0,0.55)]"
+      <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pre-interview-modal-title"
+        initial={{ opacity: 0, scale: 0.94, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.94, y: 8 }}
+        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
         onClick={(e) => e.stopPropagation()}
+        className="relative max-h-[85vh] w-full max-w-[560px] overflow-y-auto rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,#09152f_0%,#0d1730_100%)] p-8 text-white shadow-[0_30px_80px_rgba(0,0,0,0.55)] max-[480px]:rounded-[22px] max-[480px]:p-5"
       >
         <button
           type="button"
           onClick={onCancel}
-          className="absolute right-5 top-5 text-[#9aa4cf] transition hover:text-white"
+          aria-label="Close"
+          className="absolute right-5 top-5 rounded-full text-[#9aa4cf] transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
         >
           <X size={22} />
         </button>
 
-        <h2 className="mb-2 text-[22px] font-extrabold text-white">
+        <h2 id="pre-interview-modal-title" className="mb-2 text-[22px] font-extrabold text-white">
           Before you apply{jobTitle ? ` - ${jobTitle}` : ""}
         </h2>
         <p className="mb-6 text-[15px] text-[#aeb4d6]">
@@ -61,28 +75,30 @@ function PreInterviewModal({ jobTitle, isSubmitting, onCancel, onSubmit }: PreIn
           ))}
         </div>
 
-        <div className="mt-7 grid grid-cols-2 gap-4">
-          <button
+        <div className="mt-7 grid grid-cols-2 gap-4 max-[420px]:grid-cols-1">
+          <Button
             type="button"
+            variant="secondary"
             onClick={onCancel}
             disabled={isSubmitting}
-            className="rounded-[14px] border border-white/15 bg-transparent px-5 py-3 text-[16px] font-bold text-white transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
+            className="max-[420px]:order-2"
           >
             Cancel
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="button"
+            variant="primary"
             onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="inline-flex items-center justify-center gap-2 rounded-[14px] bg-gradient-to-r from-[#8b5cf6] to-[#d946ef] px-5 py-3 text-[16px] font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            loading={isSubmitting}
+            icon={<Send size={16} />}
+            className="max-[420px]:order-1"
           >
-            <Send size={16} />
             {isSubmitting ? "Submitting..." : "Submit Application"}
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

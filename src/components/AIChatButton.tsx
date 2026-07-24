@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { Bot, X, Send, Sparkles, MessageSquare, RotateCcw } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
@@ -51,6 +52,7 @@ function AIChatButton() {
         buttonLabel: "مساعد AI",
         onlineNow: "متاح الآن",
         errorReply: "عذرًا، حدث خطأ. يرجى المحاولة مرة أخرى.",
+        close: "إغلاق",
       };
     }
 
@@ -80,6 +82,7 @@ function AIChatButton() {
         buttonLabel: "עוזר AI",
         onlineNow: "זמין עכשיו",
         errorReply: "מצטער, אירעה שגיאה. אנא נסה שנית.",
+        close: "סגור",
       };
     }
 
@@ -108,6 +111,7 @@ function AIChatButton() {
       buttonLabel: "AI Assistant",
       onlineNow: "Online now",
       errorReply: "Sorry, something went wrong. Please try again.",
+      close: "Close",
     };
   }, [language, isCompany]);
 
@@ -169,9 +173,9 @@ function AIChatButton() {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className={`fixed bottom-6 z-50 flex items-center gap-3 rounded-full border border-white/10 bg-[linear-gradient(135deg,#7f4cff_0%,#9d4edd_100%)] px-5 py-3 text-white shadow-[0_14px_40px_rgba(127,76,255,0.38)] transition hover:scale-[1.03] ${
+          className={`fixed bottom-6 z-50 flex items-center gap-3 rounded-full border border-white/10 bg-[linear-gradient(135deg,#7f4cff_0%,#9d4edd_100%)] px-5 py-3 text-white shadow-[0_14px_40px_rgba(127,76,255,0.38)] transition hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
             isRTL ? "left-6" : "right-6"
-          }`}
+          } max-[980px]:!bottom-[calc(88px+env(safe-area-inset-bottom))]`}
         >
           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/15">
             <Bot size={22} />
@@ -183,11 +187,19 @@ function AIChatButton() {
         </button>
       )}
 
-      {isOpen && (
-        <div
+      <AnimatePresence>
+        {isOpen && (
+        <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-label={content.title}
+          initial={{ opacity: 0, y: 20, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 20, scale: 0.98 }}
+          transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
           className={`fixed bottom-6 z-50 flex h-[760px] max-h-[85vh] w-[460px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[rgba(14,18,58,0.96)] shadow-[0_24px_70px_rgba(0,0,0,0.35)] backdrop-blur-xl ${
             isRTL ? "left-6" : "right-6"
-          } max-[640px]:bottom-3 max-[640px]:left-3 max-[640px]:right-3 max-[640px]:h-[85vh] max-[640px]:w-auto`}
+          } max-[980px]:!inset-x-3 max-[980px]:!bottom-[calc(88px+env(safe-area-inset-bottom))] max-[980px]:!top-[max(16px,env(safe-area-inset-top))] max-[980px]:!h-auto max-[980px]:!w-auto max-[980px]:!max-h-none`}
           dir={isRTL ? "rtl" : "ltr"}
         >
           {/* Header */}
@@ -205,7 +217,8 @@ function AIChatButton() {
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-white/80 transition hover:bg-white/10 hover:text-white"
+                aria-label={content.close}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-white/80 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
               >
                 <X size={18} />
               </button>
@@ -302,14 +315,16 @@ function AIChatButton() {
               <button
                 type="submit"
                 disabled={isTyping || !input.trim()}
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#7f4cff_0%,#9d4edd_100%)] text-white shadow-[0_10px_24px_rgba(127,76,255,0.35)] transition hover:scale-[1.04] disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label={content.send}
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#7f4cff_0%,#9d4edd_100%)] text-white shadow-[0_10px_24px_rgba(127,76,255,0.35)] transition hover:scale-[1.04] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
               >
                 <Send size={18} />
               </button>
             </div>
           </form>
-        </div>
-      )}
+        </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

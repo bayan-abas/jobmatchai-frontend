@@ -16,6 +16,7 @@ import { translations } from "../translations";
 import { apiFetch, ApiError } from "../utils/api";
 import { formatSalaryRange } from "../utils/formatSalary";
 import { getMatchTier } from "../utils/matchScore";
+import { Badge, CardSkeleton } from "../components/ui";
 
 type JobCompanyDetails = {
   id: number;
@@ -111,8 +112,9 @@ function CompanyJobDetailsPage() {
         </div>
 
         {loading && (
-          <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-6 py-12 text-center text-white/65">
-            {d.loading || "Loading job details..."}
+          <div className="space-y-6">
+            <CardSkeleton />
+            <CardSkeleton />
           </div>
         )}
 
@@ -135,9 +137,9 @@ function CompanyJobDetailsPage() {
                 <h1 className="text-[28px] font-extrabold text-white lg:text-[34px]">
                   {job.title || d.untitledJob || "Untitled Job"}
                 </h1>
-                <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-1.5 text-sm font-semibold text-emerald-300">
+                <Badge tone="success" className="px-4 py-1.5 text-sm">
                   {job.status}
-                </span>
+                </Badge>
               </div>
 
               <div className={`flex flex-wrap items-center gap-x-6 gap-y-3 text-[16px] text-[#aeb4d6] ${isRTL ? "flex-row-reverse" : ""}`}>

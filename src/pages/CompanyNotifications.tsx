@@ -14,6 +14,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
 import { apiFetch } from "../utils/api";
 import { notifyNotificationsChanged } from "../hooks/useUnreadCount";
+import { EmptyState, ListSkeleton, Reveal } from "../components/ui";
 
 type BackendNotification = {
   id: number;
@@ -286,33 +287,35 @@ function CompanyNotifications() {
           </div>
         </div>
 
-        {!isLoading && !hasNotifications && (
-          <div className="mx-auto max-w-[440px] rounded-[24px] border border-white/10 bg-white/5 px-6 py-7 text-center shadow-2xl backdrop-blur-xl">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
-              <Bell size={20} className="text-white/70" />
-            </div>
-            <h3 className="text-lg font-bold">{n.noNotifications}</h3>
-            <p className="mt-1.5 text-sm leading-6 text-white/55">{n.noNotificationsText}</p>
+        {isLoading && <ListSkeleton count={4} />}
 
-            <div className="mt-5 space-y-2">
-              {emptyStateHints.map(({ icon: Icon, label }) => (
-                <div
-                  key={label}
-                  className={`flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 ${
-                    isRTL ? "flex-row-reverse text-right" : "text-left"
-                  }`}
-                >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-white/60">
-                    <Icon size={14} />
-                  </span>
-                  <span className="text-xs font-medium text-white/60">{label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+        {!isLoading && !hasNotifications && (
+          <EmptyState
+            icon={<Bell size={20} />}
+            title={n.noNotifications}
+            description={n.noNotificationsText}
+            className="mx-auto max-w-[440px]"
+            action={
+              <div className="space-y-2">
+                {emptyStateHints.map(({ icon: Icon, label }) => (
+                  <div
+                    key={label}
+                    className={`flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 ${
+                      isRTL ? "flex-row-reverse text-right" : "text-left"
+                    }`}
+                  >
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-white/60">
+                      <Icon size={14} />
+                    </span>
+                    <span className="text-xs font-medium text-white/60">{label}</span>
+                  </div>
+                ))}
+              </div>
+            }
+          />
         )}
 
-        {hasNotifications && (
+        {!isLoading && hasNotifications && (
           <div className="space-y-8">
             {groupedNotifications.map((group) => (
               <div key={group.key}>
@@ -325,12 +328,12 @@ function CompanyNotifications() {
                 </h2>
 
                 <div className="space-y-4">
-                  {group.items.map((item) => {
+                  {group.items.map((item, index) => {
                     const { icon: Icon, wrapper } = getIcon(item.type);
 
                     return (
+                      <Reveal key={item.id} delay={Math.min(index * 0.05, 0.3)}>
                       <div
-                        key={item.id}
                         onClick={markOneAsRead}
                         className="group relative cursor-pointer rounded-[26px] border border-white/10 bg-white/5 p-5 md:p-6 shadow-2xl backdrop-blur-xl transition hover:bg-white/[0.07]"
                       >
@@ -366,6 +369,7 @@ function CompanyNotifications() {
                           </div>
                         </div>
                       </div>
+                      </Reveal>
                     );
                   })}
                 </div>

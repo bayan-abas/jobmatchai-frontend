@@ -17,6 +17,8 @@ import { translations } from "../translations";
 import { apiFetch, ApiError } from "../utils/api";
 import { formatSalary } from "../utils/formatSalary";
 import { getMatchTier } from "../utils/matchScore";
+import { Badge, EmptyState, ListSkeleton, Reveal, useConfirm, useToast } from "../components/ui";
+import type { BadgeTone } from "../components/ui";
 
 type JobStatus = "Active" | "Closed" | "Draft";
 
@@ -60,6 +62,8 @@ function CompanyJobPostings() {
   const page = t.companyJobPostingsPage || {};
   const common = t.common || {};
   const isRTL = language === "ar" || language === "he";
+  const confirm = useConfirm();
+  const toast = useToast();
 
   const [jobs, setJobs] = useState<JobItem[]>([]);
   const [applications, setApplications] = useState<BackendApplication[]>([]);
@@ -68,7 +72,6 @@ function CompanyJobPostings() {
   const [loadError, setLoadError] = useState("");
 
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
-  const [deleteJobModal, setDeleteJobModal] = useState<JobItem | null>(null);
 
   const [isUpdating, setIsUpdating] = useState(false);
   const [editingJob, setEditingJob] = useState<JobItem | null>(null);
@@ -167,7 +170,7 @@ function CompanyJobPostings() {
     if (!editingJob) return;
 
     if (!editTitle.trim() || !editDescription.trim()) {
-      alert(
+      toast.error(
         page.fillTitleAndDescription ||
           "Please fill in Job Title and Description."
       );
@@ -195,7 +198,7 @@ function CompanyJobPostings() {
       });
 
       if (!data.success) {
-        alert(data.message || page.failedToUpdateJob || "Failed to update job.");
+        toast.error(data.message || page.failedToUpdateJob || "Failed to update job.");
         return;
       }
 
@@ -219,7 +222,7 @@ function CompanyJobPostings() {
       setEditingJob(null);
     } catch (error) {
       console.error(error);
-      alert(
+      toast.error(
         error instanceof ApiError
           ? error.message
           : page.serverConnectionFailed || "Server connection failed."
@@ -229,25 +232,36 @@ function CompanyJobPostings() {
     }
   };
 
-  const handleDeleteJob = async (jobId: number) => {
-    try {
-      setIsDeleting(jobId);
+  const handleDeleteJob = async (job: JobItem) => {
+    const confirmed = await confirm({
+      title: page.deleteJob || "Delete Job",
+      description: `${page.deleteJobConfirm || "Are you sure you want to permanently remove this job posting from the platform?"}${
+        job.title ? ` — "${job.title}"` : ""
+      }`,
+      confirmLabel: page.deleteJob || "Delete Job",
+      cancelLabel: common.cancel || "Cancel",
+      tone: "danger",
+    });
 
-      const data = await apiFetch(`/api/jobs/${jobId}`, {
+    if (!confirmed) return;
+
+    try {
+      setIsDeleting(job.id);
+
+      const data = await apiFetch(`/api/jobs/${job.id}`, {
         method: "DELETE",
       });
 
       if (!data.success) {
-        alert(data.message || page.failedToDeleteJob || "Failed to delete job.");
+        toast.error(data.message || page.failedToDeleteJob || "Failed to delete job.");
         return;
       }
 
-      setJobs((prevJobs) => prevJobs.filter((job) => job.id !== jobId));
-      setDeleteJobModal(null);
+      setJobs((prevJobs) => prevJobs.filter((item) => item.id !== job.id));
       setOpenMenuId(null);
     } catch (error) {
       console.error(error);
-      alert(
+      toast.error(
         error instanceof ApiError
           ? error.message
           : page.serverConnectionFailed || "Server connection failed."
@@ -263,16 +277,16 @@ function CompanyJobPostings() {
     return page.draftJobs || "Draft";
   };
 
-  const getStatusStyles = (status: JobStatus) => {
+  const getStatusTone = (status: JobStatus): BadgeTone => {
     switch (status) {
       case "Active":
-        return "bg-[rgba(38,199,132,0.14)] text-[#4ff0b2] border border-[rgba(79,240,178,0.18)]";
+        return "success";
       case "Closed":
-        return "bg-[rgba(145,153,180,0.12)] text-[#c5cadb] border border-[rgba(197,202,219,0.14)]";
+        return "neutral";
       case "Draft":
-        return "bg-[rgba(147,117,255,0.12)] text-[#cbb8ff] border border-[rgba(203,184,255,0.14)]";
+        return "brand";
       default:
-        return "bg-white/10 text-white border border-white/10";
+        return "neutral";
     }
   };
 
@@ -327,23 +341,32 @@ function CompanyJobPostings() {
         </div>
 
         {loading ? (
-          <div className="rounded-[28px] border border-white/10 bg-[rgba(48,46,108,0.72)] p-8 text-center text-white/70">
-            {page.loadingJobs || "Loading jobs..."}
-          </div>
+          <ListSkeleton count={3} />
         ) : loadError ? (
           <div className="rounded-[28px] border border-rose-400/30 bg-rose-400/10 p-8 text-center text-rose-200">
             {loadError}
           </div>
         ) : jobs.length === 0 ? (
-          <div className="rounded-[28px] border border-white/10 bg-[rgba(48,46,108,0.72)] p-8 text-center text-white/70">
-            <p className="font-semibold text-white">{page.noJobs || "No job postings yet"}</p>
-            <p className="mt-1 text-white/60">{page.noJobsText || "Create your first job post to start receiving candidates."}</p>
-          </div>
+          <EmptyState
+            icon={<BriefcaseBusiness size={26} />}
+            title={page.noJobs || "No job postings yet"}
+            description={page.noJobsText || "Create your first job post to start receiving candidates."}
+            action={
+              <button
+                type="button"
+                onClick={() => navigate("/post-job")}
+                className="inline-flex items-center gap-2 rounded-[14px] bg-[linear-gradient(135deg,#7f6bff,#9b3ff5)] px-6 py-3 text-[15px] font-bold text-white shadow-[0_14px_30px_rgba(139,92,246,0.25)] transition hover:scale-[1.02] hover:opacity-95"
+              >
+                <Plus size={18} />
+                {page.postNewJob || "Post New Job"}
+              </button>
+            }
+          />
         ) : (
           <div className="space-y-6">
-            {jobs.map((job) => (
+            {jobs.map((job, index) => (
+              <Reveal key={job.id} delay={Math.min(index * 0.05, 0.3)}>
               <div
-                key={job.id}
                 className={`relative rounded-[28px] border border-white/10 bg-[rgba(48,46,108,0.72)] px-7 py-7 shadow-[0_10px_35px_rgba(0,0,0,0.16)] backdrop-blur-[10px] transition hover:bg-[rgba(54,52,118,0.84)] ${
                   openMenuId === job.id ? "z-50" : "z-0"
                 }`}
@@ -359,13 +382,7 @@ function CompanyJobPostings() {
                         {job.title}
                       </h2>
 
-                      <span
-                        className={`rounded-full px-3 py-1 text-[12px] font-bold ${getStatusStyles(
-                          job.status
-                        )}`}
-                      >
-                        {getStatusLabel(job.status)}
-                      </span>
+                      <Badge tone={getStatusTone(job.status)}>{getStatusLabel(job.status)}</Badge>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[14px] text-white/50">
@@ -470,8 +487,8 @@ function CompanyJobPostings() {
 
                           <button
                             onClick={() => {
-                              setDeleteJobModal(job);
                               setOpenMenuId(null);
+                              handleDeleteJob(job);
                             }}
                             disabled={isDeleting === job.id}
                             className="flex w-full items-center gap-2 px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 disabled:opacity-50"
@@ -487,6 +504,7 @@ function CompanyJobPostings() {
                   </div>
                 </div>
               </div>
+              </Reveal>
             ))}
           </div>
         )}
@@ -632,96 +650,6 @@ function CompanyJobPostings() {
           </div>
         </div>
       )}
-
-      {deleteJobModal && (
-  <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 px-4 backdrop-blur-md">
-    <div className="relative w-full max-w-[560px] overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,#26245f,#1d1b4d)] p-0 shadow-[0_25px_80px_rgba(0,0,0,0.45)]">
-
-      <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-red-500/20 blur-[60px]" />
-      <div className="absolute -left-16 -bottom-16 h-40 w-40 rounded-full bg-purple-500/20 blur-[60px]" />
-
-      <div
-        className={`relative flex items-center justify-between border-b border-white/10 px-7 py-5 ${
-          isRTL ? "flex-row-reverse" : ""
-        }`}
-      >
-        <div
-          className={`flex items-center gap-4 ${
-            isRTL ? "flex-row-reverse" : ""
-          }`}
-        >
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/15 text-red-300">
-            <Trash2 size={26} />
-          </div>
-
-          <div>
-            <h2 className="text-[24px] font-extrabold text-white">
-              {page.deleteJob || "Delete Job"}
-            </h2>
-
-            <p className="mt-1 text-sm text-white/50">
-              {page.deleteJobWarning || "This action cannot be undone"}
-            </p>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setDeleteJobModal(null)}
-          className="rounded-full p-2 text-white/45 transition hover:bg-white/10 hover:text-white"
-        >
-          <X size={20} />
-        </button>
-      </div>
-
-      <div className="relative px-7 py-6">
-        <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-5">
-          <div className="text-[20px] font-bold text-white">
-            {deleteJobModal.title}
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-white/50">
-            <span>{deleteJobModal.location}</span>
-
-            <span className="h-1 w-1 rounded-full bg-white/30" />
-
-            <span>{formatSalary(deleteJobModal.salary) || page.salaryNotSpecified || "Salary not specified"}</span>
-          </div>
-        </div>
-
-        <p className="mt-5 text-[15px] leading-7 text-white/60">
-          {page.deleteJobConfirm ||
-            "Are you sure you want to permanently remove this job posting from the platform?"}
-        </p>
-
-        <div className="mt-7 flex items-center justify-end gap-4">
-          <button
-            type="button"
-            onClick={() => setDeleteJobModal(null)}
-            className="rounded-[16px] border border-white/10 bg-white/5 px-6 py-3 font-semibold text-white/75 transition hover:bg-white/10 hover:text-white"
-          >
-            {common.cancel || "Cancel"}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleDeleteJob(deleteJobModal.id)}
-            disabled={isDeleting === deleteJobModal.id}
-            className={`inline-flex items-center gap-2 rounded-[16px] bg-red-500 px-6 py-3 font-bold text-white shadow-[0_14px_30px_rgba(239,68,68,0.25)] transition hover:scale-[1.02] hover:bg-red-600 disabled:opacity-60 ${
-              isRTL ? "flex-row-reverse" : ""
-            }`}
-          >
-            <Trash2 size={18} />
-
-            {isDeleting === deleteJobModal.id
-              ? page.deleting || "Deleting..."
-              : page.deleteJob || "Delete Job"}
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
     </div>
   );
 }

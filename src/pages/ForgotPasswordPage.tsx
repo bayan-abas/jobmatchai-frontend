@@ -4,16 +4,19 @@ import { Mail, ShieldCheck, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
 import { apiFetch, ApiError } from "../utils/api";
+import { Button, FormField, Input, useToast } from "../components/ui";
 
 function ForgotPasswordPage() {
   const navigate = useNavigate();
   const { language, setLanguage } = useLanguage();
   const t = translations[language];
   const isRTL = language === "ar" || language === "he";
+  const toast = useToast();
 
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState("");
+  const [fieldError, setFieldError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const content = {
     en: {
@@ -61,13 +64,18 @@ function ForgotPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+
+    if (isSubmitting) return;
+
+    setFieldError("");
 
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail) {
-      setError(t?.loginPage?.errors?.emailRequired || "Please enter your email.");
+      setFieldError(t?.loginPage?.errors?.emailRequired || "Please enter your email.");
       return;
     }
+
+    setIsSubmitting(true);
 
     try {
       const data = await apiFetch("/api/auth/forgot-password", {
@@ -81,7 +89,9 @@ function ForgotPasswordPage() {
 
       setSubmitted(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Server connection failed.");
+      toast.error(err instanceof ApiError ? err.message : t?.feedback?.somethingWentWrong || "Server connection failed.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -90,8 +100,8 @@ function ForgotPasswordPage() {
       dir={isRTL ? "rtl" : "ltr"}
       className="min-h-screen bg-[linear-gradient(135deg,#17184a_0%,#1a1b56_40%,#17234f_100%)] px-4 py-10"
     >
-      <div className="mx-auto max-w-6xl overflow-hidden rounded-[32px] border border-white/10 bg-white/5 shadow-[0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-        <div className="grid min-h-[640px] lg:grid-cols-2">
+      <div className="mx-auto max-w-6xl overflow-hidden rounded-panel border border-white/10 bg-white/5 shadow-elevated backdrop-blur-xl">
+        <div className="grid lg:min-h-[640px] lg:grid-cols-2">
           {/* LEFT PANEL */}
           <div className="relative hidden overflow-hidden lg:flex">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.22),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(139,92,246,0.22),transparent_30%)]" />
@@ -131,16 +141,14 @@ function ForgotPasswordPage() {
           <div className="p-6 sm:p-8 lg:p-10">
             {/* Top Nav */}
             <div className="mb-6 flex items-center justify-between gap-3">
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />}
                 onClick={() => navigate("/login")}
-                className={`flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white ${
-                  isRTL ? "flex-row-reverse" : ""
-                }`}
               >
-                <ArrowLeft size={16} className={isRTL ? "rotate-180" : ""} />
                 {c.backToLogin}
-              </button>
+              </Button>
 
               <div className="flex items-center gap-2">
                 {(["en", "ar", "he"] as const).map((lang) => (
@@ -167,53 +175,35 @@ function ForgotPasswordPage() {
                   <p className="mt-2 text-white/60">{c.subtitle}</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  <div className="relative">
-                    <Mail
-                      className={`absolute top-1/2 -translate-y-1/2 text-white/40 ${
-                        isRTL ? "right-4" : "left-4"
-                      }`}
-                      size={18}
-                    />
-                    <input
+                <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+                  <FormField label={c.emailLabel} htmlFor="forgot-email" error={fieldError}>
+                    <Input
+                      id="forgot-email"
                       type="email"
+                      icon={<Mail size={18} />}
                       placeholder={c.emailPlaceholder}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className={`w-full rounded-2xl border border-white/10 bg-white/5 py-3.5 text-white outline-none placeholder:text-white/40 transition focus:border-cyan-400/60 focus:bg-white/10 ${
-                        isRTL ? "pr-12 pl-4 text-right" : "pl-12 pr-4 text-left"
-                      }`}
+                      disabled={isSubmitting}
+                      hasError={!!fieldError}
                     />
-                  </div>
+                  </FormField>
 
-                  {error && (
-                    <div className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                      {error}
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    className="w-full rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-6 py-4 text-base font-bold text-white shadow-[0_12px_30px_rgba(34,211,238,0.25)] transition hover:scale-[1.01]"
-                  >
+                  <Button type="submit" fullWidth loading={isSubmitting}>
                     {c.submitBtn}
-                  </button>
+                  </Button>
                 </form>
               </>
             ) : (
               <div className="flex flex-col items-center justify-center py-10 text-center">
-                <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-500/15">
-                  <CheckCircle2 size={40} className="text-green-400" />
+                <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-success-500/15">
+                  <CheckCircle2 size={40} className="text-success-400" />
                 </div>
                 <h2 className="text-2xl font-extrabold text-white">{c.successTitle}</h2>
                 <p className="mt-3 max-w-sm text-white/60">{c.successText}</p>
-                <button
-                  type="button"
-                  onClick={() => navigate("/login")}
-                  className="mt-8 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-8 py-3.5 font-bold text-white shadow-[0_12px_30px_rgba(34,211,238,0.25)] transition hover:scale-[1.01]"
-                >
+                <Button className="mt-8" onClick={() => navigate("/login")}>
                   {c.backToLogin}
-                </button>
+                </Button>
               </div>
             )}
           </div>

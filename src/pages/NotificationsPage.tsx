@@ -16,6 +16,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
 import { apiFetch } from "../utils/api";
 import { notifyNotificationsChanged } from "../hooks/useUnreadCount";
+import { EmptyState, ListSkeleton, Reveal } from "../components/ui";
 
 type BackendNotification = {
   id: number;
@@ -187,7 +188,7 @@ function NotificationsPage() {
             </div>
 
             <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
-              <h1 className="text-[42px] font-extrabold leading-tight text-white">
+              <h1 className="text-[42px] font-extrabold leading-tight text-white max-[640px]:text-[28px]">
                 {t.notificationsPage.title}
               </h1>
               <p className="mt-2 text-[17px] text-[#aeb4d6]">
@@ -246,27 +247,23 @@ function NotificationsPage() {
           </div>
         </section>
 
-        {!isLoading && notifications.length === 0 ? (
-          <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-7 py-12 text-center shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 text-white/60">
-              <Bell size={26} />
-            </div>
+        {isLoading && <ListSkeleton count={4} />}
 
-            <h3 className="text-[24px] font-extrabold text-white">
-              {t.notificationsPage.noNotifications}
-            </h3>
-            <p className="mt-3 text-[15px] text-[#aeb4d6]">
-              {t.notificationsPage.noNotificationsText}
-            </p>
-          </div>
+        {!isLoading && notifications.length === 0 ? (
+          <EmptyState
+            icon={<Bell size={26} />}
+            title={t.notificationsPage.noNotifications}
+            description={t.notificationsPage.noNotificationsText}
+          />
         ) : (
+          !isLoading && (
           <section className="space-y-5">
-            {notifications.map((item) => {
+            {notifications.map((item, index) => {
               const presentation = getPresentation(item.type);
 
               return (
+                <Reveal key={item.id} delay={Math.min(index * 0.05, 0.3)}>
                 <article
-                  key={item.id}
                   onClick={handleOpenNotification}
                   className={`cursor-pointer rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)] transition hover:border-white/20 hover:bg-[rgba(50,52,108,0.96)] ${
                     !item.read ? "ring-1 ring-[#5e66ff33]" : ""
@@ -334,9 +331,11 @@ function NotificationsPage() {
                     )}
                   </div>
                 </article>
+                </Reveal>
               );
             })}
           </section>
+          )
         )}
       </div>
     </div>

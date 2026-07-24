@@ -20,6 +20,7 @@ import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { apiFetch } from "../utils/api";
 import { getMatchTier, getMatchLabel } from "../utils/matchScore";
+import { Badge, applicationStatusTone, EmptyState, Reveal, StatSkeleton } from "../components/ui";
 
 type CompanyApplicant = {
   id: number;
@@ -43,14 +44,6 @@ const AVATAR_GRADIENTS = [
 
 function getInitial(name: string | null) {
   return (name || "?").charAt(0).toUpperCase();
-}
-
-function getStatusClass(status: string | null) {
-  const normalized = (status || "").toLowerCase();
-  if (normalized === "shortlisted") return "bg-cyan-500/12 text-cyan-300 border-cyan-400/25";
-  if (normalized === "accepted") return "bg-emerald-500/12 text-emerald-300 border-emerald-400/25";
-  if (normalized === "rejected") return "bg-rose-500/12 text-rose-300 border-rose-400/25";
-  return "bg-amber-500/12 text-amber-300 border-amber-400/25";
 }
 
 function isWithinLastDays(dateStr: string | null, days: number) {
@@ -313,38 +306,41 @@ function CompanyDashboard() {
             </div>
 
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-              {stats.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <div
-                    key={item.title}
-                    onClick={() => navigate(item.route)}
-                    className="group rounded-[28px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.14)] transition hover:-translate-y-1 hover:bg-white/[0.065] cursor-pointer"
-                  >
-                    <div className="mb-8 flex items-start justify-between">
-                      <div
-                        className={`flex h-12 w-12 items-center justify-center rounded-2xl ${item.iconBg} ${item.iconColor}`}
-                      >
-                        <Icon size={22} />
-                      </div>
+              {loading
+                ? Array.from({ length: 4 }).map((_, index) => <StatSkeleton key={index} />)
+                : stats.map((item, index) => {
+                    const Icon = item.icon;
+                    return (
+                      <Reveal key={item.title} delay={Math.min(index * 0.05, 0.3)}>
+                        <div
+                          onClick={() => navigate(item.route)}
+                          className="group rounded-[28px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.14)] transition hover:-translate-y-1 hover:bg-white/[0.065] cursor-pointer"
+                        >
+                          <div className="mb-8 flex items-start justify-between">
+                            <div
+                              className={`flex h-12 w-12 items-center justify-center rounded-2xl ${item.iconBg} ${item.iconColor}`}
+                            >
+                              <Icon size={22} />
+                            </div>
 
-                      <ChevronRight
-                        className={`text-white/18 transition group-hover:text-white/35 ${
-                          isRTL ? "rotate-180" : ""
-                        }`}
-                        size={18}
-                      />
-                    </div>
+                            <ChevronRight
+                              className={`text-white/18 transition group-hover:text-white/35 ${
+                                isRTL ? "rotate-180" : ""
+                              }`}
+                              size={18}
+                            />
+                          </div>
 
-                    <div className="text-4xl font-extrabold text-white">
-                      {item.value}
-                    </div>
-                    <p className="mt-1 text-[15px] text-white/60">
-                      {item.title}
-                    </p>
-                  </div>
-                );
-              })}
+                          <div className="text-4xl font-extrabold text-white">
+                            {item.value}
+                          </div>
+                          <p className="mt-1 text-[15px] text-white/60">
+                            {item.title}
+                          </p>
+                        </div>
+                      </Reveal>
+                    );
+                  })}
             </div>
 
             <div className="mt-6 grid gap-6 xl:grid-cols-[1.75fr_0.95fr]">
@@ -379,10 +375,12 @@ function CompanyDashboard() {
 
                 <div className="space-y-4">
                   {!loading && topCandidates.length === 0 && (
-                    <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-6 text-center text-sm text-white/50">
-                      {page.candidateHints.none ||
+                    <EmptyState
+                      icon={<Sparkles size={22} />}
+                      title={page.candidateHints.none ||
                         "No scored candidates yet. Open \"AI Summary\" on an application to generate one."}
-                    </div>
+                      className="py-8"
+                    />
                   )}
 
                   {topCandidates.map((candidate, index) => {
@@ -458,48 +456,47 @@ function CompanyDashboard() {
 
                 <div className="space-y-4">
                   {!loading && recentApplications.length === 0 && (
-                    <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-6 text-center text-sm text-white/50">
-                      {page.recentActivity.none || "No applications yet."}
-                    </div>
+                    <EmptyState
+                      icon={<FileText size={22} />}
+                      title={page.recentActivity.none || "No applications yet."}
+                      className="py-8"
+                    />
                   )}
 
-                  {recentApplications.map((app) => (
-                    <div
-                      key={app.id}
-                      className="rounded-[22px] border border-white/10 bg-white/[0.045] p-4 transition hover:-translate-y-0.5 hover:bg-white/[0.065]"
-                    >
-                      <div className="mb-3 flex items-start justify-between gap-3">
-                        <div className={isRTL ? "text-right" : "text-left"}>
-                          <h3 className="text-lg font-bold text-white">
-                            {app.candidateName || "Unknown Candidate"}
-                          </h3>
-                          <p className="mt-1 text-[15px] text-white/55">
-                            {app.jobTitle || "Untitled Role"}
-                          </p>
+                  {recentApplications.map((app, index) => (
+                    <Reveal key={app.id} delay={Math.min(index * 0.05, 0.3)}>
+                      <div className="rounded-[22px] border border-white/10 bg-white/[0.045] p-4 transition hover:-translate-y-0.5 hover:bg-white/[0.065]">
+                        <div className="mb-3 flex items-start justify-between gap-3">
+                          <div className={isRTL ? "text-right" : "text-left"}>
+                            <h3 className="text-lg font-bold text-white">
+                              {app.candidateName || "Unknown Candidate"}
+                            </h3>
+                            <p className="mt-1 text-[15px] text-white/55">
+                              {app.jobTitle || "Untitled Role"}
+                            </p>
+                          </div>
+
+                          <div className="inline-flex items-center gap-1 text-xs text-white/40">
+                            {app.appliedDate || ""}
+                          </div>
                         </div>
 
-                        <div className="inline-flex items-center gap-1 text-xs text-white/40">
-                          {app.appliedDate || ""}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge tone={applicationStatusTone(app.status)}>
+                            {app.status || "Under Review"}
+                          </Badge>
+
+                          {typeof app.matchPercent === "number" && (
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${getMatchTier(app.matchPercent).bg} ${getMatchTier(app.matchPercent).text} ${getMatchTier(app.matchPercent).border}`}
+                            >
+                              <Star size={11} />
+                              {app.matchPercent}% Match
+                            </span>
+                          )}
                         </div>
                       </div>
-
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClass(app.status)}`}
-                        >
-                          {app.status || "Under Review"}
-                        </span>
-
-                        {typeof app.matchPercent === "number" && (
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${getMatchTier(app.matchPercent).bg} ${getMatchTier(app.matchPercent).text} ${getMatchTier(app.matchPercent).border}`}
-                          >
-                            <Star size={11} />
-                            {app.matchPercent}% Match
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                    </Reveal>
                   ))}
                 </div>
 
@@ -529,10 +526,12 @@ function CompanyDashboard() {
               </div>
 
               {!loading && aiInsights.length === 0 && (
-                <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-6 text-center text-sm text-white/50">
-                  {page.insights.none ||
+                <EmptyState
+                  icon={<TrendingUp size={22} />}
+                  title={page.insights.none ||
                     "Not enough hiring data yet — insights will appear here once you start receiving applications."}
-                </div>
+                  className="py-8"
+                />
               )}
 
               {aiInsights.length > 0 && (
@@ -541,13 +540,12 @@ function CompanyDashboard() {
                 // of the container's width, causing overflow on mobile.
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {aiInsights.map((insight, index) => (
-                    <div
-                      key={index}
-                      className="flex items-start gap-3 rounded-[22px] border border-white/10 bg-white/[0.045] p-5 transition hover:-translate-y-0.5 hover:bg-white/[0.065]"
-                    >
-                      <span className="text-xl leading-none">{insight.icon}</span>
-                      <p className="text-[15px] leading-7 text-white/75">{insight.text}</p>
-                    </div>
+                    <Reveal key={index} delay={Math.min(index * 0.05, 0.3)}>
+                      <div className="flex items-start gap-3 rounded-[22px] border border-white/10 bg-white/[0.045] p-5 transition hover:-translate-y-0.5 hover:bg-white/[0.065]">
+                        <span className="text-xl leading-none">{insight.icon}</span>
+                        <p className="text-[15px] leading-7 text-white/75">{insight.text}</p>
+                      </div>
+                    </Reveal>
                   ))}
                 </div>
               )}

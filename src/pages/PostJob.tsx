@@ -10,6 +10,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { apiFetch, ApiError } from "../utils/api";
+import { Button, FormField, Input, useToast } from "../components/ui";
 
 function PostJob() {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ function PostJob() {
   const t = translations[language];
   const p = t.postJobPage;
   const isRTL = language === "ar" || language === "he";
+  const toast = useToast();
 
   const [skills, setSkills] = useState(["React", "TypeScript"]);
   const [skillInput, setSkillInput] = useState("");
@@ -33,7 +35,6 @@ function PostJob() {
   const [minSalary, setMinSalary] = useState("");
   const [maxSalary, setMaxSalary] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
 
   const addSkill = () => {
     const trimmed = skillInput.trim();
@@ -48,14 +49,14 @@ function PostJob() {
   };
 
   const handleSaveDraft = () => {
-    alert(p.jobSavedAsDraft);
+    toast.info(p.jobSavedAsDraft);
   };
 
   const handlePostJob = async () => {
     if (isSubmitting) return;
 
     if (!jobTitle.trim() || !description.trim()) {
-      alert(p.fillTitleAndDescription);
+      toast.error(p.fillTitleAndDescription);
       return;
     }
 
@@ -66,7 +67,7 @@ function PostJob() {
       "Company";
 
     if (!companyEmail) {
-      alert(p.companyEmailNotFound);
+      toast.error(p.companyEmailNotFound);
       return;
     }
 
@@ -101,19 +102,19 @@ function PostJob() {
       });
 
       if (!data.success) {
-        alert(data.message || p.failedToPostJob);
+        toast.error(data.message || p.failedToPostJob);
+        setIsSubmitting(false);
         return;
       }
 
-      setSuccessMessage(p.jobPostedSuccessfully);
+      toast.success(p.jobPostedSuccessfully);
 
       setTimeout(() => {
         navigate("/company-job-postings");
-      }, 1800);
+      }, 1200);
     } catch (error) {
       console.error(error);
-      alert(error instanceof ApiError ? error.message : p.serverConnectionFailed);
-    } finally {
+      toast.error(error instanceof ApiError ? error.message : p.serverConnectionFailed);
       setIsSubmitting(false);
     }
   };
@@ -125,23 +126,6 @@ function PostJob() {
       }`}
       dir={isRTL ? "rtl" : "ltr"}
     >
-      {successMessage && (
-        <div className="fixed right-6 top-6 z-[99999] rounded-2xl border border-emerald-400/20 bg-[rgba(16,185,129,0.16)] px-6 py-4 backdrop-blur-xl shadow-[0_10px_40px_rgba(16,185,129,0.28)]">
-          <div className="flex items-center gap-4">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-400 text-[18px] font-bold text-black">
-              ✓
-            </div>
-
-            <div>
-              <p className="text-sm text-emerald-200/75">{p.success}</p>
-              <h3 className="text-[16px] font-bold text-white">
-                {successMessage}
-              </h3>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_65%_25%,rgba(0,194,255,0.10),transparent_10%),radial-gradient(circle_at_62%_80%,rgba(116,80,255,0.10),transparent_18%)]" />
       <div className="pointer-events-none absolute inset-0 opacity-[0.14] bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:90px_90px]" />
 
@@ -174,18 +158,16 @@ function PostJob() {
             </h2>
 
             <div className="space-y-6">
-              <div>
-                <label className="mb-3 block text-[16px] font-medium text-white/75">
-                  {p.jobTitleRequired}
-                </label>
-                <input
+              <FormField label={p.jobTitleRequired} htmlFor="post-job-title" required>
+                <Input
+                  id="post-job-title"
                   type="text"
                   value={jobTitle}
                   onChange={(e) => setJobTitle(e.target.value)}
                   placeholder={p.jobTitlePlaceholder}
-                  className="h-14 w-full rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white placeholder:text-white/28 outline-none transition focus:border-[#7f6bff]"
+                  className="h-14 text-[17px]"
                 />
-              </div>
+              </FormField>
 
               <div>
                 <label className="mb-3 block text-[16px] font-medium text-white/75">
@@ -205,18 +187,16 @@ function PostJob() {
                   isRTL ? "md:[direction:rtl]" : ""
                 }`}
               >
-                <div>
-                  <label className="mb-3 block text-[16px] font-medium text-white/75">
-                    {p.location}
-                  </label>
-                  <input
+                <FormField label={p.location} htmlFor="post-job-location">
+                  <Input
+                    id="post-job-location"
                     type="text"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     placeholder={p.locationPlaceholder}
-                    className="h-14 w-full rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white placeholder:text-white/28 outline-none transition focus:border-[#7f6bff]"
+                    className="h-14 text-[17px]"
                   />
-                </div>
+                </FormField>
 
                 <div className="flex items-end">
                   <label className="flex items-center gap-4 text-[16px] font-medium text-white/75">
@@ -330,20 +310,20 @@ function PostJob() {
                     {p.experienceYears}
                   </label>
                   <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                    <input
+                    <Input
                       type="number"
                       value={minExperience}
                       onChange={(e) => setMinExperience(e.target.value)}
                       placeholder={p.min}
-                      className="h-14 rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white placeholder:text-white/28 outline-none transition focus:border-[#7f6bff]"
+                      className="h-14 text-[17px]"
                     />
                     <span className="text-white/40">-</span>
-                    <input
+                    <Input
                       type="number"
                       value={maxExperience}
                       onChange={(e) => setMaxExperience(e.target.value)}
                       placeholder={p.max}
-                      className="h-14 rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white placeholder:text-white/28 outline-none transition focus:border-[#7f6bff]"
+                      className="h-14 text-[17px]"
                     />
                   </div>
                 </div>
@@ -353,20 +333,20 @@ function PostJob() {
                     {p.salaryRange}
                   </label>
                   <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                    <input
+                    <Input
                       type="number"
                       value={minSalary}
                       onChange={(e) => setMinSalary(e.target.value)}
                       placeholder={p.min}
-                      className="h-14 rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white placeholder:text-white/28 outline-none transition focus:border-[#7f6bff]"
+                      className="h-14 text-[17px]"
                     />
                     <span className="text-white/40">-</span>
-                    <input
+                    <Input
                       type="number"
                       value={maxSalary}
                       onChange={(e) => setMaxSalary(e.target.value)}
                       placeholder={p.max}
-                      className="h-14 rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white placeholder:text-white/28 outline-none transition focus:border-[#7f6bff]"
+                      className="h-14 text-[17px]"
                     />
                   </div>
                 </div>
@@ -378,19 +358,21 @@ function PostJob() {
                 </label>
 
                 <div className="flex gap-3">
-                  <input
-                    type="text"
-                    value={skillInput}
-                    onChange={(e) => setSkillInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        addSkill();
-                      }
-                    }}
-                    placeholder={p.addSkillPlaceholder}
-                    className="h-14 flex-1 rounded-[14px] border border-white/10 bg-[rgba(255,255,255,0.04)] px-5 text-[17px] text-white placeholder:text-white/28 outline-none transition focus:border-[#7f6bff]"
-                  />
+                  <div className="flex-1">
+                    <Input
+                      type="text"
+                      value={skillInput}
+                      onChange={(e) => setSkillInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addSkill();
+                        }
+                      }}
+                      placeholder={p.addSkillPlaceholder}
+                      className="h-14 text-[17px]"
+                    />
+                  </div>
 
                   <button
                     type="button"
@@ -424,27 +406,29 @@ function PostJob() {
           </div>
 
           <div
-            className={`flex items-center justify-end gap-5 ${
-              isRTL ? "justify-start" : ""
+            className={`flex flex-col-reverse items-stretch justify-end gap-4 sm:flex-row sm:items-center sm:gap-5 ${
+              isRTL ? "sm:justify-start" : ""
             }`}
           >
             <button
               type="button"
               onClick={handleSaveDraft}
-              className="inline-flex h-14 items-center justify-center rounded-[14px] bg-white px-8 text-[16px] font-bold text-[#2a265f] shadow-[0_10px_24px_rgba(255,255,255,0.12)] transition hover:opacity-90"
+              disabled={isSubmitting}
+              className="inline-flex h-14 items-center justify-center rounded-[14px] bg-white px-8 text-[16px] font-bold text-[#2a265f] shadow-[0_10px_24px_rgba(255,255,255,0.12)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {p.saveAsDraft}
             </button>
 
-            <button
+            <Button
               type="button"
+              variant="primary"
+              size="lg"
+              icon={<Save size={18} />}
+              loading={isSubmitting}
               onClick={handlePostJob}
-              disabled={isSubmitting}
-              className="inline-flex h-14 items-center gap-3 rounded-[14px] bg-[linear-gradient(135deg,#7f6bff,#9b3ff5)] px-8 text-[16px] font-bold text-white shadow-[0_14px_30px_rgba(139,92,246,0.25)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
             >
-              <Save size={18} />
               {isSubmitting ? p.posting : p.postJob}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

@@ -20,6 +20,7 @@ import { translations } from "../translations";
 import { apiFetch, apiFetchBlob, ApiError } from "../utils/api";
 import { clearMatchScoreSession } from "../utils/matchScoreSession";
 import AiDisclaimer from "../components/AiDisclaimer";
+import { useConfirm, useToast } from "../components/ui";
 
 type AnalysisResult = {
   score: number;
@@ -32,12 +33,6 @@ type AnalysisResult = {
   candidateField: string;
 };
 
-type Toast = {
-  id: number;
-  type: "success" | "error" | "info";
-  text: string;
-};
-
 function ResumeManager() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { language } = useLanguage();
@@ -45,6 +40,8 @@ function ResumeManager() {
   const t = translations[language];
   const r = t.resumeManagerPage;
   const isRTL = language === "ar" || language === "he";
+  const confirm = useConfirm();
+  const toast = useToast();
 
   const [fileName, setFileName] = useState("");
   const [displayFileName, setDisplayFileName] = useState("");
@@ -55,13 +52,13 @@ function ResumeManager() {
   const [analysisStep, setAnalysisStep] = useState("");
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  const toastCounterRef = useRef(0);
 
-  const showToast = (type: Toast["type"], text: string) => {
-    const id = ++toastCounterRef.current;
-    setToasts((prev) => [...prev, { id, type, text }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 5000);
+  // showToast(type, text) previously duplicated the shared Toast component's own visual style
+  // and stacking/auto-dismiss logic locally on this page - this maps those same call sites onto
+  // the app-wide useToast() (see components/ui/Toast.tsx), which every other redesigned page
+  // already uses, instead of keeping a second, slightly different-looking implementation here.
+  const showToast = (type: "success" | "error" | "info", text: string) => {
+    toast[type](text);
   };
 
   const getSafeErrorMessage = (errorText: string, fallback: string) => {
@@ -227,6 +224,13 @@ function ResumeManager() {
       return;
     }
 
+    // Deleting the CV on file is meaningful/somewhat-destructive (it clears the analysis and
+    // invalidates every match score computed against it) - a candidate could easily hit this by
+    // mistake right next to "View CV"/"Analyze", so it's routed through the shared confirm
+    // dialog rather than firing immediately like FavoritesPage's lightweight "unsave" does.
+    const confirmed = await confirm({ tone: "danger", confirmLabel: t.common.delete });
+    if (!confirmed) return;
+
     try {
       setIsDeleting(true);
 
@@ -325,7 +329,7 @@ function ResumeManager() {
               </div>
 
               <div className={`min-w-0 flex-1 ${isRTL ? "text-right" : "text-left"}`}>
-                <h1 className="text-[42px] font-extrabold leading-tight text-white">
+                <h1 className="text-[42px] font-extrabold leading-tight text-white max-[640px]:text-[28px]">
                   {r.title}
                 </h1>
                 <p className="mt-2 text-[17px] text-[#aeb4d6]">
@@ -439,33 +443,6 @@ function ResumeManager() {
                 <p className="mt-6 text-sm text-[#8f96c2]">
                   {r.supportedFormats}
                 </p>
-
-                {toasts.length > 0 && (
-                  <div className="mt-5 flex flex-col gap-2 w-full max-w-[420px]">
-                    {toasts.map((toast) => (
-                      <div
-                        key={toast.id}
-                        className={`flex items-center gap-3 rounded-2xl border px-4 py-3.5 shadow-[0_4px_20px_rgba(0,0,0,0.30)] backdrop-blur-md ${
-                          toast.type === "success"
-                            ? "border-emerald-400/30 bg-[rgba(5,40,25,0.94)] text-emerald-100"
-                            : toast.type === "error"
-                            ? "border-rose-400/30 bg-[rgba(45,5,15,0.94)] text-rose-100"
-                            : "border-cyan-400/30 bg-[rgba(5,20,45,0.94)] text-cyan-100"
-                        }`}
-                      >
-                        {toast.type === "success" ? (
-                          <CheckCircle2 size={18} className="shrink-0 text-emerald-400" />
-                        ) : (
-                          <AlertCircle
-                            size={18}
-                            className={`shrink-0 ${toast.type === "error" ? "text-rose-400" : "text-cyan-400"}`}
-                          />
-                        )}
-                        <p className="flex-1 text-sm font-medium leading-5">{toast.text}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             </article>
 

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { AnimatePresence, motion } from "motion/react";
 import {
   Search,
   MapPin,
@@ -7,11 +8,13 @@ import {
   Clock3,
   Sparkles,
   ArrowRight,
+  SlidersHorizontal,
   X,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
 import { apiFetch } from "../utils/api";
+import { EmptyState, ListSkeleton, Reveal } from "../components/ui";
 
 type BackendJob = {
   id: number;
@@ -62,6 +65,9 @@ function PublicJobsPage() {
   const [locationFilter, setLocationFilter] = useState("All Locations");
   const [typeFilter, setTypeFilter] = useState("All Types");
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+
+  const hasActiveFilters = locationFilter !== "All Locations" || typeFilter !== "All Types";
 
   useEffect(() => {
     let cancelled = false;
@@ -196,6 +202,9 @@ function PublicJobsPage() {
         </section>
 
         <section className="mb-8 rounded-[28px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_12px_35px_rgba(0,0,0,0.18)]">
+          {/* Search stays inline at every width (primary action); location/type collapse behind
+              a "Filters" sheet below lg - the hidden lg:block selects still render at lg+ so
+              this section keeps its original 3-column layout on larger screens unchanged. */}
           <div className="grid gap-4 lg:grid-cols-[1.8fr_1fr_1fr]">
             <div
               className={`flex items-center gap-3 rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 ${
@@ -218,7 +227,7 @@ function PublicJobsPage() {
             <select
               value={locationFilter}
               onChange={(e) => setLocationFilter(e.target.value)}
-              className="rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none"
+              className="hidden rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none lg:block"
             >
               <option className="text-black" value="All Locations">{p.allLocations}</option>
               {locationOptions.map((location) => (
@@ -231,7 +240,7 @@ function PublicJobsPage() {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none"
+              className="hidden rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none lg:block"
             >
               <option className="text-black" value="All Types">{p.allTypes}</option>
               {typeOptions.map((type) => (
@@ -240,23 +249,111 @@ function PublicJobsPage() {
                 </option>
               ))}
             </select>
+
+            <button
+              type="button"
+              onClick={() => setFilterDrawerOpen(true)}
+              className={`relative flex items-center justify-center gap-2 rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] font-semibold text-white/85 transition hover:bg-white/[0.08] lg:hidden ${
+                isRTL ? "flex-row-reverse" : ""
+              }`}
+            >
+              <SlidersHorizontal size={18} />
+              {t.common.filters}
+              {hasActiveFilters && (
+                <span className="absolute right-3 top-2.5 h-2 w-2 rounded-full bg-fuchsia-400" />
+              )}
+            </button>
           </div>
         </section>
 
-        {loading && (
-          <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-6 py-12 text-center text-white/65">
-            {t.common.loading || "Loading..."}
-          </div>
-        )}
+        <AnimatePresence>
+          {filterDrawerOpen && (
+            <div className="fixed inset-0 z-[70] lg:hidden">
+              <motion.button
+                type="button"
+                aria-label={t.common.close}
+                onClick={() => setFilterDrawerOpen(false)}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              />
+              <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-label={t.common.filters}
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", stiffness: 380, damping: 38 }}
+                className={`absolute bottom-0 left-0 right-0 max-h-[80vh] overflow-y-auto rounded-t-[28px] border-t border-white/10 bg-[#111340] px-5 pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3 shadow-floating ${
+                  isRTL ? "text-right" : "text-left"
+                }`}
+              >
+                <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-white/15" />
+                <div className="mb-4 flex items-center justify-between">
+                  <span className="text-[16px] font-bold text-white">{t.common.filters}</span>
+                  <button
+                    type="button"
+                    onClick={() => setFilterDrawerOpen(false)}
+                    aria-label={t.common.close}
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-white/60 transition hover:bg-white/10 hover:text-white"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <select
+                    value={locationFilter}
+                    onChange={(e) => setLocationFilter(e.target.value)}
+                    className="rounded-[16px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none"
+                  >
+                    <option className="text-black" value="All Locations">{p.allLocations}</option>
+                    {locationOptions.map((location) => (
+                      <option className="text-black" key={location} value={location}>
+                        {location}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={typeFilter}
+                    onChange={(e) => setTypeFilter(e.target.value)}
+                    className="rounded-[16px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 text-[15px] text-white outline-none"
+                  >
+                    <option className="text-black" value="All Types">{p.allTypes}</option>
+                    {typeOptions.map((type) => (
+                      <option className="text-black" key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setFilterDrawerOpen(false)}
+                  className="mt-5 w-full rounded-[16px] bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-4 py-3 text-sm font-bold text-white shadow-[0_12px_28px_rgba(99,102,241,0.28)] transition hover:scale-[1.02]"
+                >
+                  {t.common.applyFilters}
+                </button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {loading && <ListSkeleton count={4} />}
 
         {/* grid-cols-1 (not bare "grid") below - see ExternalJobsPage.tsx's identical fix: a
             bare grid's single implicit column sizes to its widest child's content, letting a
             wide job card overflow past this section at any viewport. */}
         {!loading && (
         <section className="grid grid-cols-1 gap-5">
-          {filteredJobs.map((job) => (
+          {filteredJobs.map((job, index) => (
+            <Reveal key={job.id} delay={Math.min(index * 0.05, 0.3)}>
             <div
-              key={job.id}
               className="rounded-[28px] border border-white/10 bg-white/[0.045] p-6 shadow-[0_12px_35px_rgba(0,0,0,0.16)] transition hover:bg-white/[0.06]"
             >
               <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
@@ -325,68 +422,90 @@ function PublicJobsPage() {
                 </div>
               </div>
             </div>
+            </Reveal>
           ))}
 
           {filteredJobs.length === 0 && (
-            <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-6 py-12 text-center text-white/65">
-              {p.noJobsFound}
-            </div>
+            <EmptyState
+              icon={<BriefcaseBusiness size={26} />}
+              title={p.noJobsFound}
+            />
           )}
         </section>
         )}
       </main>
 
-      {showAuthModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/65 px-4">
-          <div className="w-full max-w-[520px] rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,#171b55_0%,#10153f_100%)] p-6 text-white shadow-[0_20px_80px_rgba(0,0,0,0.4)]">
-            <div className="mb-5 flex items-center justify-between">
-              <div className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500/20 text-violet-300">
-                  <Sparkles size={22} />
+      <AnimatePresence>
+        {showAuthModal && (
+          <motion.div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/65 px-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            onClick={() => setShowAuthModal(false)}
+          >
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="auth-prompt-modal-title"
+              initial={{ opacity: 0, scale: 0.94, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 8 }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-[520px] rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,#171b55_0%,#10153f_100%)] p-6 text-white shadow-[0_20px_80px_rgba(0,0,0,0.4)]"
+            >
+              <div className="mb-5 flex items-center justify-between">
+                <div className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500/20 text-violet-300">
+                    <Sparkles size={22} />
+                  </div>
+                  <div className={isRTL ? "text-right" : "text-left"}>
+                    <h3 id="auth-prompt-modal-title" className="text-xl font-bold">
+                      {p.modalTitle}
+                    </h3>
+                    <p className="mt-1 text-sm text-white/60">
+                      {p.modalSubtitle}
+                    </p>
+                  </div>
                 </div>
-                <div className={isRTL ? "text-right" : "text-left"}>
-                  <h3 className="text-xl font-bold">
-                    {p.modalTitle}
-                  </h3>
-                  <p className="mt-1 text-sm text-white/60">
-                    {p.modalSubtitle}
-                  </p>
-                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowAuthModal(false)}
+                  aria-label={t.common.close}
+                  className="rounded-xl p-2 text-white/60 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+                >
+                  <X size={18} />
+                </button>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowAuthModal(false)}
-                className="rounded-xl p-2 text-white/60 transition hover:bg-white/10 hover:text-white"
-              >
-                <X size={18} />
-              </button>
-            </div>
+              <p className={`mb-6 text-[15px] leading-7 text-white/70 ${isRTL ? "text-right" : "text-left"}`}>
+                {p.modalText}
+              </p>
 
-            <p className={`mb-6 text-[15px] leading-7 text-white/70 ${isRTL ? "text-right" : "text-left"}`}>
-              {p.modalText}
-            </p>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => navigate("/login")}
+                  className="flex-1 rounded-[16px] border border-white/10 bg-white/[0.05] px-4 py-3 font-semibold text-white transition hover:bg-white/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+                >
+                  {t.common.login}
+                </button>
 
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={() => navigate("/login")}
-                className="flex-1 rounded-[16px] border border-white/10 bg-white/[0.05] px-4 py-3 font-semibold text-white transition hover:bg-white/[0.09]"
-              >
-                {t.common.login}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate("/register")}
-                className="flex-1 rounded-[16px] bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-4 py-3 font-bold text-white shadow-[0_12px_28px_rgba(99,102,241,0.28)] transition hover:scale-[1.02]"
-              >
-                {p.createAccount}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                <button
+                  type="button"
+                  onClick={() => navigate("/register")}
+                  className="flex-1 rounded-[16px] bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-4 py-3 font-bold text-white shadow-[0_12px_28px_rgba(99,102,241,0.28)] transition hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+                >
+                  {p.createAccount}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

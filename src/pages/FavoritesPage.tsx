@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import { translations } from "../translations";
 import { apiFetch } from "../utils/api";
 import { formatSalary } from "../utils/formatSalary";
+import { EmptyState, ListSkeleton, Reveal } from "../components/ui";
 
 type SavedJobRow = {
   id: number;
@@ -67,7 +68,7 @@ function FavoritesPage() {
               <Bookmark size={26} />
             </div>
             <div className={`min-w-0 ${isRTL ? "text-right" : "text-left"}`}>
-              <h1 className="text-[42px] font-extrabold leading-tight text-white">{f.title}</h1>
+              <h1 className="text-[42px] font-extrabold leading-tight text-white max-[640px]:text-[28px]">{f.title}</h1>
               <p className="mt-2 text-[17px] text-[#aeb4d6]">{f.subtitle}</p>
             </div>
           </div>
@@ -77,28 +78,20 @@ function FavoritesPage() {
             grid's single implicit column sizes to its widest child's content, letting a wide
             job card overflow past this section at any viewport. */}
         <section className="grid grid-cols-1 gap-5">
-          {loading && (
-            <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-6 py-12 text-center text-white/65">
-              {f.loading}
-            </div>
-          )}
+          {loading && <ListSkeleton count={4} />}
 
           {!loading && !email && (
-            <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-6 py-12 text-center text-white/65">
-              {f.loginRequired}
-            </div>
+            <EmptyState icon={<Bookmark size={26} />} title={f.loginRequired} />
           )}
 
           {!loading && email && rows.length === 0 && (
-            <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-6 py-12 text-center text-white/65">
-              {f.empty}
-            </div>
+            <EmptyState icon={<Bookmark size={26} />} title={f.empty} />
           )}
 
           {!loading &&
-            rows.map((row) => (
+            rows.map((row, index) => (
+              <Reveal key={row.id} delay={Math.min(index * 0.05, 0.3)}>
               <article
-                key={row.id}
                 onClick={() => navigate(`/job-details/${row.jobType}/${row.jobId}`)}
                 className="group cursor-pointer rounded-[28px] border border-white/10 bg-white/[0.045] p-6 shadow-[0_12px_35px_rgba(0,0,0,0.16)] transition hover:bg-white/[0.06]"
               >
@@ -151,6 +144,7 @@ function FavoritesPage() {
                   </button>
                 </div>
               </article>
+              </Reveal>
             ))}
         </section>
 

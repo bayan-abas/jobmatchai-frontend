@@ -51,6 +51,17 @@ export const translations: Record<Language, any> = {
       subtitle: "Subtitle",
       description: "Description",
       actions: "Actions",
+      confirm: "Confirm",
+      filters: "Filters",
+      applyFilters: "Show Results",
+    },
+
+    feedback: {
+      savedSuccessfully: "Saved successfully",
+      somethingWentWrong: "Something went wrong. Please try again.",
+      areYouSure: "Are you sure?",
+      actionCannotBeUndone: "This action cannot be undone.",
+      tryAgain: "Try again",
     },
 
     loginPage: {
@@ -213,6 +224,7 @@ export const translations: Record<Language, any> = {
       myProfile: "My Profile",
       myResume: "My Resume",
       notifications: "Notifications",
+      more: "More",
       brandSubtitle: "AI-Powered Recruitment",
       aiInterview: "AI Interview",
       skillGap: "Skill Gap",
@@ -235,6 +247,7 @@ export const translations: Record<Language, any> = {
       applications: "Applications",
       companyProfile: "Company Profile",
       notifications: "Notifications",
+      more: "More",
       brandSubtitle: "AI-Powered Recruitment",
       searchPlaceholder: "Search candidates...",
     },
@@ -274,12 +287,14 @@ export const translations: Record<Language, any> = {
         aiScreening: "AI Screening",
         daysAgo2: "2 days ago",
         daysAgo5: "5 days ago",
+        none: "No recent applications yet.",
       },
       profileBox: {
         title: "Complete Your Profile",
         subtitle: "Add more details to improve your match score",
         uploadResume: "Upload Resume",
         editProfile: "Edit Profile",
+        progressText: "Your profile is on the right track",
       },
       notifications: {
         title: "Notifications",
@@ -639,6 +654,10 @@ plan: {
   matchScoreLoading: "Calculating match score...",
   profileMatchScore: "Profile Match Score",
   insufficientData: "Not enough job information to calculate a reliable match.",
+  noJobsFound: "No jobs found in the database yet.",
+  noFilteredMatches: "No jobs match your current filters.",
+  noSavedJobsTitle: "No saved jobs yet",
+  noSavedJobsText: "Save jobs from the matches list and they will appear here.",
 },
 
     applicationsPage: {
@@ -834,6 +853,7 @@ plan: {
         message: "Your application for {jobTitle} at {companyName} has been sent. You can track its status anytime from your Applications page.",
         viewApplications: "View My Applications",
         keepBrowsing: "Keep Browsing",
+        close: "Close",
       },
       aboutRole: "About the role",
       responsibilities: "Responsibilities",
@@ -1448,6 +1468,17 @@ plan: {
       subtitle: "العنوان الفرعي",
       description: "الوصف",
       actions: "الإجراءات",
+      confirm: "تأكيد",
+      filters: "الفلاتر",
+      applyFilters: "عرض النتائج",
+    },
+
+    feedback: {
+      savedSuccessfully: "تم الحفظ بنجاح",
+      somethingWentWrong: "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+      areYouSure: "هل أنت متأكد؟",
+      actionCannotBeUndone: "لا يمكن التراجع عن هذا الإجراء.",
+      tryAgain: "حاول مرة أخرى",
     },
 
     loginPage: {
@@ -1609,6 +1640,7 @@ plan: {
       myProfile: "ملفي الشخصي",
       myResume: "سيرتي الذاتية",
       notifications: "الإشعارات",
+      more: "المزيد",
       brandSubtitle: "توظيف مدعوم بالذكاء الاصطناعي",
       aiInterview: "مقابلة بالذكاء الاصطناعي",
       skillGap: "فجوة المهارات",
@@ -1631,6 +1663,7 @@ plan: {
       applications: "الطلبات",
       companyProfile: "ملف الشركة",
       notifications: "الإشعارات",
+      more: "المزيد",
       brandSubtitle: "توظيف مدعوم بالذكاء الاصطناعي",
       searchPlaceholder: "ابحث عن المرشحين...",
     },
@@ -1670,6 +1703,7 @@ plan: {
         aiScreening: "فحص الذكاء الاصطناعي",
         daysAgo2: "قبل يومين",
         daysAgo5: "قبل 5 أيام",
+        none: "لا توجد طلبات حديثة بعد.",
       },
       profileBox: {
         title: "أكمل ملفك الشخصي",
@@ -2017,6 +2051,10 @@ jobMatches: {
   matchScoreLoading: "جارٍ حساب نسبة التوافق...",
   profileMatchScore: "نسبة توافق الملف الشخصي",
   insufficientData: "لا توجد معلومات كافية عن هذه الوظيفة لحساب نسبة توافق موثوقة.",
+  noJobsFound: "لا توجد وظائف في قاعدة البيانات بعد.",
+  noFilteredMatches: "لا توجد وظائف تطابق عوامل التصفية الحالية.",
+  noSavedJobsTitle: "لا توجد وظائف محفوظة بعد",
+  noSavedJobsText: "احفظ الوظائف من قائمة التطابقات وستظهر هنا.",
 },
 
     applicationsPage: {
@@ -2212,6 +2250,7 @@ jobMatches: {
         message: "تم إرسال طلبك للوظيفة {jobTitle} في {companyName}. يمكنك متابعة حالة الطلب في أي وقت من صفحة طلباتي.",
         viewApplications: "عرض طلباتي",
         keepBrowsing: "متابعة التصفح",
+        close: "إغلاق",
       },
       aboutRole: "عن الوظيفة",
       responsibilities: "المسؤوليات",
@@ -2824,6 +2863,17 @@ companyApplicationsPage: {
       subtitle: "כותרת משנה",
       description: "תיאור",
       actions: "פעולות",
+      confirm: "אישור",
+      filters: "פילטרים",
+      applyFilters: "הצג תוצאות",
+    },
+
+    feedback: {
+      savedSuccessfully: "נשמר בהצלחה",
+      somethingWentWrong: "משהו השתבש. נסה שוב.",
+      areYouSure: "האם אתה בטוח?",
+      actionCannotBeUndone: "לא ניתן לבטל פעולה זו.",
+      tryAgain: "נסה שוב",
     },
 
     loginPage: {
@@ -2986,6 +3036,7 @@ companyApplicationsPage: {
       myProfile: "הפרופיל שלי",
       myResume: "קורות החיים שלי",
       notifications: "התראות",
+      more: "עוד",
       brandSubtitle: "גיוס מבוסס בינה מלאכותית",
       aiInterview: "ראיון AI",
       skillGap: "פערי מיומנויות",
@@ -3008,6 +3059,7 @@ companyApplicationsPage: {
       applications: "הגשות",
       companyProfile: "פרופיל החברה",
       notifications: "התראות",
+      more: "עוד",
       brandSubtitle: "גיוס מבוסס בינה מלאכותית",
       searchPlaceholder: "חפש מועמדים...",
     },
@@ -3047,6 +3099,7 @@ companyApplicationsPage: {
         aiScreening: "סינון AI",
         daysAgo2: "לפני יומיים",
         daysAgo5: "לפני 5 ימים",
+        none: "אין עדיין הגשות אחרונות.",
       },
       profileBox: {
         title: "השלם את הפרופיל שלך",
@@ -3394,6 +3447,10 @@ companyApplicationsPage: {
   matchScoreLoading: "מחשב אחוז התאמה...",
   profileMatchScore: "ציון התאמת הפרופיל",
   insufficientData: "אין מספיק מידע על המשרה כדי לחשב התאמה אמינה.",
+  noJobsFound: "לא נמצאו משרות במסד הנתונים עדיין.",
+  noFilteredMatches: "אין משרות שתואמות את המסננים הנוכחיים שלך.",
+  noSavedJobsTitle: "אין עדיין משרות שמורות",
+  noSavedJobsText: "שמור משרות מרשימת ההתאמות והן יופיעו כאן.",
 },
 
     applicationsPage: {
@@ -3588,6 +3645,7 @@ companyApplicationsPage: {
         message: "המועמדות שלך למשרה {jobTitle} בחברת {companyName} נשלחה. תוכל לעקוב אחר הסטטוס בכל עת מעמוד הבקשות שלי.",
         viewApplications: "צפה בבקשות שלי",
         keepBrowsing: "המשך לעיין",
+        close: "סגור",
       },
       aboutRole: "אודות המשרה",
       responsibilities: "תחומי אחריות",

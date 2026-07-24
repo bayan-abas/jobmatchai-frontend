@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
+import { motion } from "motion/react";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { useUnreadCount } from "../hooks/useUnreadCount";
@@ -95,28 +96,31 @@ function CandidateSidebar({ isCollapsed, setIsCollapsed }: CandidateSidebarProps
                 type="button"
                 onClick={() => navigate(item.path)}
                 title={isCollapsed ? item.label : ""}
-                className={`flex w-full items-center rounded-[22px] transition ${
+                className={`relative flex w-full items-center rounded-[22px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
                   isCollapsed
                     ? "justify-center px-3 py-4"
                     : `justify-between px-5 py-4 ${isRTL ? "text-right" : "text-left"}`
-                } ${
-                  active
-                    ? "bg-[rgba(99,102,241,0.28)] text-white"
-                    : "text-[#9ca3c5] hover:bg-white/[0.04] hover:text-white"
-                }`}
+                } ${active ? "text-white" : "text-ink-500 hover:bg-white/[0.04] hover:text-white"}`}
               >
-                <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-4"}`}>
+                {active && (
+                  <motion.span
+                    layoutId="candidate-sidebar-active"
+                    transition={{ type: "spring", stiffness: 420, damping: 36 }}
+                    className="absolute inset-0 rounded-[22px] bg-brand-500/25"
+                  />
+                )}
+                <div className={`relative flex items-center ${isCollapsed ? "justify-center" : "gap-4"}`}>
                   <span className="relative inline-flex">
                     <Icon size={22} strokeWidth={2.1} />
                     {item.path === "/notifications" && unreadCount > 0 && (
-                      <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
+                      <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-danger-500 text-[10px] font-bold text-white">
                         {unreadCount > 9 ? "9+" : unreadCount}
                       </span>
                     )}
                   </span>
                   {!isCollapsed && <span className="text-[17px] font-semibold">{item.label}</span>}
                 </div>
-                {!isCollapsed && active && <span className="h-2.5 w-2.5 rounded-full bg-[#8ea2ff]" />}
+                {!isCollapsed && active && <span className="relative h-2.5 w-2.5 rounded-full bg-brand-300" />}
               </button>
             );
           })}
