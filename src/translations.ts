@@ -166,7 +166,7 @@ export const translations: Record<Language, any> = {
         "Write a short summary about yourself, your background, your goals, and what kind of opportunities you are looking for...",
       uploadResume: "Upload Resume (Optional)",
       noFile: "No file selected",
-      resumeFormats: "PDF, DOC, or DOCX — optional",
+      resumeFormats: "PDF or DOCX — optional",
       chooseFile: "Choose File",
       removeFile: "Remove file",
       createAccount: "Create Candidate Account",
@@ -734,7 +734,7 @@ plan: {
       scoreExplanationText:
         "This score reflects how strong your CV is based on the information it contains, including your skills, experience, education, projects, and overall profile. It is not tied to a specific job. A higher score means your CV is more complete and competitive for a wide range of opportunities.",
       detectedField: "Detected Field",
-      supportedFormats: "Supported formats: PDF, DOC, DOCX",
+      supportedFormats: "Supported formats: PDF, DOCX",
       noFile: "No file selected",
       scoreDescription:
         "Your resume looks promising. Keep refining your skills, keywords, and project experience to improve matching results even more.",
@@ -1583,7 +1583,7 @@ plan: {
         "اكتب نبذة قصيرة عن نفسك، خلفيتك، أهدافك، ونوع الفرص التي تبحث عنها...",
       uploadResume: "رفع السيرة الذاتية (اختياري)",
       noFile: "لم يتم اختيار ملف",
-      resumeFormats: "PDF أو DOC أو DOCX — اختياري",
+      resumeFormats: "PDF أو DOCX — اختياري",
       chooseFile: "اختيار ملف",
       removeFile: "حذف الملف",
       createAccount: "إنشاء حساب مرشح",
@@ -2130,7 +2130,7 @@ jobMatches: {
       scoreExplanationText:
         "تعكس هذه الدرجة مدى قوة سيرتك الذاتية بناءً على المعلومات التي تحتويها، بما في ذلك مهاراتك وخبراتك وتعليمك ومشاريعك وملفك الشخصي بشكل عام. وهي غير مرتبطة بوظيفة معينة. كلما ارتفعت الدرجة، كانت سيرتك الذاتية أكثر اكتمالاً وتنافسية لمجموعة واسعة من الفرص.",
       detectedField: "المجال المكتشف",
-      supportedFormats: "الصيغ المدعومة: PDF, DOC, DOCX",
+      supportedFormats: "الصيغ المدعومة: PDF, DOCX",
       noFile: "لم يتم اختيار ملف",
       scoreDescription:
         "سيرتك الذاتية تبدو واعدة. واصل تحسين مهاراتك والكلمات المفتاحية ومشاريعك لرفع نتائج المطابقة أكثر.",
@@ -2978,7 +2978,7 @@ companyApplicationsPage: {
         "כתוב תקציר קצר על עצמך, הרקע שלך, המטרות שלך ואיזה סוג הזדמנויות אתה מחפש...",
       uploadResume: "העלאת קורות חיים (אופציונלי)",
       noFile: "לא נבחר קובץ",
-      resumeFormats: "PDF, DOC או DOCX — אופציונלי",
+      resumeFormats: "PDF או DOCX — אופציונלי",
       chooseFile: "בחר קובץ",
       removeFile: "הסר קובץ",
       createAccount: "יצירת חשבון מועמד",
@@ -3526,7 +3526,7 @@ companyApplicationsPage: {
       scoreExplanationText:
         "הציון הזה משקף עד כמה קורות החיים שלך חזקים בהתבסס על המידע שהם מכילים, כולל הכישורים, הניסיון, ההשכלה, הפרויקטים והפרופיל הכללי שלך. הוא אינו קשור למשרה ספציפית. ציון גבוה יותר משמעו שקורות החיים שלך שלמים ותחרותיים יותר עבור מגוון רחב של הזדמנויות.",
       detectedField: "תחום שזוהה",
-      supportedFormats: "פורמטים נתמכים: PDF, DOC, DOCX",
+      supportedFormats: "פורמטים נתמכים: PDF, DOCX",
       noFile: "לא נבחר קובץ",
       scoreDescription:
         "קורות החיים שלך נראים מבטיחים. המשך לשפר מיומנויות, מילות מפתח וניסיון בפרויקטים כדי לשפר עוד יותר את תוצאות ההתאמה.",

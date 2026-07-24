@@ -402,7 +402,7 @@ function ResumeManager() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".pdf,.doc,.docx"
+            accept=".pdf,.docx"
             onChange={handleUpload}
             className="hidden"
           />
