@@ -31,7 +31,6 @@ function PostJob() {
   const [seniorityLevel, setSeniorityLevel] = useState("");
   const [employmentType, setEmploymentType] = useState("Full-time");
   const [minExperience, setMinExperience] = useState("");
-  const [maxExperience, setMaxExperience] = useState("");
   const [minSalary, setMinSalary] = useState("");
   const [maxSalary, setMaxSalary] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -126,11 +125,7 @@ function PostJob() {
           description,
           requirements: [
             seniorityLevel ? `Seniority: ${seniorityLevel}` : "",
-            minExperience || maxExperience
-              ? `Experience: ${minExperience || "0"} - ${
-                  maxExperience || "Open"
-                } years`
-              : "",
+            minExperience ? `Experience: ${minExperience}+ years` : "",
           ]
             .filter(Boolean)
             .join(" | "),
@@ -348,7 +343,7 @@ function PostJob() {
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
                   <label className="mb-3 block text-[16px] font-medium text-white/75">
-                    {p.experienceYears}
+                    {p.minExperienceYears}
                   </label>
                   <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                     <Input

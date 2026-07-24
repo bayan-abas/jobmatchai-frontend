@@ -663,7 +663,7 @@ function CandidateRegisterPage() {
                           </p>
                           <p className="text-xs text-white/50">
                             {t?.candidateRegisterPage?.resumeFormats ||
-                              "PDF, DOC, or DOCX — optional"}
+                              "PDF or DOCX — optional"}
                           </p>
                         </div>
                       </div>
@@ -672,7 +672,7 @@ function CandidateRegisterPage() {
                         {t?.candidateRegisterPage?.chooseFile || "Choose File"}
                         <input
                           type="file"
-                          accept=".pdf,.doc,.docx"
+                          accept=".pdf,.docx"
                           onChange={handleResumeUpload}
                           className="hidden"
                         />
