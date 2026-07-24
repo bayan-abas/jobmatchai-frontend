@@ -27,7 +27,7 @@ import SkillExplanationModal from "../components/SkillExplanationModal";
 import PreInterviewModal from "../components/PreInterviewModal";
 import ApplicationSuccessModal from "../components/ApplicationSuccessModal";
 import AiDisclaimer from "../components/AiDisclaimer";
-import { apiFetch } from "../utils/api";
+import { apiFetch, apiFetchWithRetry } from "../utils/api";
 import { Badge, ScoreRing } from "../components/ui";
 
 type JobType = "internal" | "external";
@@ -173,7 +173,13 @@ function JobDetailsPage() {
   const [job, setJob] = useState<JobData | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
+  // See JobMatches.tsx's identically-named state for the full rationale (a sleeping backend
+  // waking back up after inactivity, retried automatically instead of a dead-end error).
+  const [reconnecting, setReconnecting] = useState(false);
   const [aboutSummary, setAboutSummary] = useState<AboutSummary | null>(null);
+  // Bumped by the fetch-error retry button to force the job-detail fetch effect below to
+  // run again without needing its own separately-defined, callable fetch function.
+  const [reloadKey, setReloadKey] = useState(0);
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [matchStatus, setMatchStatus] = useState<MatchStatus>("loading");
@@ -199,8 +205,9 @@ function JobDetailsPage() {
         ? `/api/external-jobs/${jobId}?language=${encodeURIComponent(language)}`
         : `/api/jobs/${jobId}`;
 
-    apiFetch(url)
+    apiFetchWithRetry(url, {}, { onRetry: () => setReconnecting(true) })
       .then((data: { success: boolean; job?: JobData; aboutSummary?: AboutSummary }) => {
+        setReconnecting(false);
         if (data.success && data.job) {
           setJob(data.job);
           // Only meaningful for external jobs - internal job descriptions are short/curated
@@ -213,11 +220,12 @@ function JobDetailsPage() {
       })
       .catch(() => {
         setJob(null);
+        setReconnecting(false);
         setFetchError(d.loadError);
       })
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobType, jobId, language]);
+  }, [jobType, jobId, language, reloadKey]);
 
   useEffect(() => {
     if (!job || !jobId) return;
@@ -401,13 +409,25 @@ function JobDetailsPage() {
 
         {loading && (
           <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-6 py-12 text-center text-white/65">
-            {t.externalJobsPage.loading}
+            {reconnecting ? t.common.reconnecting : d.loading}
           </div>
         )}
 
         {!loading && fetchError && (
-          <div className="rounded-[24px] border border-rose-400/30 bg-rose-400/10 px-6 py-12 text-center text-rose-200">
-            {fetchError}
+          <div className="flex flex-col items-center gap-4 rounded-[24px] border border-rose-400/30 bg-rose-400/10 px-6 py-12 text-center text-rose-200">
+            <span>{fetchError}</span>
+            {fetchError !== d.jobNotFound && (
+              <button
+                type="button"
+                onClick={() => {
+                  setReconnecting(false);
+                  setReloadKey((key) => key + 1);
+                }}
+                className="rounded-full border border-rose-300/40 px-4 py-1.5 text-sm font-semibold text-rose-100 transition hover:bg-rose-400/20"
+              >
+                {t.common.retry}
+              </button>
+            )}
           </div>
         )}
 

@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { apiFetch, setAuthTokenGetter, setUnauthorizedHandler } from "../utils/api";
-import { clearMatchScoreSession } from "../utils/matchScoreSession";
 
 export type Role = "candidate" | "company";
 
@@ -86,7 +85,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem(TOKEN_STORAGE_KEY);
     localStorage.removeItem(TOKEN_STORAGE_KEY);
     STRAY_LOCAL_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
-    clearMatchScoreSession();
+    // Deliberately NOT clearing the match-score session cache here - it's already keyed by
+    // email (see matchScoreSession.ts's storageKey), so a different candidate logging in
+    // afterward can never read this one's cached scores regardless. Wiping it on every logout
+    // meant logging back in shortly after (or an auto-logout from a single 401, via
+    // setUnauthorizedHandler below) forced every job's match score to be re-fetched from
+    // scratch instead of resolving instantly from this same tab's cache.
   };
 
   useEffect(() => {

@@ -31,7 +31,7 @@ import {
   INDUSTRY_KEYS,
 } from "../utils/jobInference";
 import { formatSalary } from "../utils/formatSalary";
-import { apiFetch } from "../utils/api";
+import { apiFetch, apiFetchWithRetry } from "../utils/api";
 import { streamSessionMatches, fetchCurrentCvIdentity } from "../utils/matchScoreSession";
 import { FREE_PLAN_LIMIT } from "../utils/applicationLimit";
 import PreInterviewModal from "../components/PreInterviewModal";
@@ -117,6 +117,11 @@ function JobMatches() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
+  // True only while a retry (see apiFetchWithRetry) is in flight after an initial failure - a
+  // cloud host that sleeps the backend after inactivity (e.g. Render's free tier) makes the
+  // first request after a while fail or hang while it wakes up. Shown instead of a dead-end
+  // error so the candidate never has to manually refresh the page for this to resolve itself.
+  const [reconnecting, setReconnecting] = useState(false);
   const [applyMessage, setApplyMessage] = useState("");
   const [applyingJobId, setApplyingJobId] = useState<number | null>(null);
   const [appliedJobIds, setAppliedJobIds] = useState<number[]>([]);
@@ -127,6 +132,12 @@ function JobMatches() {
   const [matchScores, setMatchScores] = useState<Map<number, MatchScoreEntry>>(new Map());
   const [hasAnalysis, setHasAnalysis] = useState<boolean | null>(null);
   const [matchScoresLoading, setMatchScoresLoading] = useState(false);
+  // Bumped by a failed card's "Retry" action to force the match-score streaming effect below to
+  // run again - a transient AI failure is never persisted to the session cache (see
+  // matchScoreSession.ts), so re-running it naturally only re-requests the jobs that actually
+  // failed; anything already scored resolves instantly from cache instead of double-billing an
+  // OpenAI call.
+  const [matchRetryNonce, setMatchRetryNonce] = useState(0);
 
   // Jobs render immediately once fetched; match percentages stream in progressively (see the
   // streamSessionMatches effect below) rather than blocking the page.
@@ -209,13 +220,16 @@ function JobMatches() {
     };
   };
 
-  useEffect(() => {
-    apiFetch(`/api/jobs/all`)
+  const loadJobs = () => {
+    setLoading(true);
+    setFetchError("");
+    apiFetchWithRetry(`/api/jobs/all`, {}, { onRetry: () => setReconnecting(true) })
       .then((data: BackendJob[]) => {
         const formattedJobs = data.map((job) => buildJobFromBackend(job));
 
         setJobs(formattedJobs);
         setFetchError("");
+        setReconnecting(false);
 
         const identity = readCandidateIdentity();
         if (identity.email) {
@@ -245,11 +259,17 @@ function JobMatches() {
       .catch((error) => {
         console.error(error);
         setJobs([]);
-        setFetchError("Could not load jobs from backend. Make sure Spring Boot is running.");
+        setReconnecting(false);
+        setFetchError(t.jobMatches.loadError || "Could not load jobs from the backend. Please try again.");
       })
       .finally(() => {
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    loadJobs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Match-score fetching itself lives further down (after filteredJobs/paginatedJobs are
@@ -628,8 +648,10 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
     };
     // Deliberately keyed on filteredJobs (not paginatedJobs/page) - changing page must not
     // restart this fetch, since every filtered job is already being requested up front.
+    // matchRetryNonce is included so a failed card's "Retry" button can force this to run
+    // again on demand.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredJobs, language]);
+  }, [filteredJobs, language, matchRetryNonce]);
 
   // The headline count candidates actually care about: of the jobs currently shown (after
   // industry/seniority/salary), how many are REAL matches - the AI gave this job a genuine
@@ -844,9 +866,16 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
             )}
 
             {matchInfo.status === "error" && (
-              <span className="mt-2 max-w-[110px] text-center text-[11px] font-medium text-amber-300/80">
-                Couldn't compute - refresh to retry
-              </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMatchRetryNonce((n) => n + 1);
+                }}
+                className="mt-2 max-w-[110px] rounded-full border border-amber-300/30 bg-amber-400/10 px-3 py-1 text-center text-[11px] font-semibold text-amber-300/90 transition hover:bg-amber-400/20"
+              >
+                {t.jobMatches.matchScoreErrorRetry || "Couldn't compute - tap to retry"}
+              </button>
             )}
 
             {matchInfo.status === "insufficientData" && (
@@ -1100,9 +1129,25 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                 </div>
               </div>
 
+              {reconnecting && !fetchError && (
+                <div className="mb-5 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-5 py-4 text-amber-200">
+                  {t.common.reconnecting}
+                </div>
+              )}
+
               {fetchError && (
-                <div className="mb-5 rounded-2xl border border-rose-400/30 bg-rose-400/10 px-5 py-4 text-rose-200">
-                  {fetchError}
+                <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-400/30 bg-rose-400/10 px-5 py-4 text-rose-200">
+                  <span>{fetchError}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReconnecting(false);
+                      loadJobs();
+                    }}
+                    className="rounded-full border border-rose-300/40 px-4 py-1.5 text-sm font-semibold text-rose-100 transition hover:bg-rose-400/20"
+                  >
+                    {t.common.retry}
+                  </button>
                 </div>
               )}
 

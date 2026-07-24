@@ -51,6 +51,15 @@ function PostJob() {
     toast.info(p.jobSavedAsDraft);
   };
 
+  // "" (not yet entered) parses to null - only a value the user actually typed is validated;
+  // a genuinely negative number is only possible via paste/autofill since the number inputs
+  // below already block typing "-" as the onChange handler's first character.
+  const parseOptionalNumber = (value: string): number | null => {
+    if (!value.trim()) return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
   const handlePostJob = async () => {
     if (isSubmitting) return;
 
@@ -67,6 +76,34 @@ function PostJob() {
 
     if (!companyEmail) {
       toast.error(p.companyEmailNotFound);
+      return;
+    }
+
+    const minSalaryNum = parseOptionalNumber(minSalary);
+    const maxSalaryNum = parseOptionalNumber(maxSalary);
+    const minExperienceNum = parseOptionalNumber(minExperience);
+    const maxExperienceNum = parseOptionalNumber(maxExperience);
+
+    // Defense in depth: the number inputs already block typing/pasting a leading "-", and
+    // `min={0}` covers the spinner arrows, but neither stops a pasted or autofilled negative
+    // value from ever reaching this state - this is the real gate. The backend independently
+    // re-validates the same rules (see JobCreateRequest) in case this check is ever bypassed.
+    if (
+      [minSalaryNum, maxSalaryNum, minExperienceNum, maxExperienceNum].some(
+        (value) => value !== null && value < 0
+      )
+    ) {
+      toast.error(p.negativeValueNotAllowed);
+      return;
+    }
+
+    if (minSalaryNum !== null && maxSalaryNum !== null && maxSalaryNum < minSalaryNum) {
+      toast.error(p.maxSalaryLessThanMinError);
+      return;
+    }
+
+    if (minExperienceNum !== null && maxExperienceNum !== null && maxExperienceNum < minExperienceNum) {
+      toast.error(p.maxExperienceLessThanMinError);
       return;
     }
 
@@ -93,6 +130,10 @@ function PostJob() {
             .filter(Boolean)
             .join(" | "),
           skills: skills.join(", "),
+          minSalary: minSalaryNum,
+          maxSalary: maxSalaryNum,
+          minExperienceYears: minExperienceNum,
+          maxExperienceYears: maxExperienceNum,
         }),
       });
 
@@ -304,19 +345,31 @@ function PostJob() {
                   <label className="mb-3 block text-[16px] font-medium text-white/75">
                     {p.minExperienceYears}
                   </label>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={minExperience}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value === "" || Number(value) >= 0) {
-                        setMinExperience(value);
-                      }
-                    }}
-                    placeholder={p.experiencePlaceholder}
-                    className="h-14 text-[17px]"
-                  />
+                  <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                    <Input
+                      type="number"
+                      min={0}
+                      value={minExperience}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === "" || Number(value) >= 0) setMinExperience(value);
+                      }}
+                      placeholder={p.min}
+                      className="h-14 text-[17px]"
+                    />
+                    <span className="text-white/40">-</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={maxExperience}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === "" || Number(value) >= 0) setMaxExperience(value);
+                      }}
+                      placeholder={p.max}
+                      className="h-14 text-[17px]"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -326,16 +379,24 @@ function PostJob() {
                   <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                     <Input
                       type="number"
+                      min={0}
                       value={minSalary}
-                      onChange={(e) => setMinSalary(e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === "" || Number(value) >= 0) setMinSalary(value);
+                      }}
                       placeholder={p.min}
                       className="h-14 text-[17px]"
                     />
                     <span className="text-white/40">-</span>
                     <Input
                       type="number"
+                      min={0}
                       value={maxSalary}
-                      onChange={(e) => setMaxSalary(e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === "" || Number(value) >= 0) setMaxSalary(value);
+                      }}
                       placeholder={p.max}
                       className="h-14 text-[17px]"
                     />

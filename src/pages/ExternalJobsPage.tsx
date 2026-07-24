@@ -8,7 +8,7 @@ import { translations } from "../translations";
 import ExternalJobCard, { type ExternalJobData, type MatchInfo } from "../components/ExternalJobCard";
 import AiDisclaimer from "../components/AiDisclaimer";
 import { inferIndustry, extractSalaryNumber, INDUSTRY_KEYS } from "../utils/jobInference";
-import { apiFetch, apiFetchStream } from "../utils/api";
+import { apiFetch, apiFetchStream, apiFetchWithRetry } from "../utils/api";
 import { fetchCurrentCvIdentity, NO_CV_IDENTITY } from "../utils/matchScoreSession";
 import { ISRAELI_CITIES } from "../utils/israeliCities";
 import { ISRAELI_REGIONS, getRegionForLocation, type IsraeliRegion } from "../utils/israeliRegions";
@@ -44,6 +44,9 @@ function ExternalJobsPage() {
   const [jobs, setJobs] = useState<ExternalJobData[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
+  // See JobMatches.tsx's identically-named state for the full rationale (a sleeping backend
+  // waking back up after inactivity, retried automatically instead of a dead-end error).
+  const [reconnecting, setReconnecting] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [regionFilter, setRegionFilter] = useState<IsraeliRegion | "">("");
@@ -58,25 +61,39 @@ function ExternalJobsPage() {
   const [matchScores, setMatchScores] = useState<Map<number, MatchScoreEntry>>(new Map());
   const [hasAnalysis, setHasAnalysis] = useState<boolean | null>(null);
   const [matchScoresLoading, setMatchScoresLoading] = useState(false);
+  // Bumped by a failed card's "Retry" action to force the match-score streaming effect below to
+  // run again. The backend's own per-(candidate,job) score cache means re-requesting an
+  // already-scored job just returns the cached result instantly - only the genuinely failed
+  // one(s) actually trigger new AI work.
+  const [matchRetryNonce, setMatchRetryNonce] = useState(0);
   const [savedJobIds, setSavedJobIds] = useState<Set<number>>(new Set());
   // See JobMatches.tsx's identically-named state for the full rationale.
   const [jobCategory, setJobCategory] = useState<"profession" | "vocational">("profession");
   // See JobMatches.tsx's identically-named state for the full rationale.
   const [matchYouFilter, setMatchYouFilter] = useState(true);
 
-  useEffect(() => {
-    apiFetch(`/api/external-jobs/all`)
+  const loadExternalJobs = () => {
+    setLoading(true);
+    setFetchError("");
+    apiFetchWithRetry(`/api/external-jobs/all`, {}, { onRetry: () => setReconnecting(true) })
       .then((data: ExternalJobData[]) => {
         setJobs(Array.isArray(data) ? data : []);
         setFetchError("");
+        setReconnecting(false);
       })
       .catch((error) => {
         console.error(error);
         setJobs([]);
+        setReconnecting(false);
         setFetchError(p.loadError);
       })
       .finally(() => setLoading(false));
-  }, [p.loadError]);
+  };
+
+  useEffect(() => {
+    loadExternalJobs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const identity = readCandidateIdentity();
@@ -161,7 +178,7 @@ function ExternalJobsPage() {
     return () => {
       controller.abort();
     };
-  }, [jobs, language]);
+  }, [jobs, language, matchRetryNonce]);
 
   useEffect(() => {
     const identity = readCandidateIdentity();
@@ -380,9 +397,25 @@ function ExternalJobsPage() {
             </div>
           </div>
 
+          {reconnecting && !fetchError && (
+            <div className="mb-5 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-5 py-4 text-amber-200">
+              {t.common.reconnecting}
+            </div>
+          )}
+
           {fetchError && (
-            <div className="mb-5 rounded-2xl border border-rose-400/30 bg-rose-400/10 px-5 py-4 text-rose-200">
-              {fetchError}
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-400/30 bg-rose-400/10 px-5 py-4 text-rose-200">
+              <span>{fetchError}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setReconnecting(false);
+                  loadExternalJobs();
+                }}
+                className="rounded-full border border-rose-300/40 px-4 py-1.5 text-sm font-semibold text-rose-100 transition hover:bg-rose-400/20"
+              >
+                {t.common.retry}
+              </button>
             </div>
           )}
 
@@ -736,6 +769,7 @@ function ExternalJobsPage() {
                   onViewDetails={() => navigate(`/job-details/external/${job.id}`)}
                   isSaved={savedJobIds.has(job.id)}
                   onToggleSave={isLoggedIn ? () => handleToggleSave(job) : undefined}
+                  onRetryMatch={() => setMatchRetryNonce((n) => n + 1)}
                 />
               </Reveal>
             ))}

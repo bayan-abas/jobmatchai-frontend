@@ -48,9 +48,10 @@ type ExternalJobCardProps = {
   onViewDetails?: () => void;
   isSaved?: boolean;
   onToggleSave?: () => void;
+  onRetryMatch?: () => void;
 };
 
-function ExternalJobCard({ job, matchInfo, t, isRTL, onViewDetails, isSaved, onToggleSave }: ExternalJobCardProps) {
+function ExternalJobCard({ job, matchInfo, t, isRTL, onViewDetails, isSaved, onToggleSave, onRetryMatch }: ExternalJobCardProps) {
   const navigate = useNavigate();
   const p = t.externalJobsPage;
 
@@ -59,9 +60,6 @@ function ExternalJobCard({ job, matchInfo, t, isRTL, onViewDetails, isSaved, onT
     .map((skill) => skill.trim())
     .filter(Boolean);
 
-  const importedDate = job.importedAt
-    ? new Date(job.importedAt).toLocaleDateString()
-    : null;
   const postedDate = job.publishedAt
     ? new Date(job.publishedAt).toLocaleDateString()
     : null;
@@ -101,9 +99,14 @@ function ExternalJobCard({ job, matchInfo, t, isRTL, onViewDetails, isSaved, onT
           )}
 
           {matchInfo.status === "error" && (
-            <span className="mt-2 max-w-[110px] text-center text-[11px] font-medium text-amber-300/80">
-              {p.matchScoreErrorRetry || "Couldn't compute - refresh to retry"}
-            </span>
+            <button
+              type="button"
+              onClick={onRetryMatch}
+              disabled={!onRetryMatch}
+              className="mt-2 max-w-[110px] rounded-full border border-amber-300/30 bg-amber-400/10 px-3 py-1 text-center text-[11px] font-medium text-amber-300/90 transition hover:bg-amber-400/20 disabled:cursor-default disabled:opacity-70"
+            >
+              {p.matchScoreErrorRetry || "Couldn't compute - tap to retry"}
+            </button>
           )}
 
           {/* No CVAnalysis for this candidate - the backend already refuses to compute or
@@ -190,12 +193,6 @@ function ExternalJobCard({ job, matchInfo, t, isRTL, onViewDetails, isSaved, onT
               <span className={`inline-flex items-center gap-1 text-xs font-medium text-white/45 ${isRTL ? "flex-row-reverse" : ""}`}>
                 <CalendarDays size={13} />
                 {p.postedLabel}: {postedDate}
-              </span>
-            )}
-            {importedDate && (
-              <span className={`inline-flex items-center gap-1 text-xs font-medium text-white/35 ${isRTL ? "flex-row-reverse" : ""}`}>
-                <CalendarDays size={13} />
-                {p.importedLabel}: {importedDate}
               </span>
             )}
           </div>
