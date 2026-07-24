@@ -52,6 +52,12 @@ export type MatchEntry = {
   // downweight it, per the "don't show completely unrelated jobs, even at a low percentage"
   // product requirement.
   excludedFromListing?: boolean;
+  // True when this entry is a last-known-good fallback served because a fresh recompute just
+  // failed (queue timeout, AI retries exhausted) - see backend JobMatchScore#stale. The number is
+  // real (not a guess), just possibly a little behind; callers should keep showing it as a normal
+  // score (never an error state) while quietly retrying in the background - see JobMatches.tsx's
+  // retry-scheduling effect for the actual retry loop.
+  stale?: boolean;
 };
 
 type RawMatch = {
@@ -68,6 +74,7 @@ type RawMatch = {
   insufficientData?: boolean;
   generalVocationalRole?: boolean;
   excludedFromListing?: boolean;
+  stale?: boolean;
 };
 
 type MatchesResponse = { hasAnalysis: boolean; matches: RawMatch[] };
@@ -191,9 +198,13 @@ async function fetchAndMerge(
       insufficientData: match.insufficientData === true,
       generalVocationalRole: match.generalVocationalRole === true,
       excludedFromListing: match.excludedFromListing === true,
+      stale: match.stale === true,
     };
     resultEntries[match.jobId] = entry;
-    if (match.fieldRelated !== null || entry.insufficientData) {
+    // A stale fallback is deliberately excluded from what gets persisted, same as a transient
+    // failure - the whole point is to keep retrying it in the background (see JobMatches.tsx),
+    // and a value frozen into the session cache would never be retried again this tab session.
+    if ((match.fieldRelated !== null && !entry.stale) || entry.insufficientData) {
       persisted[match.jobId] = entry;
     }
   });
@@ -335,14 +346,16 @@ export function streamSessionMatches(
           insufficientData: match.insufficientData === true,
           generalVocationalRole: match.generalVocationalRole === true,
           excludedFromListing: match.excludedFromListing === true,
+          stale: match.stale === true,
         };
         sawAnalysis = true;
 
         // Same "don't freeze a transient failure into the session cache" rule as
         // fetchAndMerge above - only a real verdict (fieldRelated !== null) OR the deterministic
         // insufficient-data verdict gets persisted, so a job the AI genuinely couldn't score
-        // naturally retries on the next visit.
-        if (entry.fieldRelated !== null || entry.insufficientData) {
+        // naturally retries on the next visit. A stale fallback is excluded the same way (see
+        // fetchAndMerge's own comment) - it must keep being retried, not freeze in as final.
+        if ((entry.fieldRelated !== null && !entry.stale) || entry.insufficientData) {
           const bucket = readBucket(email, kind, cvIdentity) || { cvIdentity, hasAnalysis: true, entries: {} };
           bucket.entries[match.jobId] = entry;
           bucket.hasAnalysis = true;
@@ -363,6 +376,36 @@ export function streamSessionMatches(
     console.error(error);
     onDone(sawAnalysis);
   });
+}
+
+// Writes a single job's freshly-known result directly into the session cache, keyed by the
+// caller's current cvIdentity - used by JobDetailsPage after its own independent
+// /api/jobs/match-detail (or external counterpart) call, which never goes through
+// getSessionMatches/streamSessionMatches above and so would otherwise leave the list/dashboard
+// pages' cached bucket pointing at whatever percentage was cached before the candidate opened
+// this job's details. Without this, the details page could compute (and the backend persist) a
+// genuinely different score - e.g. because the job's own content changed, or a backend scoring-
+// logic fix reprocessed it - while the list page kept showing the stale cached number for the
+// rest of the tab session, since nothing ever told its cache a newer value existed.
+//
+// Only call this for a real, scored verdict (fieldRelated === true with a real matchPercent) -
+// the match-detail endpoint's response shape doesn't carry insufficientData/generalVocationalRole/
+// excludedFromListing (those are list-only concerns), so writing an entry for any other status
+// would default those flags incorrectly instead of leaving them as the list's own fetch already
+// determined them.
+export function updateSessionMatchEntry(
+  email: string,
+  kind: MatchKind,
+  cvIdentity: string,
+  jobId: number,
+  entry: MatchEntry
+) {
+  if (!email || cvIdentity === NO_CV_IDENTITY) return;
+  const existing = readBucket(email, kind, cvIdentity);
+  const bucket: CacheBucket = existing ?? { cvIdentity, hasAnalysis: true, entries: {} };
+  bucket.hasAnalysis = true;
+  bucket.entries = { ...bucket.entries, [jobId]: entry };
+  writeBucket(email, kind, bucket);
 }
 
 // Called on logout, and on CV upload/delete/analyze (see ResumeManager.tsx) so a different

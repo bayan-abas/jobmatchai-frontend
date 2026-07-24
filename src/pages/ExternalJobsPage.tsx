@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { Globe2, Search, DollarSign, SlidersHorizontal, Loader2, X } from "lucide-react";
@@ -27,6 +27,10 @@ type MatchScoreEntry = {
   // VocationalRoleClassifier-driven categorization applies to external jobs too.
   generalVocationalRole: boolean;
   excludedFromListing: boolean;
+  // True when this is a last-known-good fallback served because a fresh recompute just failed -
+  // see backend JobMatchScore#stale. Real number, possibly a little behind; the retry-scheduling
+  // effect below (not the user) is responsible for eventually replacing it with a fresh one.
+  stale: boolean;
 };
 
 function ExternalJobsPage() {
@@ -66,6 +70,11 @@ function ExternalJobsPage() {
   // already-scored job just returns the cached result instantly - only the genuinely failed
   // one(s) actually trigger new AI work.
   const [matchRetryNonce, setMatchRetryNonce] = useState(0);
+  // Caps how many times the effect below will auto-schedule its own retry for a stale fallback
+  // score before giving up and just leaving the (still real, just possibly outdated) last-known
+  // percentage on screen - a persistently-failing job must never retry forever in the background.
+  const staleRetryCountRef = useRef(0);
+  const MAX_STALE_RETRIES = 5;
   const [savedJobIds, setSavedJobIds] = useState<Set<number>>(new Set());
   // See JobMatches.tsx's identically-named state for the full rationale.
   const [jobCategory, setJobCategory] = useState<"profession" | "vocational">("profession");
@@ -112,6 +121,15 @@ function ExternalJobsPage() {
     setMatchScores(new Map());
     setMatchScoresLoading(true);
 
+    // Tracked locally (not via React state, which wouldn't be readable synchronously inside the
+    // "done" handler below) - true the moment any job in THIS pass came back as a stale fallback
+    // (see backend JobMatchScore#stale) OR a hard error with no fallback available (fieldRelated
+    // === null - e.g. a brand-new job with no prior score at all). Drives the auto-retry
+    // scheduling once the batch settles - this is the secondary safety net, not the primary fix
+    // (see backend matching.queue.await-timeout-ms's own comment for the actual root-cause fix),
+    // so it must also cover the no-fallback case, not just the stale one.
+    let needsRetry = false;
+
     // Checked before ever opening the SSE connection - a candidate with no CV has nothing to
     // compute (the backend would immediately reply with its own "no-analysis" event anyway, no
     // AI/queue work triggered), but skipping the request entirely here is what stops the
@@ -143,8 +161,12 @@ function ExternalJobsPage() {
               fieldRelated?: boolean | null;
               generalVocationalRole?: boolean;
               excludedFromListing?: boolean;
+              stale?: boolean;
             };
             setHasAnalysis(true);
+            if (match.stale || match.fieldRelated === null) {
+              needsRetry = true;
+            }
             // Per-card progressive update: each "score" event updates just that one job's entry,
             // so a job that's already resolved shows its real percentage immediately instead of
             // waiting for every other job in the batch to finish too.
@@ -156,6 +178,7 @@ function ExternalJobsPage() {
                 fieldRelated: match.fieldRelated === undefined ? true : match.fieldRelated,
                 generalVocationalRole: match.generalVocationalRole === true,
                 excludedFromListing: match.excludedFromListing === true,
+                stale: match.stale === true,
               });
               return next;
             });
@@ -164,6 +187,25 @@ function ExternalJobsPage() {
 
           if (evt.event === "done") {
             setMatchScoresLoading(false);
+
+            // Auto-retry, silently in the background, for whatever came back stale OR hard-
+            // errored this pass - bumping matchRetryNonce is exactly what the existing manual
+            // "Retry" button already does, just triggered automatically instead of waiting for a
+            // click. The backend's own per-(candidate,job) cache means anything already fresh
+            // resolves instantly; only the genuinely-unresolved job(s) trigger new AI work.
+            // Secondary safety net only - the actual fix is the backend's queue-await-timeout
+            // increase, which should make this rarely fire at all.
+            if (needsRetry && !controller.signal.aborted && staleRetryCountRef.current < MAX_STALE_RETRIES) {
+              staleRetryCountRef.current += 1;
+              const delayMs = 8000 + staleRetryCountRef.current * 4000;
+              window.setTimeout(() => {
+                if (!controller.signal.aborted) {
+                  setMatchRetryNonce((n) => n + 1);
+                }
+              }, delayMs);
+            } else if (!needsRetry) {
+              staleRetryCountRef.current = 0;
+            }
           }
         },
         controller.signal

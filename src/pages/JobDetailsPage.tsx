@@ -29,6 +29,7 @@ import ApplicationSuccessModal from "../components/ApplicationSuccessModal";
 import AiDisclaimer from "../components/AiDisclaimer";
 import { apiFetch, apiFetchWithRetry } from "../utils/api";
 import { Badge, ScoreRing } from "../components/ui";
+import { fetchCurrentCvIdentity, updateSessionMatchEntry } from "../utils/matchScoreSession";
 
 type JobType = "internal" | "external";
 
@@ -308,6 +309,28 @@ function JobDetailsPage() {
         setMatchStatus(
           data.fieldRelated === null ? "error" : data.fieldRelated === false ? "noScore" : "scored"
         );
+
+        // Keep the list/dashboard pages' session-cached percentage in sync with whatever this
+        // page just computed (or reused) - see updateSessionMatchEntry's own doc comment for why
+        // this is needed: this page's own fetch never goes through getSessionMatches, so without
+        // this write, a genuinely different score computed here would only ever appear on THIS
+        // page, leaving the list showing a now-stale cached number for the rest of the tab session.
+        if (data.fieldRelated === true && typeof data.matchPercent === "number") {
+          fetchCurrentCvIdentity().then((cvIdentity) => {
+            if (cancelled) return;
+            updateSessionMatchEntry(identity.email, jobType, cvIdentity, Number(jobId), {
+              matchPercent: data.matchPercent,
+              matchReason: data.matchReason,
+              matchedSkills: data.matchedSkills,
+              missingSkills: data.missingSkills,
+              matchedRequiredSkills: data.matchedRequiredSkills,
+              matchedPreferredSkills: data.matchedPreferredSkills,
+              missingRequiredSkills: data.missingRequiredSkills,
+              missingPreferredSkills: data.missingPreferredSkills,
+              fieldRelated: true,
+            });
+          });
+        }
       })
       .catch(() => {
         if (!cancelled) {
