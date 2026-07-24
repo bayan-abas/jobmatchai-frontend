@@ -52,6 +52,12 @@ export type MatchEntry = {
   // downweight it, per the "don't show completely unrelated jobs, even at a low percentage"
   // product requirement.
   excludedFromListing?: boolean;
+  // True when this entry is a last-known-good fallback served because a fresh recompute just
+  // failed (queue timeout, AI retries exhausted) - see backend JobMatchScore#stale. The number is
+  // real (not a guess), just possibly a little behind; callers should keep showing it as a normal
+  // score (never an error state) while quietly retrying in the background - see JobMatches.tsx's
+  // retry-scheduling effect for the actual retry loop.
+  stale?: boolean;
 };
 
 type RawMatch = {
@@ -68,6 +74,7 @@ type RawMatch = {
   insufficientData?: boolean;
   generalVocationalRole?: boolean;
   excludedFromListing?: boolean;
+  stale?: boolean;
 };
 
 type MatchesResponse = { hasAnalysis: boolean; matches: RawMatch[] };
@@ -191,9 +198,13 @@ async function fetchAndMerge(
       insufficientData: match.insufficientData === true,
       generalVocationalRole: match.generalVocationalRole === true,
       excludedFromListing: match.excludedFromListing === true,
+      stale: match.stale === true,
     };
     resultEntries[match.jobId] = entry;
-    if (match.fieldRelated !== null || entry.insufficientData) {
+    // A stale fallback is deliberately excluded from what gets persisted, same as a transient
+    // failure - the whole point is to keep retrying it in the background (see JobMatches.tsx),
+    // and a value frozen into the session cache would never be retried again this tab session.
+    if ((match.fieldRelated !== null && !entry.stale) || entry.insufficientData) {
       persisted[match.jobId] = entry;
     }
   });
@@ -335,14 +346,16 @@ export function streamSessionMatches(
           insufficientData: match.insufficientData === true,
           generalVocationalRole: match.generalVocationalRole === true,
           excludedFromListing: match.excludedFromListing === true,
+          stale: match.stale === true,
         };
         sawAnalysis = true;
 
         // Same "don't freeze a transient failure into the session cache" rule as
         // fetchAndMerge above - only a real verdict (fieldRelated !== null) OR the deterministic
         // insufficient-data verdict gets persisted, so a job the AI genuinely couldn't score
-        // naturally retries on the next visit.
-        if (entry.fieldRelated !== null || entry.insufficientData) {
+        // naturally retries on the next visit. A stale fallback is excluded the same way (see
+        // fetchAndMerge's own comment) - it must keep being retried, not freeze in as final.
+        if ((entry.fieldRelated !== null && !entry.stale) || entry.insufficientData) {
           const bucket = readBucket(email, kind, cvIdentity) || { cvIdentity, hasAnalysis: true, entries: {} };
           bucket.entries[match.jobId] = entry;
           bucket.hasAnalysis = true;

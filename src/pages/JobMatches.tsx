@@ -91,6 +91,10 @@ type MatchScoreEntry = {
   // A non-vocational job the candidate's resolved profession is genuinely unrelated to - hidden
   // from every listing entirely, never just downweighted.
   excludedFromListing: boolean;
+  // True when this is a last-known-good fallback served because a fresh recompute just failed -
+  // see backend JobMatchScore#stale. Real number, possibly a little behind; the retry-scheduling
+  // effect below (not the user) is responsible for eventually replacing it with a fresh one.
+  stale: boolean;
 };
 
 function JobMatches() {
@@ -138,6 +142,11 @@ function JobMatches() {
   // failed; anything already scored resolves instantly from cache instead of double-billing an
   // OpenAI call.
   const [matchRetryNonce, setMatchRetryNonce] = useState(0);
+  // Caps how many times the effect below will auto-schedule its own retry for a stale fallback
+  // score before giving up and just leaving the (still real, just possibly outdated) last-known
+  // percentage on screen - a persistently-failing job must never retry forever in the background.
+  const staleRetryCountRef = useRef(0);
+  const MAX_STALE_RETRIES = 5;
 
   // Jobs render immediately once fetched; match percentages stream in progressively (see the
   // streamSessionMatches effect below) rather than blocking the page.
@@ -601,6 +610,14 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
     const controller = new AbortController();
     setMatchScoresLoading(true);
 
+    // Tracked locally (not via React state, which wouldn't be readable synchronously inside the
+    // onDone callback below) - true the moment any job in THIS pass came back as a stale fallback
+    // (see backend JobMatchScore#stale / matchScoreSession.ts's own doc comments). Drives the
+    // auto-retry scheduling after the batch settles: the candidate must always see a real
+    // percentage, never an error, per product requirement - a stale fallback already satisfies
+    // that, but the fresh number still needs to arrive on its own without any manual refresh.
+    let sawStale = false;
+
     // Always resolved fresh (never assumed/cached client-side) before touching the session
     // cache - this is what lets a deleted/replaced CV self-correct: a stale bucket left over
     // from the previous CV simply won't match this identity and gets bypassed (see
@@ -616,6 +633,9 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
         language,
         (jobId, entry) => {
           setHasAnalysis(true);
+          if (entry.stale) {
+            sawStale = true;
+          }
           setMatchScores((prev) => {
             const next = new Map(prev);
             next.set(jobId, {
@@ -631,6 +651,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
               insufficientData: entry.insufficientData === true,
               generalVocationalRole: entry.generalVocationalRole === true,
               excludedFromListing: entry.excludedFromListing === true,
+              stale: entry.stale === true,
             });
             return next;
           });
@@ -638,6 +659,24 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
         (hasAnalysisResult) => {
           setHasAnalysis(hasAnalysisResult);
           setMatchScoresLoading(false);
+
+          // Auto-retry, silently in the background, for whatever came back stale this pass -
+          // stale entries are never written into the session cache (see matchScoreSession.ts),
+          // so re-running this same effect genuinely re-requests just those jobs from the
+          // backend; anything already fresh resolves instantly from cache. Bumping
+          // matchRetryNonce is exactly what the existing manual "Retry" button already does,
+          // just triggered automatically instead of waiting for a click.
+          if (sawStale && !controller.signal.aborted && staleRetryCountRef.current < MAX_STALE_RETRIES) {
+            staleRetryCountRef.current += 1;
+            const delayMs = 8000 + staleRetryCountRef.current * 4000;
+            window.setTimeout(() => {
+              if (!controller.signal.aborted) {
+                setMatchRetryNonce((n) => n + 1);
+              }
+            }, delayMs);
+          } else if (!sawStale) {
+            staleRetryCountRef.current = 0;
+          }
         },
         controller.signal
       );
