@@ -82,14 +82,13 @@ function PostJob() {
     const minSalaryNum = parseOptionalNumber(minSalary);
     const maxSalaryNum = parseOptionalNumber(maxSalary);
     const minExperienceNum = parseOptionalNumber(minExperience);
-    const maxExperienceNum = parseOptionalNumber(maxExperience);
 
     // Defense in depth: the number inputs already block typing/pasting a leading "-", and
     // `min={0}` covers the spinner arrows, but neither stops a pasted or autofilled negative
     // value from ever reaching this state - this is the real gate. The backend independently
     // re-validates the same rules (see JobCreateRequest) in case this check is ever bypassed.
     if (
-      [minSalaryNum, maxSalaryNum, minExperienceNum, maxExperienceNum].some(
+      [minSalaryNum, maxSalaryNum, minExperienceNum].some(
         (value) => value !== null && value < 0
       )
     ) {
@@ -99,11 +98,6 @@ function PostJob() {
 
     if (minSalaryNum !== null && maxSalaryNum !== null && maxSalaryNum < minSalaryNum) {
       toast.error(p.maxSalaryLessThanMinError);
-      return;
-    }
-
-    if (minExperienceNum !== null && maxExperienceNum !== null && maxExperienceNum < minExperienceNum) {
-      toast.error(p.maxExperienceLessThanMinError);
       return;
     }
 
@@ -133,7 +127,6 @@ function PostJob() {
           minSalary: minSalaryNum,
           maxSalary: maxSalaryNum,
           minExperienceYears: minExperienceNum,
-          maxExperienceYears: maxExperienceNum,
         }),
       });
 
@@ -345,31 +338,17 @@ function PostJob() {
                   <label className="mb-3 block text-[16px] font-medium text-white/75">
                     {p.minExperienceYears}
                   </label>
-                  <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                    <Input
-                      type="number"
-                      min={0}
-                      value={minExperience}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === "" || Number(value) >= 0) setMinExperience(value);
-                      }}
-                      placeholder={p.min}
-                      className="h-14 text-[17px]"
-                    />
-                    <span className="text-white/40">-</span>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={maxExperience}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === "" || Number(value) >= 0) setMaxExperience(value);
-                      }}
-                      placeholder={p.max}
-                      className="h-14 text-[17px]"
-                    />
-                  </div>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={minExperience}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === "" || Number(value) >= 0) setMinExperience(value);
+                    }}
+                    placeholder={p.experiencePlaceholder}
+                    className="h-14 text-[17px]"
+                  />
                 </div>
 
                 <div>

@@ -46,6 +46,10 @@ type BackendApplication = {
   contactMethodOther?: string | null;
   contactMessage?: string | null;
   rejectionReason?: string | null;
+  // The referenced job's CURRENT status ("ACTIVE"/"CLOSED"), enriched server-side at read time -
+  // see ApplicationController#getApplicationsByCandidate on the backend. Null if the job no
+  // longer exists at all (e.g. deleted).
+  jobStatus?: string | null;
 };
 
 type ApplicationItem = {
@@ -79,6 +83,10 @@ type ApplicationItem = {
   // exactly as written, never AI-generated or a generic message. See
   // ApplicationController#updateStatus on the backend.
   rejectionReason: string | null;
+  // True once the company has closed the job this application was submitted for - the
+  // application itself is untouched (never deleted, its review status/history stays exactly as
+  // it was), this only drives an additional "Closed" badge/notice on top of that.
+  jobClosed: boolean;
 };
 
 // Mirrors ApplicationController.CONTACT_METHOD_LABELS on the backend - keep in sync.
@@ -201,6 +209,7 @@ function mapBackendApplication(app: BackendApplication): ApplicationItem {
     contactMethodOther: app.contactMethodOther ?? null,
     contactMessage: app.contactMessage ?? null,
     rejectionReason: app.rejectionReason ?? null,
+    jobClosed: app.jobStatus === "CLOSED",
     about: "Application details are loaded from the backend. More job information can be connected later from the jobs table.",
     requirements: [],
     skills: [],
@@ -701,6 +710,12 @@ function Applications() {
                           <Badge tone={getApplicationTone(app)}>
                             {getReviewStatusLabel(app.reviewStatus)}
                           </Badge>
+
+                          {app.jobClosed && (
+                            <Badge tone="neutral">
+                              {t.applicationsPage.jobClosedBadge || "Closed"}
+                            </Badge>
+                          )}
                         </div>
 
                         <div className="mb-3 flex items-center gap-2 text-[#c4cae9]">
@@ -854,6 +869,12 @@ function Applications() {
                         <Badge tone={getApplicationTone(selectedApplication)} className="px-4 py-2 text-[15px]">
                           {getReviewStatusLabel(selectedApplication.reviewStatus)}
                         </Badge>
+
+                        {selectedApplication.jobClosed && (
+                          <Badge tone="neutral" className="px-4 py-2 text-[15px]">
+                            {t.applicationsPage.jobClosedBadge || "Closed"}
+                          </Badge>
+                        )}
                       </div>
 
                       <div className="mb-3 flex items-center gap-2 text-[#c4cae9]">
@@ -909,6 +930,12 @@ function Applications() {
                   </div>
                 </div>
               </div>
+
+              {selectedApplication.jobClosed && (
+                <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/60">
+                  {t.applicationsPage.jobClosedNotice || "This job posting is no longer active."}
+                </div>
+              )}
 
               {withdrawError && (
                 <div className="mt-5 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">

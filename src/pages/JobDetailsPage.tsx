@@ -45,6 +45,9 @@ type JobData = {
   sourceName?: string;
   sourceUrl?: string;
   applyUrl?: string;
+  // Internal jobs only (see JobStatus on the backend) - external jobs have no such concept and
+  // never set this.
+  status?: string;
 };
 
 // AI-generated reformatting of an external job's full description for display only - never a
@@ -319,6 +322,11 @@ function JobDetailsPage() {
   }, [jobType, jobId, language]);
 
   const hasApplied = job ? appliedJobIds.includes(job.id) : false;
+  // Backend rejects a closed job's applications regardless (see ApplicationController#applyToJob)
+  // - this is purely so a candidate who reaches this page directly (bookmarked link, browser
+  // history) via a jobId no longer in the listing sees why Apply is disabled, instead of a
+  // generic failure after clicking it.
+  const isClosed = jobType === "internal" && job?.status === "CLOSED";
 
   const handleApply = () => {
     if (!job) return;
@@ -327,6 +335,11 @@ function JobDetailsPage() {
       if (job.applyUrl) {
         window.open(job.applyUrl, "_blank", "noopener,noreferrer");
       }
+      return;
+    }
+
+    if (isClosed) {
+      setApplyMessage(d.jobClosedMessage || "This job is no longer accepting applications.");
       return;
     }
 
@@ -443,6 +456,9 @@ function JobDetailsPage() {
                   <Badge tone={jobType === "external" ? "info" : "success"}>
                     {jobType === "external" ? d.externalJobBadge : d.internalJobBadge}
                   </Badge>
+                  {isClosed && (
+                    <Badge tone="neutral">{d.closedBadge || "Closed"}</Badge>
+                  )}
                 </div>
 
                 <div className={`mb-4 flex items-center gap-2 text-[#c4cae9] ${isRTL ? "flex-row-reverse" : ""}`}>
@@ -908,9 +924,11 @@ function JobDetailsPage() {
                   <button
                     type="button"
                     onClick={handleApply}
-                    disabled={jobType === "internal" && (hasApplied || applying)}
+                    disabled={jobType === "internal" && (hasApplied || applying || isClosed)}
                     className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-4 text-[15px] font-bold text-white shadow-[0_10px_30px_rgba(127,76,255,0.35)] transition ${
-                      jobType === "internal" && hasApplied
+                      jobType === "internal" && isClosed
+                        ? "cursor-not-allowed bg-white/10"
+                        : jobType === "internal" && hasApplied
                         ? "cursor-not-allowed bg-emerald-500/70"
                         : "bg-gradient-to-r from-[#7f4cff] to-[#a855f7] hover:scale-[1.02]"
                     }`}
@@ -923,6 +941,8 @@ function JobDetailsPage() {
                         ? "Applying..."
                         : hasApplied
                         ? "Applied"
+                        : isClosed
+                        ? d.closedBadge || "Closed"
                         : d.applyNow}
                     </span>
                   </button>

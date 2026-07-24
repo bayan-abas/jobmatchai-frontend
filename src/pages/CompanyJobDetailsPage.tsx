@@ -137,8 +137,11 @@ function CompanyJobDetailsPage() {
                 <h1 className="text-[28px] font-extrabold text-white lg:text-[34px]">
                   {job.title || d.untitledJob || "Untitled Job"}
                 </h1>
-                <Badge tone="success" className="px-4 py-1.5 text-sm">
-                  {job.status}
+                <Badge
+                  tone={job.status === "CLOSED" ? "neutral" : "success"}
+                  className="px-4 py-1.5 text-sm"
+                >
+                  {job.status === "CLOSED" ? d.closedBadge || "Closed" : d.activeBadge || "Active"}
                 </Badge>
               </div>
 

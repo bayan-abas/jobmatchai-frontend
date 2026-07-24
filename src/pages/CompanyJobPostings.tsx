@@ -20,7 +20,7 @@ import { getMatchTier } from "../utils/matchScore";
 import { Badge, EmptyState, ListSkeleton, Reveal, useConfirm, useToast } from "../components/ui";
 import type { BadgeTone } from "../components/ui";
 
-type JobStatus = "Active" | "Closed" | "Draft";
+type JobStatus = "ACTIVE" | "CLOSED";
 
 type JobItem = {
   id: number;
@@ -72,6 +72,7 @@ function CompanyJobPostings() {
   const [loadError, setLoadError] = useState("");
 
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState<number | null>(null);
 
   const [isUpdating, setIsUpdating] = useState(false);
   const [editingJob, setEditingJob] = useState<JobItem | null>(null);
@@ -140,7 +141,7 @@ function CompanyJobPostings() {
         requirements: job.requirements || "",
         skills: job.skills || "",
         postedDate: formatPostedDate(job.createdAt) || page.recently || "Recently",
-        status: "Active",
+        status: job.status === "CLOSED" ? "CLOSED" : "ACTIVE",
         applicants: job.applicantsCount ?? 0,
       }));
 
@@ -271,23 +272,68 @@ function CompanyJobPostings() {
     }
   };
 
+  // Reversible (see Reopen below), so a lighter-weight confirmation than Delete Job's - but it
+  // does immediately stop new candidates from seeing or applying to this job, so it still gets a
+  // confirmation rather than firing straight from the menu click.
+  const handleToggleJobStatus = async (job: JobItem) => {
+    const closing = job.status === "ACTIVE";
+
+    if (closing) {
+      const confirmed = await confirm({
+        title: page.closeJob || "Close Job",
+        description: `${page.closeJobConfirm || "This job will stop accepting new applications and disappear from candidates' available jobs list. You can reopen it at any time."}${
+          job.title ? ` — "${job.title}"` : ""
+        }`,
+        confirmLabel: page.closeJob || "Close Job",
+        cancelLabel: common.cancel || "Cancel",
+        tone: "danger",
+      });
+
+      if (!confirmed) return;
+    }
+
+    const nextStatus: JobStatus = closing ? "CLOSED" : "ACTIVE";
+
+    try {
+      setIsUpdatingStatus(job.id);
+
+      const data = await apiFetch(`/api/jobs/${job.id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: nextStatus }),
+      });
+
+      if (!data.success) {
+        toast.error(
+          data.message ||
+            (closing ? page.failedToCloseJob : page.failedToReopenJob) ||
+            "Failed to update job status."
+        );
+        return;
+      }
+
+      setJobs((prevJobs) =>
+        prevJobs.map((item) => (item.id === job.id ? { ...item, status: nextStatus } : item))
+      );
+      setOpenMenuId(null);
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : page.serverConnectionFailed || "Server connection failed."
+      );
+    } finally {
+      setIsUpdatingStatus(null);
+    }
+  };
+
   const getStatusLabel = (status: JobStatus) => {
-    if (status === "Active") return page.activeJobs || "Active";
-    if (status === "Closed") return page.closedJobs || "Closed";
-    return page.draftJobs || "Draft";
+    if (status === "CLOSED") return page.closedJobs || "Closed";
+    return page.activeJobs || "Active";
   };
 
   const getStatusTone = (status: JobStatus): BadgeTone => {
-    switch (status) {
-      case "Active":
-        return "success";
-      case "Closed":
-        return "neutral";
-      case "Draft":
-        return "brand";
-      default:
-        return "neutral";
-    }
+    return status === "CLOSED" ? "neutral" : "success";
   };
 
   return (
@@ -483,6 +529,23 @@ function CompanyJobPostings() {
                             className="flex w-full items-center gap-2 px-4 py-3 text-sm font-semibold hover:bg-gray-100"
                           >
                             {page.editJob || "Edit Job"}
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setOpenMenuId(null);
+                              handleToggleJobStatus(job);
+                            }}
+                            disabled={isUpdatingStatus === job.id}
+                            className="flex w-full items-center gap-2 px-4 py-3 text-sm font-semibold hover:bg-gray-100 disabled:opacity-50"
+                          >
+                            {job.status === "ACTIVE"
+                              ? isUpdatingStatus === job.id
+                                ? page.closing || "Closing..."
+                                : page.closeJob || "Close Job"
+                              : isUpdatingStatus === job.id
+                              ? page.reopening || "Reopening..."
+                              : page.reopenJob || "Reopen Job"}
                           </button>
 
                           <button
