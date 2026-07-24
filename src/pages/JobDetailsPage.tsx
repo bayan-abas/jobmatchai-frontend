@@ -1010,6 +1010,10 @@ function JobDetailsPage() {
                       // shown as a misleading 0% - that would look like a gap that hurt the score
                       // when it was actually just excluded and had no effect on it.
                       .filter((row) => row.value !== null)
+                      // Defensive clamp - every value here should already be 0-100 from the
+                      // backend, but this is the last line of defense against a stray unclamped
+                      // percentage (e.g. a negative value) ever rendering as-is.
+                      .map((row) => ({ ...row, value: Math.max(0, Math.min(100, row.value as number)) }))
                       .map((row) => {
                         const isExpanded = expandedBreakdownKey === row.key;
                         // Skills always has something to show (matched/missing chips, even if one
