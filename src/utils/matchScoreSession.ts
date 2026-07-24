@@ -365,6 +365,36 @@ export function streamSessionMatches(
   });
 }
 
+// Writes a single job's freshly-known result directly into the session cache, keyed by the
+// caller's current cvIdentity - used by JobDetailsPage after its own independent
+// /api/jobs/match-detail (or external counterpart) call, which never goes through
+// getSessionMatches/streamSessionMatches above and so would otherwise leave the list/dashboard
+// pages' cached bucket pointing at whatever percentage was cached before the candidate opened
+// this job's details. Without this, the details page could compute (and the backend persist) a
+// genuinely different score - e.g. because the job's own content changed, or a backend scoring-
+// logic fix reprocessed it - while the list page kept showing the stale cached number for the
+// rest of the tab session, since nothing ever told its cache a newer value existed.
+//
+// Only call this for a real, scored verdict (fieldRelated === true with a real matchPercent) -
+// the match-detail endpoint's response shape doesn't carry insufficientData/generalVocationalRole/
+// excludedFromListing (those are list-only concerns), so writing an entry for any other status
+// would default those flags incorrectly instead of leaving them as the list's own fetch already
+// determined them.
+export function updateSessionMatchEntry(
+  email: string,
+  kind: MatchKind,
+  cvIdentity: string,
+  jobId: number,
+  entry: MatchEntry
+) {
+  if (!email || cvIdentity === NO_CV_IDENTITY) return;
+  const existing = readBucket(email, kind, cvIdentity);
+  const bucket: CacheBucket = existing ?? { cvIdentity, hasAnalysis: true, entries: {} };
+  bucket.hasAnalysis = true;
+  bucket.entries = { ...bucket.entries, [jobId]: entry };
+  writeBucket(email, kind, bucket);
+}
+
 // Called on logout, and on CV upload/delete/analyze (see ResumeManager.tsx) so a different
 // account - or a replaced CV - on the same tab never reuses stale session-cached match scores.
 // Defense in depth: the cvIdentity check baked into readBucket above is what actually makes a
