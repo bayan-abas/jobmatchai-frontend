@@ -2,6 +2,14 @@
 
 const NBSP = " ";
 
+// טווח יוניקוד של האלפבית הערבי - ערבית היא כתב מחובר (כל אות מקבלת צורה שונה לפי
+// השכנות שלה), אז עטיפת כל אות בנפרד ב-span עם display:inline-block שוברת את הצימוד
+// הזה והאותיות מוצגות מנותקות/מעוותות. לכן מילה ערבית לעולם לא מפוצלת לאותיות בודדות,
+// גם כשמבקשים splitBy="letter" - היא מטופלת כיחידה שלמה כמו במצב "word".
+const ARABIC_RANGE =
+  /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]/;
+const containsArabic = (value: string) => ARABIC_RANGE.test(value);
+
 type SplitBy = "letter" | "word";
 type Trigger = "mount" | "view";
 
@@ -77,7 +85,9 @@ function SplitLetters({
           return <span key={wordIndex} aria-hidden>{NBSP}</span>;
         }
 
-        if (splitBy === "word") {
+        // מילה ערבית תמיד מטופלת כיחידה שלמה (כמו splitBy="word"), גם כשביקשו "letter" -
+        // ראו את ההערה על ARABIC_RANGE למעלה לגבי למה פיצול לאותיות שובר את הכתב הערבי.
+        if (splitBy === "word" || containsArabic(word)) {
           const delay = delayStart + animatedIndex * effectiveStagger;
           animatedIndex += 1;
           return (
