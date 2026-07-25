@@ -40,6 +40,7 @@ export type ProfileCompletenessFields = {
   hasResume: boolean;
 };
 
+// מחשב אחוז השלמת פרופיל - כמה מתוך השדות החשובים (כולל קו"ח) בפועל מלאים
 export function computeProfileCompleteness(fields: ProfileCompletenessFields): number {
   const checks = [
     fields.name.trim().length > 0,
@@ -100,6 +101,7 @@ function ProfilePage() {
   const [resumeStatusLoading, setResumeStatusLoading] = useState(true);
   const [applicationsCount, setApplicationsCount] = useState(0);
 
+  // מסנכרן את שדות הטופס המקומיים עם נתוני המשתמש בכל פעם שהם נטענים/מתעדכנים
   useEffect(() => {
     setUserName(user?.name || "");
     setUserEmail(user?.email || "");
@@ -118,12 +120,14 @@ function ProfilePage() {
     setUserSkills(parsedSkills);
   }, [user]);
 
+  // טוען כמה הגשות בוצעו החודש (למגבלת התוכנית החינמית) וכן האם יש קו"ח מועלה
   useEffect(() => {
     if (!userEmail) return;
 
     apiFetch(`/api/applications/candidate/${encodeURIComponent(userEmail)}`)
       .then((apps) => {
         const list = Array.isArray(apps) ? apps : [];
+        // "YYYY-MM" - משמש להשוואת prefix מול appliedDate בלי לפרסר תאריך מלא
         const currentMonthPrefix = new Date().toISOString().slice(0, 7);
         const thisMonthCount = list.filter(
           (app: any) =>
@@ -150,6 +154,7 @@ function ProfilePage() {
     hasResume,
   });
 
+  // מוסיף כישור לרשימה המקומית, תוך מניעת כפילויות
   const handleAddSkill = (skill: string) => {
     const cleanSkill = skill.trim();
     if (!cleanSkill || userSkills.includes(cleanSkill)) return;
@@ -161,6 +166,7 @@ function ProfilePage() {
     setUserSkills((prev) => prev.filter((skill) => skill !== skillToRemove));
   };
 
+  // שומר את פרטי הפרופיל שנערכו בשרת ומרענן את המשתמש בקונטקסט
   const handleSaveChanges = async () => {
     if (!user?.id) return;
 
@@ -198,6 +204,7 @@ function ProfilePage() {
     setChangePasswordSuccess(false);
   };
 
+  // מוודא שהסיסמה החדשה תקינה ותואמת, ואז שולח בקשת שינוי סיסמה לשרת
   const handleChangePassword = async () => {
     if (!currentPassword) {
       toast.error(t.profilePage.currentPasswordRequired || "Please enter your current password.");
@@ -236,6 +243,7 @@ function ProfilePage() {
     }
   };
 
+  // מוחק לצמיתות את חשבון המשתמש ומוציא אותו מהמערכת
   const handleDeleteAccount = async () => {
     if (!user?.id) return;
 

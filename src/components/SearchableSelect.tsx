@@ -18,6 +18,7 @@ function SearchableSelect({ value, onChange, options, placeholder, className }: 
     setQuery(value);
   }, [value]);
 
+  // סוגר את הרשימה וקובע את הערך הסופי כשלוחצים מחוץ לקומפוננטה
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -28,9 +29,10 @@ function SearchableSelect({ value, onChange, options, placeholder, className }: 
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [query]);
 
+  // מסנן את האפשרויות לפי מה שהוקלד; מגביל ל-50 כדי לא לרנדר רשימות ענקיות (יש ערים/כישורים עם מאות אפשרויות)
   const filteredOptions = options
     .filter((option) => option.toLowerCase().includes(query.toLowerCase()))
     .slice(0, 50);
@@ -41,6 +43,7 @@ function SearchableSelect({ value, onChange, options, placeholder, className }: 
     setIsOpen(false);
   };
 
+  // ניווט במקלדת ברשימת ההצעות - חצים להזזת הבחירה, Enter לאישור, Escape לסגירה
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!isOpen) return;
 
@@ -86,6 +89,7 @@ function SearchableSelect({ value, onChange, options, placeholder, className }: 
               key={option}
               type="button"
               onMouseDown={(e) => {
+                // preventDefault פה ולא onClick - אחרת ה-blur של ה-input קורה קודם וסוגר את הרשימה לפני שהקליק נרשם
                 e.preventDefault();
                 selectOption(option);
               }}

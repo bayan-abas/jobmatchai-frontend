@@ -85,10 +85,12 @@ function CompanyJobPostings() {
   const [editRequirements, setEditRequirements] = useState("");
   const [editSkills, setEditSkills] = useState("");
 
+  // תלוי במחרוזות התרגום ולא ב-language ישירות, כדי שהערכי fallback (notSpecified/recently/untitledJob) ב-fetchJobs יתעדכנו בהחלפת שפה
   useEffect(() => {
     fetchJobs();
   }, [page.notSpecified, page.recently, page.untitledJob]);
 
+  // טוען את כל הבקשות של החברה כדי לחשב ממוצע ציון התאמה לכל משרה
   useEffect(() => {
     if (!user?.email) return;
 
@@ -99,6 +101,7 @@ function CompanyJobPostings() {
       .catch(() => {});
   }, [user?.email]);
 
+  // מקבץ את הבקשות לפי משרה ומחשב ממוצע אחוז התאמה לכל משרה
   const avgMatchScoreByJobId = useMemo(() => {
     const scoresByJob = new Map<number, number[]>();
 
@@ -117,6 +120,7 @@ function CompanyJobPostings() {
     return averages;
   }, [applications]);
 
+  // מביא מהשרת את כל המשרות של החברה ומעצב אותן לפורמט שהעמוד מציג
   const fetchJobs = async () => {
     try {
       const companyEmail = user?.email;
@@ -155,6 +159,7 @@ function CompanyJobPostings() {
     }
   };
 
+  // פותח את מודל העריכה וממלא אותו בערכי המשרה הנוכחיים
   const openEditModal = (job: JobItem) => {
     setEditingJob(job);
     setEditTitle(job.title);
@@ -167,6 +172,7 @@ function CompanyJobPostings() {
     setOpenMenuId(null);
   };
 
+  // שולח לשרת את פרטי המשרה המעודכנים ומעדכן את הרשימה המקומית בהצלחה
   const handleUpdateJob = async () => {
     if (!editingJob) return;
 
@@ -233,6 +239,7 @@ function CompanyJobPostings() {
     }
   };
 
+  // מבקש אישור מהמשתמש ואז מוחק את המשרה לצמיתות מהשרת ומהרשימה המקומית
   const handleDeleteJob = async (job: JobItem) => {
     const confirmed = await confirm({
       title: page.deleteJob || "Delete Job",
@@ -272,9 +279,7 @@ function CompanyJobPostings() {
     }
   };
 
-  // Reversible (see Reopen below), so a lighter-weight confirmation than Delete Job's - but it
-  // does immediately stop new candidates from seeing or applying to this job, so it still gets a
-  // confirmation rather than firing straight from the menu click.
+  // סוגר או פותח מחדש משרה - סגירה דורשת אישור כי היא מפסיקה הגשות חדשות מיידית
   const handleToggleJobStatus = async (job: JobItem) => {
     const closing = job.status === "ACTIVE";
 

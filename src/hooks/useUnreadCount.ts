@@ -4,19 +4,14 @@ import { useAuth } from "../context/AuthContext";
 
 const POLL_INTERVAL_MS = 30000;
 
-// Pages that mark notifications as read/deleted dispatch this so every mounted
-// useUnreadCount() (e.g. the sidebar and topbar badges) refreshes immediately
-// instead of waiting out the rest of the poll interval.
 export const NOTIFICATIONS_CHANGED_EVENT = "notifications:changed";
 
-// Callers pass the count they already know locally (usually 0, since marking
-// read/deleting is done in bulk) so every badge updates on the same tick as
-// the click - it doesn't wait on a fresh round trip to the backend, which in
-// this environment can take several seconds and made the badges look stuck.
+// אפשר להעביר את המספר הידוע ישירות כדי לעדכן מיידית בלי לחכות לפולינג הבא
 export function notifyNotificationsChanged(knownUnreadCount?: number) {
   window.dispatchEvent(new CustomEvent<number | undefined>(NOTIFICATIONS_CHANGED_EVENT, { detail: knownUnreadCount }));
 }
 
+// בודק כל כמה שניות אם יש התראות חדשות שלא נקראו, ומחזיר את המספר העדכני לתצוגה בפעמון
 export function useUnreadCount() {
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -29,6 +24,7 @@ export function useUnreadCount() {
 
     let cancelled = false;
 
+    // שולף מהשרת את מספר ההתראות שלא נקראו
     async function poll() {
       try {
         const data = await apiFetch("/api/notifications/unread-count");
@@ -36,10 +32,11 @@ export function useUnreadCount() {
           setUnreadCount(data.unreadCount ?? 0);
         }
       } catch {
-        // ignore transient polling failures
+        // כישלון בפולינג לא אמור לשבור את ה-UI, פשוט מדלגים לסבב הבא
       }
     }
 
+    // מגיב לאירוע גלובלי של שינוי בהתראות - אם כבר יודעים את המספר החדש עדכון מיידי, אחרת פולינג מחדש
     function onNotificationsChanged(event: Event) {
       const knownCount = (event as CustomEvent<number | undefined>).detail;
       if (typeof knownCount === "number") {

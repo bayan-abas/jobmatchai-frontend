@@ -42,10 +42,6 @@ import CandidateLayout from "./components/CandidateLayout";
 import CompanyLayout from "./components/CompanyLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 
-// Same rotating-brain indicator used elsewhere in the app (ProtectedRoute's auth-rehydration
-// gate, CandidateDashboard's data-loading state) - shown here whenever a lazy-loaded route's
-// chunk hasn't finished downloading yet, so "loading" always looks the same regardless of WHY
-// the app is loading. `fullScreen` because this renders before any layout/header exists yet.
 function RouteFallback() {
   const { language } = useLanguage();
   const t = translations[language] || translations.en;
@@ -53,19 +49,11 @@ function RouteFallback() {
   return <LoadingScreen fullScreen title={t.common.loading} message="" />;
 }
 
-// Subtle, short (220ms) fade+rise transition between routes - kept in its own component so
-// AnimatePresence's `key={location.pathname}` cleanly remounts exactly one motion.div per route.
-// `mode="wait"` means the outgoing page finishes its exit before the incoming one starts, which
-// avoids the brief double-render/layout-jump of overlapping in+out pages. Neither this nor the
-// Suspense fallback above can cause a white flash any more: html/body/#root now carry the same
-// dark base color every page's own gradient starts from (see index.css), so whatever is behind
-// a semi-transparent fading page - or behind the loader while a chunk is still downloading - is
-// always dark, never the browser's default white.
 function AnimatedRoutes() {
   const location = useLocation();
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
+    <AnimatePresence mode="wait">
       <motion.div
         key={location.pathname}
         initial={{ opacity: 0, y: 8 }}
@@ -73,12 +61,12 @@ function AnimatedRoutes() {
         exit={{ opacity: 0, y: -8 }}
         transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
       >
-        {/* Keyed by pathname so navigating to a different route after a render error
-            remounts a fresh boundary instead of staying stuck on the error screen. */}
+
         <ErrorBoundary key={location.pathname}>
           <Suspense fallback={<RouteFallback />}>
+            {/* כל דף שדורש התחברות עטוף ב-ProtectedRoute עם התפקיד הנדרש (candidate/company) */}
             <Routes location={location}>
-              {/* Public */}
+
               <Route path="/" element={<HomePage />} />
               <Route path="/jobs" element={<PublicJobsPage />} />
               <Route path="/login" element={<LoginPage />} />
@@ -88,7 +76,6 @@ function AnimatedRoutes() {
               <Route path="/register/candidate" element={<RegisterPage />} />
               <Route path="/register/company" element={<CompanyRegisterPage />} />
 
-              {/* Candidate */}
               <Route path="/candidate-dashboard" element={<ProtectedRoute requiredRole="candidate"><CandidateLayout><CandidateDashboard /></CandidateLayout></ProtectedRoute>} />
               <Route path="/job-matches"         element={<ProtectedRoute requiredRole="candidate"><CandidateLayout><JobMatches /></CandidateLayout></ProtectedRoute>} />
               <Route path="/external-jobs"       element={<ProtectedRoute requiredRole="candidate"><CandidateLayout><ExternalJobsPage /></CandidateLayout></ProtectedRoute>} />
@@ -102,7 +89,6 @@ function AnimatedRoutes() {
               <Route path="/payment/success"     element={<ProtectedRoute requiredRole="candidate"><PaymentSuccessPage /></ProtectedRoute>} />
               <Route path="/payment/cancel"      element={<ProtectedRoute requiredRole="candidate"><PaymentCancelPage /></ProtectedRoute>} />
 
-              {/* Company */}
               <Route path="/company-dashboard"      element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyDashboard /></CompanyLayout></ProtectedRoute>} />
               <Route path="/company-job-postings"   element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyJobPostings /></CompanyLayout></ProtectedRoute>} />
               <Route path="/company-job-details/:jobId" element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyJobDetailsPage /></CompanyLayout></ProtectedRoute>} />
@@ -111,11 +97,8 @@ function AnimatedRoutes() {
               <Route path="/company-profile"        element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyProfile /></CompanyLayout></ProtectedRoute>} />
               <Route path="/company-notifications"  element={<ProtectedRoute requiredRole="company"><CompanyLayout><CompanyNotifications /></CompanyLayout></ProtectedRoute>} />
 
-              {/* The Candidates page was removed in favor of Applications - keep this so old
-                  bookmarks/links don't land on a dead route. */}
               <Route path="/company-candidates" element={<Navigate to="/company-applications" replace />} />
 
-              {/* Catch-all: any unmatched path gets a real 404 page instead of rendering blank. */}
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
@@ -130,10 +113,7 @@ function App() {
     <MotionConfig reducedMotion="user">
       <ToastProvider>
         <ConfirmProvider>
-          {/* Rendered as a sibling OUTSIDE the animated route tree, deliberately - it already
-              correctly restores/resets scroll position via its own POP-navigation-aware effect
-              (see ScrollToTop.tsx) and must keep running exactly as before regardless of the
-              route-transition animation's mount/unmount timing. */}
+
           <ScrollToTop />
           <AnimatedRoutes />
         </ConfirmProvider>

@@ -1,3 +1,4 @@
+// בנק שאלות קבועות לשלב הסינון המקדים שמוצג למועמד לפני שהחברה בוחנת את המועמדות שלו
 export const PRE_INTERVIEW_QUESTIONS: string[] = [
   "When are you available to start?",
   "Are you willing to work shifts?",

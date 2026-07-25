@@ -27,6 +27,7 @@ function ApplicationSuccessModal({
   onViewApplications,
   onClose,
 }: ApplicationSuccessModalProps) {
+  // ממלא את שם המשרה והחברה בפועל בתוך תבנית הודעת ההצלחה
   const message = copy.message
     .replace("{jobTitle}", jobTitle)
     .replace("{companyName}", companyName);

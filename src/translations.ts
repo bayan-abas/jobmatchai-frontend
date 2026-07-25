@@ -316,7 +316,6 @@ export const translations: Record<Language, any> = {
       match: "Match",
 remote: "Remote",
 
-
 plan: {
   free: "Free Plan",
   premium: "Premium Plan",
@@ -710,6 +709,11 @@ plan: {
       contactMethodOther: "Other",
       rejectionReasonTitle: "Reason for rejection",
       loadingApplications: "Loading applications...",
+      interviewScheduledBadge: "Interview scheduled:",
+      interviewDetailsTitle: "Interview Details",
+      interviewTypeLabel: "Type",
+      interviewLocationLabel: "Location / Meeting Link",
+      notes: "Notes",
     },
 
     notificationsPage: {
@@ -2136,6 +2140,11 @@ jobMatches: {
       contactMethodOther: "أخرى",
       rejectionReasonTitle: "سبب الرفض",
       loadingApplications: "جارٍ تحميل الطلبات...",
+      interviewScheduledBadge: "تمت جدولة مقابلة:",
+      interviewDetailsTitle: "تفاصيل المقابلة",
+      interviewTypeLabel: "النوع",
+      interviewLocationLabel: "الموقع / رابط الاجتماع",
+      notes: "ملاحظات",
     },
 
     notificationsPage: {
@@ -2565,7 +2574,6 @@ jobMatches: {
       negativeValueNotAllowed: "يرجى إدخال قيمة صفر أو أكبر.",
       maxSalaryLessThanMinError: "لا يمكن أن يكون الحد الأقصى للراتب أقل من الحد الأدنى.",
     },
-
 
 companyApplicationsPage: {
   title: "الطلبات",
@@ -3561,6 +3569,11 @@ companyApplicationsPage: {
       contactMethodOther: "אחר",
       rejectionReasonTitle: "סיבת הדחייה",
       loadingApplications: "טוען הגשות...",
+      interviewScheduledBadge: "נקבע ראיון:",
+      interviewDetailsTitle: "פרטי הראיון",
+      interviewTypeLabel: "סוג",
+      interviewLocationLabel: "מיקום / קישור לפגישה",
+      notes: "הערות",
     },
 
     notificationsPage: {
@@ -3856,7 +3869,6 @@ companyApplicationsPage: {
       maybeLater: "אולי אחר כך",
       upgradeNow: "שדרג עכשיו",
     },
-
 
     companyJobPostingsPage: {
       title: "משרות פתוחות",

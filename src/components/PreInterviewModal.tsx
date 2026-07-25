@@ -11,13 +11,16 @@ type PreInterviewModalProps = {
   onSubmit: (answers: Record<string, string>) => void;
 };
 
+// מציג שאלות טרום-ראיון שהמועמד עונה עליהן לפני שההגשה נשלחת בפועל
 function PreInterviewModal({ jobTitle, isSubmitting, onCancel, onSubmit }: PreInterviewModalProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
 
+  // שומר את התשובה שהמשתמש הקליד לשאלה הספציפית
   const handleChange = (question: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [question]: value }));
   };
 
+  // מעביר את כל התשובות להורה כדי להמשיך בתהליך הגשת המועמדות
   const handleSubmit = () => {
     onSubmit(answers);
   };

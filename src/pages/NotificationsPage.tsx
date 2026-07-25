@@ -25,7 +25,11 @@ type BackendNotification = {
   type: string;
   createdAt: string;
   read: boolean;
+  referenceId?: number | null;
 };
+
+// סוגי התראות שמקושרים לבקשת עבודה ספציפית (referenceId = applicationId) - לחיצה עליהן קופצת ישר לבקשה
+const APPLICATION_LINKED_TYPES = new Set(["INTERVIEW_SCHEDULED", "INTERVIEW_UPDATED"]);
 
 const JOB_TYPES = new Set(["JOB_MATCH_HIGH"]);
 const APPLICATION_TYPES = new Set([
@@ -37,6 +41,7 @@ const APPLICATION_TYPES = new Set([
   "INTERVIEW_UPDATED",
 ]);
 
+// ממפה סוג התראה לאייקון, צבע וקטגוריה שקובעים איך היא נראית בכרטיס
 function getPresentation(type: string) {
   if (JOB_TYPES.has(type)) {
     return { icon: <Briefcase size={22} />, iconBg: "from-[#7f4cff] to-[#a855f7]", kind: "job" as const };
@@ -77,6 +82,7 @@ function NotificationsPage() {
   useEffect(() => {
     let cancelled = false;
 
+    // טוען את כל ההתראות, ואם יש כאלה שלא נקראו - מסמן אותן כנקראו ברגע שהעמוד נפתח
     async function load() {
       try {
         const data: BackendNotification[] = await apiFetch("/api/notifications");
@@ -84,16 +90,10 @@ function NotificationsPage() {
 
         setNotifications(data);
 
-        // Opening this page is itself "seeing" the notifications - mark everything
-        // read right away instead of waiting for an explicit click, so the badge
-        // clears the moment the user opens the panel.
         if (data.some((item) => !item.read)) {
           setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
           notifyNotificationsChanged(0);
-          // keepalive: the browser would otherwise cancel this in-flight request if the
-          // user closes the tab/navigates away right after opening the page (a completely
-          // normal flow) - without it, the badge clears locally but the read status never
-          // reaches the database, so it reappears unread on the next visit.
+
           apiFetch("/api/notifications/mark-all-read", { method: "POST", keepalive: true }).catch(() => null);
         }
       } catch {
@@ -116,13 +116,11 @@ function NotificationsPage() {
 
   const unreadCount = notifications.filter((item) => !item.read).length;
 
+  // מסמן את כל ההתראות כנקראו - מעדכן את המסך מיד ואז שולח את הבקשה לשרת
   const handleMarkAllAsRead = async () => {
     const hasUnread = notifications.some((item) => !item.read);
     setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
-    // Marking everything read makes the new unread count deterministically 0 -
-    // push that to every badge right away instead of waiting on a fresh
-    // GET /unread-count round trip, which can take several seconds and made
-    // the badges look stuck even though the backend write itself succeeded.
+
     notifyNotificationsChanged(0);
 
     if (!hasUnread) return;
@@ -130,6 +128,7 @@ function NotificationsPage() {
     await apiFetch("/api/notifications/mark-all-read", { method: "POST", keepalive: true }).catch(() => null);
   };
 
+  // מוחק את כל ההתראות - מנקה את המסך מיד ומוחק כל אחת בנפרד בשרת
   const handleClearAll = async () => {
     const all = notifications;
     setNotifications([]);
@@ -140,6 +139,7 @@ function NotificationsPage() {
     );
   };
 
+  // מוחק התראה בודדת ומעדכן את מונה ההתראות שלא נקראו בהתאם
   const handleDismiss = async (id: number) => {
     const remainingUnread = notifications.filter((item) => item.id !== id && !item.read).length;
     setNotifications((prev) => prev.filter((item) => item.id !== id));
@@ -147,14 +147,19 @@ function NotificationsPage() {
     try {
       await apiFetch(`/api/notifications/${id}`, { method: "DELETE" });
     } catch {
-      // already removed from view; nothing else to reconcile
+
     }
   };
 
-  // Clicking any single notification clears the whole unread badge, not just
-  // that one item - this mirrors how most notification centers behave (opening
-  // one is treated as having seen the list) and is what candidates expect here.
-  const handleOpenNotification = () => handleMarkAllAsRead();
+  // בלחיצה על התראה: אם היא מקושרת לבקשת עבודה (למשל ראיון שנקבע) עוברים ישר לפרטי הבקשה, אחרת רק מסמנים הכל כנקרא
+  const handleOpenNotification = (notification: BackendNotification) => {
+    if (APPLICATION_LINKED_TYPES.has(notification.type) && typeof notification.referenceId === "number") {
+      handleMarkAllAsRead();
+      navigate("/applications", { state: { selectedApplicationId: notification.referenceId } });
+      return;
+    }
+    handleMarkAllAsRead();
+  };
 
   return (
     <div
@@ -264,7 +269,7 @@ function NotificationsPage() {
               return (
                 <Reveal key={item.id} delay={Math.min(index * 0.05, 0.3)}>
                 <article
-                  onClick={handleOpenNotification}
+                  onClick={() => handleOpenNotification(item)}
                   className={`cursor-pointer rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.9)] px-6 py-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)] transition hover:border-white/20 hover:bg-[rgba(50,52,108,0.96)] ${
                     !item.read ? "ring-1 ring-[#5e66ff33]" : ""
                   }`}

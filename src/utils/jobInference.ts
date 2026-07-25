@@ -1,26 +1,13 @@
-// Keyword-based inference used to give jobs an industry/seniority/experience label when the
-// backend doesn't provide one as structured data. Mirrors the logic already used for internal
-// jobs in JobMatches.tsx, generalized here so ExternalJobsPage can reuse it without duplicating
-// the internal jobs page (left untouched to avoid any risk of regressing it).
-
 export type InferableJob = {
   title?: string;
   description?: string;
   requirements?: string;
   skills?: string;
   type?: string;
-  // Resolved server-side from a provider's own category/occupation data when available (see
-  // backend ExternalJobData.industry) - a real classification, not a keyword guess, so
-  // inferIndustry() below trusts it outright instead of re-deriving anything. Absent for
-  // internal (company-posted) jobs and for providers with no such data, in which case
-  // classification falls back to title/description keyword inference.
+
   industry?: string | null;
 };
 
-// The complete, authoritative set of values inferIndustry() can ever return (see INDUSTRY_BUCKETS
-// below) - every "industry" filter UI must build its option list from this array rather than
-// hand-rolling its own, otherwise a filter option with no matching inferIndustry() return value
-// is guaranteed to show zero results forever, regardless of what data exists.
 export const INDUSTRY_KEYS = [
   "technology", "engineering", "healthcare", "education", "finance", "marketing",
   "retail", "sales", "customerService", "hospitality", "restaurants", "logistics",
@@ -32,20 +19,11 @@ export const INDUSTRY_KEYS = [
 const normalize = (value?: string) =>
   String(value || "")
     .toLowerCase()
-    // Periods are deliberately NOT preserved (unlike +/#/- , kept for tokens like "5+", "0-1",
-    // "c#"): a sentence-ending period glued to the last word ("...at our supermarket.") used to
-    // leave that word as "supermarket." in the normalized text, which the exact-token keyword
-    // matching below (paddedText.includes(" keyword ")) would never match against the keyword
-    // "supermarket" - silently losing real matches to whatever run-on sentence a job posting
-    // happened to end with.
+
     .replace(/[^\w\s+#-]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 
-// Every industry's keyword list, in the same order as INDUSTRY_KEYS (minus "general", which is
-// the fallback when nothing scores). Keeping this as a plain ordered list (rather than 26
-// separate if-blocks) is what makes inferIndustry() below able to score every bucket instead of
-// stopping at the first one that matches at all - see that function for why that matters.
 const INDUSTRY_BUCKETS: [string, string[]][] = [
   ["technology", [
     "react", "java", "python", "javascript", "typescript", "developer", "programmer",
@@ -96,10 +74,7 @@ const INDUSTRY_BUCKETS: [string, string[]][] = [
   ["factory", ["factory", "manufacturing", "production", "machine operator", "packaging"]],
   ["security", ["security", "guard", "police", "military", "fire safety"]],
   ["legal", ["legal", "lawyer", "attorney", "law", "paralegal"]],
-  // "office" was deliberately dropped from this list - too generic/weak a signal (shows up in
-  // "Office Cleaner", "Post Office", "Home Office" etc. that have nothing to do with
-  // administration), and it caused exactly that kind of job to tie with - and sometimes beat -
-  // its real industry's own, more specific keyword.
+
   ["administration", ["administration", "administrator", "secretary", "secretarial", "assistant"]],
   ["humanResources", ["hr", "human resources", "recruiter", "recruitment"]],
   ["realEstate", ["real estate", "property", "broker"]],
@@ -115,17 +90,7 @@ const INDUSTRY_BUCKETS: [string, string[]][] = [
   ["writing", ["writing", "writer"]],
 ];
 
-// A handful of keywords above are unavoidably generic (a single common word, not a distinctive
-// phrase) and show up incidentally across many industries' job text - "data" in "data-driven
-// marketing", "qa" in a factory's quality-assurance postings, "network" in a sales role's
-// "networking events", "it" referenced in passing by almost any office job. Counting every
-// keyword as equally strong evidence meant a job could be yanked into "technology" by one
-// incidental mention of "data", even though its actual industry (marketing, healthcare,
-// whatever) had five or six of ITS OWN keywords also present. Weighting a match by how many
-// words are in the keyword (a specific two-word phrase like "customer service" or "full stack"
-// is far less ambiguous than a bare single word) and scoring every bucket instead of stopping
-// at the first hit is what makes a genuinely strong, multi-signal match for the RIGHT industry
-// win over one weak, incidental word borrowed by the wrong bucket.
+// סופר כמה מילות מפתח מהרשימה מופיעות בטקסט, ומשקלל לפי אורך הביטוי (ביטוי ארוך = התאמה חזקה יותר)
 const scoreBucket = (paddedText: string, keywords: string[]) =>
   keywords.reduce((score, keyword) => {
     if (!paddedText.includes(` ${keyword} `)) {
@@ -134,17 +99,14 @@ const scoreBucket = (paddedText: string, keywords: string[]) =>
     return score + keyword.trim().split(/\s+/).length;
   }, 0);
 
-// Highest-scoring bucket for this text, or null if nothing scored at all - null (not "general")
-// matters here, since it's what lets inferIndustry() below tell "no signal in the title yet,
-// keep looking at the description" apart from "genuinely nothing matched anywhere, give up".
+// בודק את כל התעשיות מול הטקסט ומחזיר את זו עם ניקוד מילות המפתח הגבוה ביותר
 const bestBucket = (paddedText: string): string | null => {
   let bestIndustry: string | null = null;
   let bestScore = 0;
 
   for (const [industry, keywords] of INDUSTRY_BUCKETS) {
     const score = scoreBucket(paddedText, keywords);
-    // Strict ">" (not ">=") means an earlier bucket in INDUSTRY_BUCKETS keeps its win on a tie -
-    // preserves the bucket list's order as a tiebreaker without needing a separate rule.
+
     if (score > bestScore) {
       bestScore = score;
       bestIndustry = industry;
@@ -154,20 +116,7 @@ const bestBucket = (paddedText: string): string | null => {
   return bestIndustry;
 };
 
-// Classification priority, matching how professional job platforms (Drushim, AllJobs, etc.)
-// categorize listings rather than guessing from free-text alone:
-//   1-2. Trust the provider's own category/occupation data outright when we have it (resolved
-//        server-side into job.industry - see ExternalJobData.industry on the backend) - this is
-//        a real classification from the source, not an inference, so nothing below even runs.
-//   3. Otherwise classify from the TITLE first - by far the most reliable free-text signal
-//      ("Software Engineer", "Registered Nurse", "Corporate Lawyer" are unambiguous on their
-//      own), and immune to a description that happens to namedrop an unrelated domain in
-//      passing.
-//   4. Only if the title alone gives no confident signal, widen the net to description/
-//      requirements/skills as supporting evidence.
-//   5. If nothing confidently matches even then, the job goes to "general" (Other/General)
-//      rather than being forced into an arbitrary bucket - an honest "we don't know" instead of
-//      a guess that pollutes some other industry's filter results.
+// מנחש את התעשייה של המשרה - קודם לפי הכותרת בלבד, ואם לא נמצא כלום אז לפי כל הטקסט (תיאור, דרישות, כישורים)
 export function inferIndustry(job: InferableJob): string {
   if (job.industry && (INDUSTRY_KEYS as readonly string[]).includes(job.industry)) {
     return job.industry;
@@ -190,6 +139,7 @@ export function inferIndustry(job: InferableJob): string {
   return "general";
 }
 
+// מנחש את רמת הבכירות של המשרה (Entry/Mid/Senior/Lead) לפי מילות מפתח בכותרת ובתיאור
 export function inferLevel(job: InferableJob): string {
   const text = normalize(`${job.title || ""} ${job.description || ""} ${job.requirements || ""}`);
   const padded = ` ${text} `;
@@ -200,6 +150,7 @@ export function inferLevel(job: InferableJob): string {
   return "Mid";
 }
 
+// מנחש כמה שנות ניסיון נדרשות - מחפש מספר מפורש בטקסט, ואם אין אז נגזר מרמת הבכירות
 export function inferExperience(job: InferableJob): string {
   const text = `${job.title || ""} ${job.description || ""} ${job.requirements || ""}`;
   const match = text.match(/(\d+)\+?\s*(years|year|yrs|yr)/i);
@@ -213,17 +164,9 @@ export function inferExperience(job: InferableJob): string {
   return "2+ years";
 }
 
-// A simpler 4-bucket geographic grouping than utils/israeliRegions.ts's 6-region taxonomy (Tel
-// Aviv/Center/Jerusalem/Haifa/North/South, used only by ExternalJobsPage.tsx) - this is what the
-// Job Matches page's own "Region" smart filter uses instead, with Sharon carved out as its own
-// bucket (Netanya, Kfar Saba, Herzliya, Raanana, etc.) rather than folded into "Center". Kept
-// self-contained rather than reusing/extending israeliRegions.ts so that file's existing 6-region
-// filter (and its own city table) is never touched by this change.
 export const REGION_KEYS = ["north", "center", "south", "sharon"] as const;
 export type RegionKey = (typeof REGION_KEYS)[number];
 
-// "sharon" is listed (and checked) first so a Sharon-area city's location string is caught
-// before it can fall through to the broader "center" bucket below it.
 const REGION_BUCKETS: [RegionKey, string[]][] = [
   ["sharon", [
     "netanya", "נתניה", "kfar saba", "כפר סבא", "raanana", "ra'anana", "רעננה",
@@ -258,12 +201,7 @@ const REGION_BUCKETS: [RegionKey, string[]][] = [
   ]],
 ];
 
-// Simple substring matching (not the word-boundary-padded approach bestBucket() above uses) -
-// deliberate, since normalize()'s \w-based cleanup strips Hebrew characters entirely (\w is
-// ASCII-only without the unicode regex flag), which would silently break every Hebrew city/
-// region keyword above. A location string is short (a city name, occasionally "City / Remote"),
-// so plain case-insensitive substring matching carries none of the false-positive risk it would
-// have against a long free-text description.
+// מנחש את האזור בארץ (צפון/מרכז/דרום/שרון) לפי שם עיר או מילת מפתח בטקסט המיקום, בעברית או באנגלית
 export function inferRegion(location?: string | null): RegionKey | null {
   const text = String(location || "").toLowerCase().trim();
   if (!text) return null;
@@ -276,14 +214,16 @@ export function inferRegion(location?: string | null): RegionKey | null {
   return null;
 }
 
+// קובע את צבע הטבעת של ציון ההתאמה בממשק - צבע לפי סטטוס, ובמצב "scored" גם לפי גובה האחוז
 export function getRingColor(status: "scored" | "loading" | "noAnalysis" | "noScore" | "error" | "insufficientData", percent: number): string {
-  if (status === "error") return "#f59e0b"; // amber — computation failed, distinct from a real "not a match" verdict
+  if (status === "error") return "#f59e0b";
   if (status !== "scored") return "#5f648a";
-  if (percent >= 80) return "#c084fc"; // purple/lilac — strong match (matches app's AI-insights accent)
-  if (percent >= 50) return "#7c88ff"; // blue — moderate match (matches app's primary blue accent)
-  return "#fb923c"; // orange — weak match
+  if (percent >= 80) return "#c084fc";
+  if (percent >= 50) return "#7c88ff";
+  return "#fb923c";
 }
 
+// שולף מטקסט שכר חופשי (כולל מטבעות, "k" וכו') את המספר הגבוה ביותר, לצורך מיון/סינון לפי שכר
 export function extractSalaryNumber(salary?: string): number {
   if (!salary) return 0;
 

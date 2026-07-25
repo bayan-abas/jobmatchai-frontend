@@ -46,15 +46,10 @@ type JobData = {
   sourceName?: string;
   sourceUrl?: string;
   applyUrl?: string;
-  // Internal jobs only (see JobStatus on the backend) - external jobs have no such concept and
-  // never set this.
+
   status?: string;
 };
 
-// AI-generated reformatting of an external job's full description for display only - never a
-// match-scoring input (that always reads job.description directly, in full). Every field is ""
-// or [] rather than invented when the posting itself doesn't mention it - see
-// OpenAICVAnalysisService#summarizeJobDescription on the backend.
 type AboutSummary = {
   roleOverview?: string;
   responsibilities?: string[];
@@ -65,6 +60,7 @@ type AboutSummary = {
   importantConditions?: string[];
 };
 
+// בודק אם יש בכלל תוכן בסיכום ה-AI של המשרה כדי להחליט אם להציג אותו במקום התיאור הגולמי
 function isAboutSummaryUsable(summary: AboutSummary | null): boolean {
   if (!summary) return false;
   return Boolean(
@@ -78,9 +74,6 @@ function isAboutSummaryUsable(summary: AboutSummary | null): boolean {
   );
 }
 
-// "error" = the AI couldn't compute this job's match at all (a transient failure, never
-// cached by the backend) - distinct from "noScore", which is a real AI verdict that this
-// job isn't a field match.
 type MatchStatus = "loggedOut" | "loading" | "noAnalysis" | "scored" | "noScore" | "error";
 
 type MatchDetail = {
@@ -106,20 +99,15 @@ type MatchDetail = {
   missingPreferredSkills: string[];
   matchedRequiredSkills: string[];
   matchedPreferredSkills: string[];
-  // The AI-classified requirement this job was actually scored against for each dimension (e.g.
-  // "mid", "relevant_degree") - null when that dimension wasn't applicable, mirroring the
-  // corresponding *MatchPercent's own null-ness. See backend JobMatchScore's own comment.
+
   requiredExperienceLevel: string | null;
   requiredEducationLevel: string | null;
   requiredCertificationLevel: string | null;
-  // ISO timestamp string (ISO instant via Jackson's default LocalDateTime serialization) of when
-  // this row's score was last (re)computed - null only for the "no score at all yet" states.
+
   lastAnalyzedAt: string | null;
 };
 
-// Score bands are intentionally coarser (and don't need to line up 1:1) with getRingColor's own
-// 3-tier color scale - this is a separate, explicit reading aid ("Excellent"/"Good"/"Moderate"/
-// "Low"), not a restatement of the ring color.
+// ממיר אחוז התאמה למילת תיאור (מעולה/טוב/בינוני/נמוך) לפי טווחים קבועים
 function getMatchStatusLabel(d: any, percent: number): string {
   if (percent >= 85) return d.matchStatusExcellent;
   if (percent >= 70) return d.matchStatusGood;
@@ -127,10 +115,7 @@ function getMatchStatusLabel(d: any, percent: number): string {
   return d.matchStatusLow;
 }
 
-// Mirrors the backend's fixed vocabularies exactly (see JobMatchService's
-// VALID_EXPERIENCE_LEVELS/VALID_EDUCATION_LEVELS/VALID_CERTIFICATION_LEVELS) - an unrecognized
-// value (should never happen, but a schema/vocabulary change on one side without the other is
-// exactly the kind of drift this guards against) falls back to the raw code rather than hiding it.
+// מתרגם קוד רמת ניסיון גולמי מהשרת לטקסט מתורגם שמוצג למשתמש
 function formatExperienceLevel(d: any, level: string | null): string | null {
   if (level === "entry") return d.experienceLevelEntry;
   if (level === "mid") return d.experienceLevelMid;
@@ -138,18 +123,21 @@ function formatExperienceLevel(d: any, level: string | null): string | null {
   return level;
 }
 
+// מתרגם קוד רמת השכלה נדרשת לטקסט מתורגם שמוצג למשתמש
 function formatEducationLevel(d: any, level: string | null): string | null {
   if (level === "any_degree") return d.educationLevelAnyDegree;
   if (level === "relevant_degree") return d.educationLevelRelevantDegree;
   return level;
 }
 
+// מתרגם קוד רמת הסמכה נדרשת לטקסט מתורגם שמוצג למשתמש
 function formatCertificationLevel(d: any, level: string | null): string | null {
   if (level === "general_cert") return d.certificationLevelGeneral;
   if (level === "specific_license") return d.certificationLevelSpecific;
   return level;
 }
 
+// מפרק מחרוזת כישורים גולמית (מופרדת בפסיקים/נקודה-פסיק/שורות) למערך נקי
 function splitSkills(value?: string): string[] {
   return (value || "")
     .split(/[,;|\n]/)
@@ -169,6 +157,7 @@ function JobDetailsPage() {
   const d = t.jobDetails;
   const isRTL = language === "ar" || language === "he";
 
+  // מזהה את המשתמש המחובר, לשימוש במעקב צפייה, בקשת התאמה והגשת מועמדות
   const readCandidateIdentity = () => ({
     email: user?.email || "",
     name: user?.name || "Candidate",
@@ -177,12 +166,10 @@ function JobDetailsPage() {
   const [job, setJob] = useState<JobData | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
-  // See JobMatches.tsx's identically-named state for the full rationale (a sleeping backend
-  // waking back up after inactivity, retried automatically instead of a dead-end error).
+
   const [reconnecting, setReconnecting] = useState(false);
   const [aboutSummary, setAboutSummary] = useState<AboutSummary | null>(null);
-  // Bumped by the fetch-error retry button to force the job-detail fetch effect below to
-  // run again without needing its own separately-defined, callable fetch function.
+
   const [reloadKey, setReloadKey] = useState(0);
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -197,6 +184,7 @@ function JobDetailsPage() {
   const [showPreInterviewModal, setShowPreInterviewModal] = useState(false);
   const [showApplySuccessModal, setShowApplySuccessModal] = useState(false);
 
+  // טוען את פרטי המשרה הספציפית לפי ה-jobId וה-jobType מה-URL (פנימית או חיצונית)
   useEffect(() => {
     if (!jobId) return;
 
@@ -214,8 +202,7 @@ function JobDetailsPage() {
         setReconnecting(false);
         if (data.success && data.job) {
           setJob(data.job);
-          // Only meaningful for external jobs - internal job descriptions are short/curated
-          // and keep showing the raw text as-is (see the "About the role" render below).
+
           setAboutSummary(data.aboutSummary || null);
         } else {
           setJob(null);
@@ -228,9 +215,10 @@ function JobDetailsPage() {
         setFetchError(d.loadError);
       })
       .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [jobType, jobId, language, reloadKey]);
 
+  // מדווח לשרת שהמשתמש צפה במשרה הזו, לצורך רשימת "נצפו לאחרונה"
   useEffect(() => {
     if (!job || !jobId) return;
 
@@ -248,9 +236,10 @@ function JobDetailsPage() {
         location: job.location,
       }),
     }).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [job, jobType, jobId]);
 
+  // בודק האם המשתמש כבר הגיש מועמדות למשרה פנימית זו, כדי לנטרל את כפתור ההגשה
   useEffect(() => {
     if (jobType !== "internal" || !jobId) return;
 
@@ -267,6 +256,7 @@ function JobDetailsPage() {
       .catch(() => setAppliedJobIds([]));
   }, [jobType, jobId]);
 
+  // מביא את פירוט ההתאמה המלא (ציון, כישורים חסרים/תואמים, המלצה) בין קורות החיים למשרה הזו
   useEffect(() => {
     if (!jobId) return;
 
@@ -310,11 +300,7 @@ function JobDetailsPage() {
           data.fieldRelated === null ? "error" : data.fieldRelated === false ? "noScore" : "scored"
         );
 
-        // Keep the list/dashboard pages' session-cached percentage in sync with whatever this
-        // page just computed (or reused) - see updateSessionMatchEntry's own doc comment for why
-        // this is needed: this page's own fetch never goes through getSessionMatches, so without
-        // this write, a genuinely different score computed here would only ever appear on THIS
-        // page, leaving the list showing a now-stale cached number for the rest of the tab session.
+        // מעדכן גם את הקאש שמשמש את עמוד ההתאמות, כדי שכשחוזרים לרשימה לא יצטרכו לחשב שוב
         if (data.fieldRelated === true && typeof data.matchPercent === "number") {
           fetchCurrentCvIdentity().then((cvIdentity) => {
             if (cancelled) return;
@@ -345,12 +331,10 @@ function JobDetailsPage() {
   }, [jobType, jobId, language]);
 
   const hasApplied = job ? appliedJobIds.includes(job.id) : false;
-  // Backend rejects a closed job's applications regardless (see ApplicationController#applyToJob)
-  // - this is purely so a candidate who reaches this page directly (bookmarked link, browser
-  // history) via a jobId no longer in the listing sees why Apply is disabled, instead of a
-  // generic failure after clicking it.
+
   const isClosed = jobType === "internal" && job?.status === "CLOSED";
 
+  // מטפל בלחיצה על "הגש מועמדות" - למשרה חיצונית פותח קישור, לפנימית פותח את שאלון הראיון המקדים
   const handleApply = () => {
     if (!job) return;
 
@@ -381,6 +365,7 @@ function JobDetailsPage() {
     setShowPreInterviewModal(true);
   };
 
+  // שולח את המועמדות בפועל לשרת עם תשובות שאלון הראיון המקדים
   const handleSubmitApplication = (answers: Record<string, string>) => {
     if (!job) return;
 
@@ -414,8 +399,7 @@ function JobDetailsPage() {
 
   const requirements = splitSkills(job?.requirements);
   const skills = splitSkills(job?.skills);
-  // Only meaningful when matchStatus is "scored" - matchDetail.matchPercent is only ever
-  // null for "noScore"/"error", where percent is never read for display (no fallback to 0).
+
   const percent = matchDetail?.matchPercent ?? 0;
   const ringColor =
     matchStatus === "scored"
@@ -469,7 +453,7 @@ function JobDetailsPage() {
 
         {!loading && !fetchError && job && (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]">
-            {/* Left column */}
+
             <div className="space-y-6">
               <div className="rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] px-7 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
                 <div className={`mb-4 flex flex-wrap items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
@@ -636,11 +620,7 @@ function JobDetailsPage() {
                     {matchStatus === "scored" && matchDetail &&
                       matchDetail.matchedRequiredSkills.length + matchDetail.missingRequiredSkills.length > 0 && (
                         <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-sm font-bold text-white">
-                          {/* Counts ONLY required (mandatory) skills, matching this counter's own
-                              "required skills matched" label literally - preferred skills get
-                              their own separate counter below instead of being folded into this
-                              one, since a candidate missing only preferred skills should read as
-                              "fully meets requirements", not as a partial required-skills score. */}
+
                           {matchDetail.matchedRequiredSkills.length}/
                           {matchDetail.matchedRequiredSkills.length + matchDetail.missingRequiredSkills.length}{" "}
                           <span className="font-medium text-white/60">{d.requiredSkillsMatchedSuffix}</span>
@@ -859,7 +839,6 @@ function JobDetailsPage() {
               )}
             </div>
 
-            {/* Right column */}
             <div className="space-y-6">
               <div className="sticky top-6 rounded-[30px] border border-white/10 bg-[rgba(44,45,95,0.94)] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
                 <div className="flex flex-col items-center text-center">
@@ -1002,13 +981,7 @@ function JobDetailsPage() {
                   <h2 className="mb-4 text-[18px] font-extrabold text-white">{d.fitBreakdown}</h2>
                   <div className="space-y-2">
                     {[
-                      // fieldRelevancePercent carries the single largest weight (25%) in the
-                      // actual score - it was missing from this list entirely, while
-                      // languageMatchPercent below always has a value (the backend defaults it
-                      // to a reasonable score rather than null even with no language
-                      // requirement). For a sparse job posting where skills/experience/education/
-                      // certification all come back null, that left ONLY the language bar
-                      // visible, making the score look language-driven when it never was.
+
                       {
                         key: "field",
                         label: d.fieldMatch,
@@ -1019,7 +992,7 @@ function JobDetailsPage() {
                         key: "skills",
                         label: d.skillsMatch,
                         value: matchDetail.skillsMatchPercent,
-                        explanation: null, // rendered specially below - it's a skill list, not a sentence
+                        explanation: null,
                       },
                       {
                         key: "experience",
@@ -1048,26 +1021,13 @@ function JobDetailsPage() {
                       { key: "location", label: d.locationMatch, value: matchDetail.locationMatchPercent, explanation: d.locationMatchExplanation },
                       { key: "language", label: d.languageMatch, value: matchDetail.languageMatchPercent, explanation: d.languageMatchExplanation },
                     ]
-                      // Component rows that weren't applicable to this job (backend leaves them
-                      // null and excludes them from the weighted score) are omitted rather than
-                      // shown as a misleading 0% - that would look like a gap that hurt the score
-                      // when it was actually just excluded and had no effect on it.
+
                       .filter((row) => row.value !== null)
-                      // Defensive clamp - every value here should already be 0-100 from the
-                      // backend, but this is the last line of defense against a stray unclamped
-                      // percentage (e.g. a negative value) ever rendering as-is.
+
                       .map((row) => ({ ...row, value: Math.max(0, Math.min(100, row.value as number)) }))
                       .map((row) => {
                         const isExpanded = expandedBreakdownKey === row.key;
-                        // Skills always has something to show (matched/missing chips, even if one
-                        // list is empty). The other rows only have real content when their backend
-                        // explanation is present - for experience/education/certification, that's
-                        // null on any row scored before this feature existed (it isn't
-                        // backfilled - only recomputed the next time the CV or job changes), and
-                        // there is nothing useful to reveal by clicking in that case. Rendering
-                        // those as plain, non-interactive rows instead of a dead-end "click here"
-                        // is what actually fixes the confusion, rather than just rewording the
-                        // fallback text.
+
                         const hasDetail = row.key === "skills" || Boolean(row.explanation);
 
                         const barContent = (

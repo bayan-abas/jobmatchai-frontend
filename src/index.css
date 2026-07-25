@@ -78,11 +78,46 @@ body,
 
 html {
   scroll-behavior: smooth;
+  /* Firefox custom scrollbar - thin, brand-purple thumb over a near-invisible track. Inherited
+     by every scrollable element on the site (dropdowns, modals, notification lists, etc.), not
+     just the page itself, so nothing falls back to the default OS scrollbar anywhere. */
+  scrollbar-width: thin;
+  scrollbar-color: #7f4cff rgba(255, 255, 255, 0.04);
 }
 
 body {
   margin: 0;
   font-family: var(--font-sans);
+}
+
+/* WebKit (Chrome/Edge/Safari/Opera) custom scrollbar - no selector prefix means this applies to
+   every scrollable element site-wide, matching the scrollbar-width/-color set on html above for
+   Firefox. Thin, rounded, purple-to-blue gradient thumb over a barely-visible track, so the
+   scroll affordance stays but never looks like the default OS chrome. Scrolling itself (wheel,
+   touchpad, keyboard) is untouched - this only restyles the native scrollbar's paint, nothing
+   about scroll behavior. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+::-webkit-scrollbar-thumb {
+  background-image: linear-gradient(180deg, #7f4cff, #38bdf8);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-image: linear-gradient(180deg, #9d7bff, #7dd3fc);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* prefers-reduced-motion is primarily handled by MotionConfig at the React layer (see App.tsx),
@@ -99,4 +134,136 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* גרדיאנט זורם לאט לכותרות מודגשות (למשל כותרת ה-hero) - נע ברוחב כפול מהאלמנט כדי ליצור מעבר צבע
+   רציף ורך, בקצב איטי מכוון כדי להישאר "יוקרתי" ולא מוסח */
+@keyframes gradient-move {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient-move {
+  background-size: 200% auto;
+  animation: gradient-move 8s ease-in-out infinite;
+}
+
+/* אנימציות לופ-אינסופי לרקע/כרטיסים/אייקונים של דף הנחיתה - כולן ב-CSS @keyframes טהור ולא דרך
+   Motion.animate: נבדק בפועל שאנימציות keyframe-array עם repeat:Infinity דרך Motion "קופאות" על
+   ערך היעד בפרויקט הזה (לא זזות בכלל בדפדפן בפועל), בעוד ש-CSS keyframes רצות כמו שצריך - אז כל
+   אנימציית "נשימה"/ריחוף/סיבוב אמביינטית עוברת ל-CSS, ו-Motion נשאר רק לאינטראקציות אמיתיות
+   (hover, מיקום עכבר, גלילה) שכן מונעות ע"י motion values מאירועים אמיתיים ועובדות כרגיל. */
+
+@keyframes orb-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+
+.animate-orb-pulse {
+  animation-name: orb-pulse;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes particle-float {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.25;
+  }
+  50% {
+    transform: translateY(-26px);
+    opacity: 0.75;
+  }
+}
+
+.animate-particle-float {
+  animation-name: particle-float;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes ai-line-flow {
+  0% {
+    stroke-dashoffset: 100;
+  }
+  100% {
+    stroke-dashoffset: -14;
+  }
+}
+
+.animate-ai-line-flow {
+  animation-name: ai-line-flow;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes glow-border-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-glow-border-spin {
+  animation: glow-border-spin 6s linear infinite;
+}
+
+@keyframes icon-pulse {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.08) rotate(3deg);
+  }
+}
+
+.animate-icon-pulse {
+  animation: icon-pulse 3.4s ease-in-out infinite;
+}
+
+@keyframes icon-glow {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 2px rgba(56, 189, 248, 0.35));
+  }
+  50% {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.95));
+  }
+}
+
+.animate-icon-glow {
+  animation: icon-glow 2.6s ease-in-out infinite;
+}
+
+@keyframes icon-rotate {
+  0%,
+  65%,
+  100% {
+    transform: rotate(0deg);
+  }
+  30%,
+  50% {
+    transform: rotate(10deg);
+  }
+}
+
+.animate-icon-rotate {
+  animation: icon-rotate 5s ease-in-out infinite;
 }

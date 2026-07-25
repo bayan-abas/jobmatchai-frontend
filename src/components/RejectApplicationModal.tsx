@@ -18,6 +18,7 @@ function RejectApplicationModal({ candidateName, jobTitle, t, isRTL, onConfirm, 
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // מוודא שהוזנה סיבת דחייה, ואז דוחה את המועמד עם ההודעה שהוזנה
   const handleConfirm = async () => {
     if (!rejectionReason.trim()) {
       setError(m.missingReasonError);

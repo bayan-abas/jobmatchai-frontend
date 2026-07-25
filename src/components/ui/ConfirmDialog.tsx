@@ -19,10 +19,6 @@ type ConfirmContextType = (options?: ConfirmOptions) => Promise<boolean>;
 
 const ConfirmContext = createContext<ConfirmContextType | undefined>(undefined);
 
-// Promise-based confirmation dialog - `if (await confirm({...})) { ... }` - replacing the
-// bespoke reject/cancel-subscription modals' duplicated overlay+panel markup with one shared
-// primitive, and giving any future destructive action (delete job, etc.) the same pattern for
-// free instead of a new bespoke modal every time.
 export function ConfirmProvider({ children }: { children: ReactNode }) {
   const [request, setRequest] = useState<ConfirmRequest | null>(null);
   const isRTL = useIsRTL();
@@ -38,6 +34,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const settle = (value: boolean) => {
+    // מונע resolve כפול - קליק על הכפתור וגם על ה-overlay יכולים לקרות כמעט ביחד
     if (resolvedRef.current || !request) return;
     resolvedRef.current = true;
     request.resolve(value);

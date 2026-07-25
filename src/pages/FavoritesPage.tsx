@@ -30,6 +30,7 @@ function FavoritesPage() {
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
 
+  // טוען את רשימת המשרות השמורות (מועדפות) של המועמד המחובר
   useEffect(() => {
     const identity = { email: user?.email || "" };
     setEmail(identity.email);
@@ -46,6 +47,7 @@ function FavoritesPage() {
   }, []);
 
   const handleUnsave = (row: SavedJobRow) => {
+    // מוחקים מהמסך מיד (optimistic), ומחזירים אם הבקשה לשרת נכשלת
     setRows((prev) => prev.filter((r) => r.id !== row.id));
 
     apiFetch(
@@ -74,9 +76,6 @@ function FavoritesPage() {
           </div>
         </section>
 
-        {/* grid-cols-1 (not bare "grid") - see ExternalJobsPage.tsx's identical fix: a bare
-            grid's single implicit column sizes to its widest child's content, letting a wide
-            job card overflow past this section at any viewport. */}
         <section className="grid grid-cols-1 gap-5">
           {loading && <ListSkeleton count={4} />}
 

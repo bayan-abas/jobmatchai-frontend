@@ -46,15 +46,14 @@ function getInitial(name: string | null) {
   return (name || "?").charAt(0).toUpperCase();
 }
 
+// בודק אם תאריך מסוים נופל בטווח הימים האחרונים (משמש לספירת הגשות של היום)
 function isWithinLastDays(dateStr: string | null, days: number) {
   if (!dateStr) return false;
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return false;
   const diffMs = Date.now() - date.getTime();
-  // appliedDate arrives as a date-only string (e.g. "2026-07-14"), which JS parses as UTC
-  // midnight - in timezones ahead of UTC that instant is still "in the future" for part of
-  // the day, making diffMs negative for an application from earlier today. A day of slack
-  // absorbs that without letting the upper bound drift.
+
+  // מרווח של יום קדימה בגלל הפרשי טיימזון בין השרת לדפדפן
   const futureSlackMs = 24 * 60 * 60 * 1000;
   return diffMs >= -futureSlackMs && diffMs <= days * 24 * 60 * 60 * 1000;
 }
@@ -71,6 +70,7 @@ function CompanyDashboard() {
   const [applications, setApplications] = useState<CompanyApplicant[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // טוען במקביל את המשרות והבקשות של החברה כדי לחשב את הסטטיסטיקות בדשבורד
   useEffect(() => {
     const companyEmail = user?.email;
 
@@ -97,6 +97,7 @@ function CompanyDashboard() {
     };
   }, [user?.email]);
 
+  // סופר מועמדים ייחודיים לפי אימייל (מועמד אחד יכול להגיש למספר משרות)
   const candidatesCount = useMemo(() => {
     return new Set(applications.map((a) => a.candidateEmail).filter(Boolean)).size;
   }, [applications]);
@@ -106,6 +107,7 @@ function CompanyDashboard() {
     [applications]
   );
 
+  // מחשב ממוצע אחוזי התאמה על פני כל הבקשות שכבר עברו ניתוח AI
   const avgMatchScore = useMemo(() => {
     if (scoredApplications.length === 0) return null;
     const total = scoredApplications.reduce((sum, a) => sum + a.matchPercent, 0);
@@ -147,6 +149,7 @@ function CompanyDashboard() {
     },
   ];
 
+  // בוחר את 3 המועמדים המובילים לפי אחוז ההתאמה הגבוה ביותר, כל מועמד מופיע פעם אחת בלבד
   const topCandidates = useMemo(() => {
     const seen = new Set<string>();
     const unique: (CompanyApplicant & { matchPercent: number })[] = [];
@@ -162,6 +165,7 @@ function CompanyDashboard() {
     return unique;
   }, [scoredApplications]);
 
+  // מציג את 3 הבקשות האחרונות שהוגשו, ממוינות מהחדשה לישנה
   const recentApplications = useMemo(() => {
     return [...applications]
       .sort((a, b) => (b.appliedDate || "").localeCompare(a.appliedDate || ""))
@@ -174,9 +178,7 @@ function CompanyDashboard() {
 
   const highScoreCandidatesCount = scoredApplications.filter((a) => a.matchPercent >= 85).length;
 
-  // "Waiting for review" = anything the company hasn't made a call on yet - mirrors
-  // CompanyApplications.tsx's deriveStage(), where only Shortlisted/Accepted/Rejected
-  // count as past the pending stage (Applied/AI Screening/Under Review all precede it).
+  // סופר בקשות שעדיין לא קיבלו החלטה סופית (לא הועברו לרשימה קצרה, לא התקבלו ולא נדחו)
   const candidatesWaitingForReview = applications.filter((a) => {
     const normalized = (a.status || "").toLowerCase();
     return normalized !== "shortlisted" && normalized !== "accepted" && normalized !== "rejected";
@@ -187,8 +189,7 @@ function CompanyDashboard() {
     return `${now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} · Last updated ${now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`;
   }, []);
 
-  // Ordered so each entry's icon stays attached to its meaning even when earlier
-  // entries are skipped for lack of data (unlike indexing into a fixed-position array).
+  // בונה רשימת תובנות AI דינמית על סמך הנתונים הקיימים (מועמד מוביל, משרה מבוקשת, ציון ממוצע וכו')
   const aiInsights = useMemo(() => {
     const insights: { icon: string; text: string }[] = [];
 
@@ -535,9 +536,7 @@ function CompanyDashboard() {
               )}
 
               {aiInsights.length > 0 && (
-                // grid-cols-1 (not bare "grid") - see ExternalJobsPage.tsx's identical fix: the
-                // implicit single column otherwise sizes to its widest child's content instead
-                // of the container's width, causing overflow on mobile.
+
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {aiInsights.map((insight, index) => (
                     <Reveal key={index} delay={Math.min(index * 0.05, 0.3)}>

@@ -36,6 +36,7 @@ type Job = {
   skills: string[];
 };
 
+// ממיר משרה כפי שמגיעה מהשרת לפורמט הנוח יותר לתצוגה בעמוד (עם ברירות מחדל וכישורים כמערך)
 function mapJob(job: BackendJob): Job {
   return {
     id: job.id,
@@ -69,6 +70,7 @@ function PublicJobsPage() {
 
   const hasActiveFilters = locationFilter !== "All Locations" || typeFilter !== "All Types";
 
+  // טוען את כל המשרות הפנימיות לתצוגה ציבורית (ללא צורך בהתחברות)
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -90,14 +92,17 @@ function PublicJobsPage() {
     };
   }, []);
 
+  // רשימת המיקומים הקיימים בפועל, לתפריט הסינון
   const locationOptions = useMemo(() => {
     return Array.from(new Set(jobs.map((job) => job.location))).sort();
   }, [jobs]);
 
+  // רשימת סוגי המשרות הקיימים בפועל, לתפריט הסינון
   const typeOptions = useMemo(() => {
     return Array.from(new Set(jobs.map((job) => job.type))).sort();
   }, [jobs]);
 
+  // מסנן את המשרות לפי חיפוש חופשי, מיקום וסוג משרה
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
       const matchesSearch =
@@ -115,6 +120,7 @@ function PublicJobsPage() {
     });
   }, [jobs, searchTerm, locationFilter, typeFilter]);
 
+  // פעולות שדורשות משתמש מחובר (הגשת מועמדות/צפייה בפרטים) פותחות פה מודל התחברות במקום לבצע את הפעולה
   const handleProtectedAction = () => {
     setShowAuthModal(true);
   };
@@ -202,9 +208,7 @@ function PublicJobsPage() {
         </section>
 
         <section className="mb-8 rounded-[28px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_12px_35px_rgba(0,0,0,0.18)]">
-          {/* Search stays inline at every width (primary action); location/type collapse behind
-              a "Filters" sheet below lg - the hidden lg:block selects still render at lg+ so
-              this section keeps its original 3-column layout on larger screens unchanged. */}
+
           <div className="grid gap-4 lg:grid-cols-[1.8fr_1fr_1fr]">
             <div
               className={`flex items-center gap-3 rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 ${
@@ -346,9 +350,6 @@ function PublicJobsPage() {
 
         {loading && <ListSkeleton count={4} />}
 
-        {/* grid-cols-1 (not bare "grid") below - see ExternalJobsPage.tsx's identical fix: a
-            bare grid's single implicit column sizes to its widest child's content, letting a
-            wide job card overflow past this section at any viewport. */}
         {!loading && (
         <section className="grid grid-cols-1 gap-5">
           {filteredJobs.map((job, index) => (

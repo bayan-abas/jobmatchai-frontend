@@ -15,6 +15,7 @@ import {
   XCircle,
   Clock3,
   Phone,
+  Video,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
@@ -26,6 +27,15 @@ import type { BadgeTone } from "../components/ui";
 
 type FilterType = "all" | "active" | "accepted";
 type ProgressStep = "applied" | "ai" | "review" | "shortlisted" | "final";
+
+type BackendInterview = {
+  id?: number;
+  scheduledAt?: string;
+  type?: string | null;
+  location?: string | null;
+  notes?: string | null;
+  status?: string | null;
+};
 
 type BackendApplication = {
   id?: number;
@@ -46,10 +56,9 @@ type BackendApplication = {
   contactMethodOther?: string | null;
   contactMessage?: string | null;
   rejectionReason?: string | null;
-  // The referenced job's CURRENT status ("ACTIVE"/"CLOSED"), enriched server-side at read time -
-  // see ApplicationController#getApplicationsByCandidate on the backend. Null if the job no
-  // longer exists at all (e.g. deleted).
+
   jobStatus?: string | null;
+  interview?: BackendInterview | null;
 };
 
 type ApplicationItem = {
@@ -72,24 +81,25 @@ type ApplicationItem = {
   preInterviewText?: string;
   currentStep: ProgressStep;
   viewedByCompany: boolean;
-  // How the company will reach out, set only once the application is accepted - see
-  // ApplicationController#updateStatus on the backend. contactMethodOther holds the company's
-  // own text when contactMethod is "other"; contactMessage is their optional note (e.g. date of
-  // contact, next steps, interview/onboarding instructions).
+
   contactMethod: string | null;
   contactMethodOther: string | null;
   contactMessage: string | null;
-  // Mandatory, company-written feedback set only when the application is rejected - preserved
-  // exactly as written, never AI-generated or a generic message. See
-  // ApplicationController#updateStatus on the backend.
+
   rejectionReason: string | null;
-  // True once the company has closed the job this application was submitted for - the
-  // application itself is untouched (never deleted, its review status/history stays exactly as
-  // it was), this only drives an additional "Closed" badge/notice on top of that.
+
   jobClosed: boolean;
+
+  interview: {
+    date: string;
+    time: string;
+    type: string;
+    location: string;
+    notes: string;
+  } | null;
 };
 
-// Mirrors ApplicationController.CONTACT_METHOD_LABELS on the backend - keep in sync.
+// ממיר את קוד שיטת יצירת הקשר (שהחברה בחרה) לטקסט מוצג למועמד
 function getContactMethodLabel(t: any, contactMethod: string | null, contactMethodOther: string | null): string {
   const c = t.applicationsPage;
   switch (contactMethod) {
@@ -110,6 +120,7 @@ function getContactMethodLabel(t: any, contactMethod: string | null, contactMeth
   }
 }
 
+// מנרמל ציון גולמי (מספר או מחרוזת) לפורמט אחוזים תצוגתי
 function toPercent(value: unknown, fallback = "80%") {
   if (value === null || value === undefined || value === "") return fallback;
 
@@ -122,6 +133,7 @@ function toPercent(value: unknown, fallback = "80%") {
   return `${num}%`;
 }
 
+// מאחד סטטוסים שמגיעים מהשרת בפורמטים שונים לרשימת סטטוסים קבועה שהעימוד יודע להציג
 function normalizeStatus(status?: string) {
   if (!status) return "Under Review";
 
@@ -140,6 +152,7 @@ function normalizeStatus(status?: string) {
   return clean;
 }
 
+// ממפה סטטוס טקסטואלי למספר השלב (1-5) בפס ההתקדמות של ההגשה
 function getProgressFromStatus(status: string) {
   switch (status) {
     case "Applied":
@@ -159,6 +172,7 @@ function getProgressFromStatus(status: string) {
   }
 }
 
+// ממפה סטטוס טקסטואלי לשלב הנוכחי (מפתח) בפס ההתקדמות
 function getCurrentStepFromStatus(status: string): ProgressStep {
   switch (status) {
     case "Applied":
@@ -178,14 +192,32 @@ function getCurrentStepFromStatus(status: string): ProgressStep {
   }
 }
 
+// מפרק את זמן הראיון הגולמי (ISO) לתאריך ושעה נפרדים לתצוגה, ומחזיר null אם עדיין לא נקבע ראיון
+function mapInterview(interview?: BackendInterview | null): ApplicationItem["interview"] {
+  if (!interview || !interview.scheduledAt) return null;
+
+  const parsed = new Date(interview.scheduledAt);
+  const date = Number.isNaN(parsed.getTime())
+    ? interview.scheduledAt.split("T")[0] || ""
+    : parsed.toLocaleDateString();
+  const time = Number.isNaN(parsed.getTime())
+    ? (interview.scheduledAt.split("T")[1] || "").slice(0, 5)
+    : parsed.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  return {
+    date,
+    time,
+    type: interview.type || "",
+    location: interview.location || "",
+    notes: interview.notes || "",
+  };
+}
+
+// ממיר אובייקט הגשה גולמי מהשרת לאובייקט מוכן לתצוגה עם כל השדות הנגזרים (סטטוס, התקדמות, ציון)
 function mapBackendApplication(app: BackendApplication): ApplicationItem {
   const reviewStatus = normalizeStatus(app.status);
   const scoreValue = app.interviewScore ?? app.score;
-  // A terminal outcome (rejected or a final accept decision) means the workflow has stopped -
-  // no future stage, including "Pre-interview pending", is still outstanding, regardless of
-  // whether a score happens to be missing. Without this, every application with no score
-  // (which is all of them today - the backend has no interviewScore/score field yet) showed
-  // "Pre-interview pending" even after being rejected.
+
   const isTerminal = reviewStatus === "Rejected" || reviewStatus === "Final Decision";
 
   return {
@@ -222,31 +254,24 @@ function mapBackendApplication(app: BackendApplication): ApplicationItem {
           ? undefined
           : "Pre-interview has not been completed yet. Assessment will appear here once available.",
     currentStep: getCurrentStepFromStatus(reviewStatus),
+    interview: mapInterview(app.interview),
   };
 }
 
 type MatchScoreEntry = {
   matchPercent: number | null;
   matchReason: string;
-  // true = AI decided this job matches the candidate's field; false = a real "not a match"
-  // verdict; null/undefined = the backend couldn't compute this one (transient failure, never
-  // persisted) - mirrors JobMatches.tsx's MatchScoreEntry shape/semantics exactly, since both
-  // pages read the same persisted JobMatchScore rows and must treat them the same way.
+
   fieldRelated?: boolean | null;
 };
 
 type MatchInfo =
   | { status: "loading" }
   | { status: "noAnalysis" }
-  // The AI gave a real verdict that this job isn't a field match, or the backend couldn't
-  // compute it at all - either way there is no percentage to show, so this must never fall
-  // through to the "scored" case (which unconditionally renders `${percent}%`).
+
   | { status: "noScore" }
   | { status: "scored"; percent: number; reason: string };
 
-// Renders the shared ScoreRing for this page's own MatchInfo union (loading/noAnalysis/noScore/
-// scored) - mirrors JobMatches.tsx's own mapping of its (richer) MatchInfo union onto the same
-// component, so a score reads identically wherever a candidate sees it across the app.
 function MatchScoreRing({ info }: { info: MatchInfo }) {
   return (
     <ScoreRing
@@ -258,13 +283,7 @@ function MatchScoreRing({ info }: { info: MatchInfo }) {
   );
 }
 
-// This page's terminal application.status ("accepted"/"rejected") is a clean, deterministic
-// signal - unlike its richer reviewStatus label ("Applied"/"AI Screening"/"Under Review"/
-// "Viewed"/"Shortlisted"/"Final Decision"/"Rejected"), it maps onto applicationStatusTone's
-// shared vocabulary immediately for the two outcomes that matter most (success/danger). For the
-// in-progress sub-statuses, applicationStatusTone recognizes "under review" and "shortlisted"
-// out of the box; "AI Screening"/"Viewed"/"Applied" have no dedicated tone in the shared palette
-// and intentionally fall back to its neutral default rather than inventing new tones here.
+// קובע את צבע התג (badge) של ההגשה לפי הסטטוס שלה
 function getApplicationTone(app: ApplicationItem): BadgeTone {
   if (app.status === "accepted") return "success";
   if (app.status === "rejected") return "danger";
@@ -294,6 +313,7 @@ function Applications() {
   const [hasAnalysis, setHasAnalysis] = useState<boolean | null>(null);
   const [matchScoresLoading, setMatchScoresLoading] = useState(false);
 
+  // טוען מהשרת את כל ההגשות של המועמד המחובר
   useEffect(() => {
     const fetchApplications = async () => {
       try {
@@ -304,10 +324,6 @@ function Applications() {
 
         setCandidateEmail(email);
 
-        // No "/all" fallback when email isn't known yet - the backend endpoint that used to
-        // back that fallback returned every candidate's applications system-wide with no
-        // per-user filtering, and there's nothing useful to show this candidate without their
-        // own email anyway.
         if (!email) {
           setApplications([]);
           return;
@@ -328,6 +344,7 @@ function Applications() {
     fetchApplications();
   }, [user]);
 
+  // מביא ציוני התאמה בין הקו"ח למשרות שהוגשו אליהן, כדי להציג אותם ליד כל הגשה
   useEffect(() => {
     if (applications.length === 0) return;
 
@@ -354,10 +371,6 @@ function Applications() {
     let cancelled = false;
     setMatchScoresLoading(true);
 
-    // Checked before ever calling the match-scores endpoint - a candidate with no CV has nothing
-    // to compute, and the backend already knows that too (it returns instantly with
-    // hasAnalysis:false, no AI/queue work triggered), but skipping the request entirely here is
-    // what stops the "Calculating match score..." flash from ever appearing in that case.
     fetchCurrentCvIdentity().then((cvIdentity) => {
       if (cancelled) return;
 
@@ -414,6 +427,7 @@ function Applications() {
     };
   }, [applications, candidateEmail, language]);
 
+  // מחזיר את מצב ציון ההתאמה שיוצג עבור הגשה נתונה (טוען / אין ניתוח / אין ציון / מנוקד)
   const getMatchInfo = (app: ApplicationItem): MatchInfo => {
     if (hasAnalysis === null) {
       return { status: "loading" };
@@ -423,19 +437,11 @@ function Applications() {
       return { status: "noAnalysis" };
     }
 
-    // Mirrors JobMatches.tsx's getMatchInfo - a resolved entry must render immediately rather
-    // than being forced back to "loading" by a batch-wide flag (see that file's comment for the
-    // full rationale; the risk is smaller here since this page fetches scores in one blocking
-    // call rather than streaming, but the same gating bug would apply if that ever changes).
     const entry = app.jobId !== null ? matchScores.get(app.jobId) : undefined;
     if (!entry) {
       return matchScoresLoading ? { status: "loading" } : { status: "noAnalysis" };
     }
 
-    // A real "not a field match" verdict (fieldRelated === false) or a transient AI failure
-    // (fieldRelated === null/undefined, matchPercent === null) both mean there is no percentage
-    // to show - rendering `${entry.matchPercent}%` here for either case is exactly how this page
-    // used to show a literal "null%" instead of JobMatches.tsx's "—" for the same situation.
     if (entry.fieldRelated === false || entry.matchPercent === null || entry.matchPercent === undefined) {
       return { status: "noScore" };
     }
@@ -443,6 +449,7 @@ function Applications() {
     return { status: "scored", percent: entry.matchPercent, reason: entry.matchReason };
   };
 
+  // אם הגענו לעמוד עם הגשה ספציפית שנבחרה (למשל מהדשבורד), פותח אותה אוטומטית
   useEffect(() => {
     const idFromNav = location.state?.selectedApplicationId;
     if (typeof idFromNav === "number") {
@@ -461,6 +468,7 @@ function Applications() {
     }
   }, [selectedId]);
 
+  // מסנן את רשימת ההגשות לפי הטאב שנבחר (הכל / פעילות / התקבלו)
   const filteredApplications = useMemo(() => {
     return applications.filter((app) => {
       if (filter === "all") return true;
@@ -471,6 +479,7 @@ function Applications() {
   const selectedApplication =
     applications.find((app) => app.id === selectedId) ?? null;
 
+  // מבטל (מוחק) את ההגשה הנבחרת של המועמד
   const handleWithdraw = async () => {
     if (!selectedApplication) return;
 
@@ -502,6 +511,7 @@ function Applications() {
     ? getMatchInfo(selectedApplication)
     : { status: "loading" };
 
+  // מתרגם סטטוס פנימי לטקסט מתורגם שמוצג למשתמש
   const getReviewStatusLabel = (status: string) => {
     switch (status) {
       case "Applied":
@@ -530,10 +540,6 @@ function Applications() {
         : "text-white/70 hover:bg-white/[0.05] hover:text-white border border-transparent"
     }`;
 
-  // The final stage's label/icon must reflect the ACTUAL outcome - both "Final Decision"
-  // (accepted) and "Rejected" share the same step index/progress value (see
-  // getCurrentStepFromStatus/getProgressFromStatus), so without this the timeline's last step
-  // showed "Accepted" with a checkmark even for a rejected application.
   const isSelectedRejected = selectedApplication?.reviewStatus === "Rejected";
 
   const steps = [
@@ -553,12 +559,11 @@ function Applications() {
   const getCurrentStepIndex = (step: ProgressStep) =>
     steps.findIndex((item) => item.key === step);
 
+  // מרנדר עיגול בודד בפס ההתקדמות של רשימת ההגשות, כולל מצב "נדחה" מיוחד בשלב האחרון
   const renderStep = (index: number, progress: number, rejected: boolean) => {
     const done = index < progress;
     const current = index === progress;
-    // The last dot represents the terminal outcome, not just "another completed stage" -
-    // showing it as a checkmark for a rejected application would contradict the status badge
-    // shown right next to it.
+
     const isRejectedFinalDot = current && index === 5 && rejected;
     const icons = ["✈", "✦", "◉", "☆", "✓"];
     const icon = isRejectedFinalDot ? "✕" : icons[index - 1];
@@ -742,6 +747,15 @@ function Applications() {
                               <span>
                                 {t.applicationsPage.contactMethodLabel}:{" "}
                                 {getContactMethodLabel(t, app.contactMethod, app.contactMethodOther)}
+                              </span>
+                            </div>
+                          )}
+
+                          {app.interview && (
+                            <div className="flex items-center gap-2 text-[#8fb3ff]">
+                              <Video size={16} />
+                              <span>
+                                {t.applicationsPage.interviewScheduledBadge} {app.interview.date} {app.interview.time}
                               </span>
                             </div>
                           )}
@@ -972,10 +986,7 @@ function Applications() {
                   const currentIndex = getCurrentStepIndex(selectedApplication.currentStep);
                   const isDone = index < currentIndex;
                   const isCurrent = index === currentIndex;
-                  // The final step is the terminal outcome, not just "another completed stage" -
-                  // giving it the same badge color as the Rejected badge (rose) when rejected is
-                  // what keeps the badge, timeline, and stage label all representing the same
-                  // state instead of a rejected application ending on a green checkmark.
+
                   const isRejectedFinalStep = isCurrent && step.key === "final" && isSelectedRejected;
 
                   return (
@@ -1019,6 +1030,57 @@ function Applications() {
                 })}
               </div>
             </div>
+
+            {selectedApplication.interview && (
+              <div className="rounded-[30px] border border-[#7c88ff33] bg-[#5e66ff14] px-8 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+                <h2 className={`mb-4 flex items-center gap-2 text-[22px] font-extrabold text-white ${isRTL ? "flex-row-reverse text-right" : ""}`}>
+                  <Video size={20} className="text-[#8fb3ff]" />
+                  {t.applicationsPage.interviewDetailsTitle}
+                </h2>
+
+                <div className={`flex flex-wrap gap-x-8 gap-y-3 text-[15px] text-[#c4cae9] ${isRTL ? "text-right" : ""}`}>
+                  <div className="flex items-center gap-2">
+                    <CalendarDays size={16} />
+                    <span>{selectedApplication.interview.date}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock3 size={16} />
+                    <span>{selectedApplication.interview.time}</span>
+                  </div>
+                  {selectedApplication.interview.type && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-white">{t.applicationsPage.interviewTypeLabel}: </span>
+                      <span>{selectedApplication.interview.type}</span>
+                    </div>
+                  )}
+                </div>
+
+                {selectedApplication.interview.location && (
+                  <p className={`mt-4 text-[15px] leading-7 text-[#c4cae9] ${isRTL ? "text-right" : ""}`}>
+                    <span className="font-semibold text-white">{t.applicationsPage.interviewLocationLabel}: </span>
+                    {/^https?:\/\//i.test(selectedApplication.interview.location) ? (
+                      <a
+                        href={selectedApplication.interview.location}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#8fb3ff] underline hover:text-white"
+                      >
+                        {selectedApplication.interview.location}
+                      </a>
+                    ) : (
+                      selectedApplication.interview.location
+                    )}
+                  </p>
+                )}
+
+                {selectedApplication.interview.notes && (
+                  <p className={`mt-3 whitespace-pre-line text-[15px] leading-7 text-[#c4cae9] ${isRTL ? "text-right" : ""}`}>
+                    <span className="font-semibold text-white">{t.applicationsPage.notes}: </span>
+                    {selectedApplication.interview.notes}
+                  </p>
+                )}
+              </div>
+            )}
 
             {selectedApplication.reviewStatus === "Final Decision" && selectedApplication.contactMethod && (
               <div className="rounded-[30px] border border-emerald-400/20 bg-emerald-500/[0.06] px-8 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">

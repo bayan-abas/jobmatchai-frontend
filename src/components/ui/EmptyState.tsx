@@ -9,9 +9,6 @@ type EmptyStateProps = {
   className?: string;
 };
 
-// Standardizes the "no CV / no applications / no saved jobs / no matches" messages that
-// already existed per-page but with inconsistent styling - icon + heading + description +
-// optional call-to-action, always in that order.
 function EmptyState({ icon, title, description, action, className = "" }: EmptyStateProps) {
   return (
     <motion.div

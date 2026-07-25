@@ -23,13 +23,6 @@ type MobileNavProps = {
   role: "candidate" | "company";
 };
 
-// Below the 980px breakpoint the full sidebar (CandidateSidebar/CompanySidebar) is hidden
-// entirely - this bottom bar is the ONLY navigation on phones/tablets in that range. The
-// sidebar has more menu items than comfortably fit in a 5-6 icon bottom bar (8 for candidates),
-// AND it's the sidebar - not this bar - that normally hosts the language switcher/logout button.
-// Without the "More" sheet below, a candidate on mobile would have no way at all to reach
-// External Jobs/Favorites/My Resume, and NO ONE on mobile could log out or change language -
-// existing functionality would silently disappear on small screens.
 function MobileNav({ role }: MobileNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -67,6 +60,7 @@ function MobileNav({ role }: MobileNavProps) {
   const primaryItems = role === "candidate" ? candidatePrimary : companyPrimary;
   const overflowItems = role === "candidate" ? candidateOverflow : companyOverflow;
   const moreLabel = role === "candidate" ? t.sidebar.more : t.companySidebar.more;
+  // מדליק את כפתור "עוד" אם הדף הנוכחי הוא אחד מהפריטים שהוסתרו לתוך התפריט הנפתח
   const isMoreActive = overflowItems.some((item) => item.path === location.pathname);
 
   const handleNavigate = (path: string) => {

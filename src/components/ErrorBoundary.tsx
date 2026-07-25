@@ -9,19 +9,15 @@ type ErrorBoundaryState = {
   error: Error | null;
 };
 
-// Without this, an uncaught error anywhere in a route's render tree unmounts the ENTIRE React
-// tree (React's default behavior) - since html/body/#root all share the same dark base color
-// (see index.css), that reads as a near-blank dark screen with no indication anything failed.
-// This boundary turns that into a visible, on-brand error screen instead, while still logging
-// the full error/component stack to the console exactly as an uncaught error would - nothing
-// here is swallowed, only surfaced more visibly than React's default silent unmount.
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state: ErrorBoundaryState = { error: null };
 
+  // תופס שגיאת רינדור בעץ הקומפוננטות ושומר אותה ב-state כדי להציג מסך שגיאה במקום להקריס את כל האפליקציה
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { error };
   }
 
+  // מתעד ללוג את השגיאה ואת מיקומה בעץ הקומפוננטות לצורך דיבוג
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("Unhandled render error:", error, info.componentStack);
   }
@@ -29,6 +25,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   render() {
     const { error } = this.state;
 
+    // כל עוד אין שגיאה מרנדרים את התוכן הרגיל כרגיל
     if (!error) {
       return this.props.children;
     }

@@ -2,20 +2,14 @@ import { Brain, Sparkles } from "lucide-react";
 
 type LoadingScreenProps = {
   title?: string;
-  // Explicitly passing "" (as opposed to leaving this prop out) hides the subtext entirely -
-  // used by App.tsx's route-level Suspense fallback, which just needs the spinner + a short
-  // heading, not a full explanatory sentence. Omitting the prop keeps every existing caller's
-  // current default text exactly as before.
+
   message?: string;
-  // ProtectedRoute/CandidateDashboard render this INSIDE a layout's <main>, which already has
-  // pt-[78px] reserving space for the fixed header - min-h-[calc(100vh-78px)] is what makes the
-  // total height land exactly at the viewport in that context. The route-level Suspense fallback
-  // (see App.tsx) renders with NO header/layout present at all (ProtectedRoute itself hasn't
-  // mounted yet), so it needs the full min-h-screen instead.
+
   fullScreen?: boolean;
 };
 
 function LoadingScreen({ title, message, fullScreen = false }: LoadingScreenProps) {
+  // message="" (ולא undefined) זה איך שקוראים לקומפוננטה בלי טקסט תחתון בכלל
   const resolvedMessage =
     message === undefined
       ? "Our AI is preparing the best job matches for you. This will just take a moment."

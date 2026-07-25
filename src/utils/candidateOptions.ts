@@ -1,3 +1,4 @@
+// רשימת תפקידים אפשריים לבחירה בפרופיל המועמד ובחיפוש משרות
 export const JOB_TITLES: string[] = [
   "Student",
   "Software Developer",
@@ -48,6 +49,7 @@ export const JOB_TITLES: string[] = [
   "Other",
 ];
 
+// טווחי ניסיון אפשריים לבחירה בפרופיל המועמד
 export const EXPERIENCE_OPTIONS: string[] = [
   "No experience",
   "Less than 1 year",
@@ -63,6 +65,7 @@ export const EXPERIENCE_OPTIONS: string[] = [
   "10+ years",
 ];
 
+// בנק הכישורים שממנו המועמד בוחר בבניית הפרופיל שלו
 export const ALL_SKILLS: string[] = [
   "Communication",
   "Teamwork",

@@ -4,10 +4,7 @@ import { translations } from "../translations";
 
 type AiDisclaimerProps = { className?: string };
 
-// One standardized, subtle note wherever AI-generated analysis is shown to a candidate or a
-// company (CV analysis, job match analysis/reasoning, AI chat, company AI candidate summaries) -
-// same wording and design everywhere by construction, since every surface renders this one
-// component instead of a bespoke inline banner per page.
+// מציג הבהרה קבועה שהתוכן הופק ע"י AI ולא בהכרח מדויק במאה אחוז
 function AiDisclaimer({ className = "" }: AiDisclaimerProps) {
   const { language } = useLanguage();
   const t = translations[language] || translations.en;

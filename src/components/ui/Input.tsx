@@ -8,8 +8,6 @@ type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   hasError?: boolean;
 };
 
-// Shared text input: consistent focus ring, optional leading icon, and - when `type="password"`
-// is passed - a built-in visibility toggle (previously absent on every auth form in the app).
 const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   { icon, hasError, type, className = "", ...rest },
   ref

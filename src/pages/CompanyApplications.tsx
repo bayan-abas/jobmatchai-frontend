@@ -57,15 +57,9 @@ type ApplicationItem = {
   date: string;
   match: number | null;
   matchLabel: string | null;
-  // Fixed-vocabulary hiring-decision category ("accept"/"consider"/"reject") computed once by
-  // the backend from match - see CandidateSummaryService.SummaryResult's own comment. Never
-  // recompute this from `match` here; only map it to a localized label for display.
+
   recommendation: string | null;
-  // Whether a CandidateAiSummary already exists for this candidate+job - i.e. whether the
-  // AI Summary fetch below is guaranteed to be a cache hit. Deliberately NOT derived from
-  // `match` (see fetchInlineAiSummary's own comment) - `match` is JobMatchScore-sourced and is
-  // typically populated well before any AI Summary is ever generated, so it can no longer be
-  // used as a proxy for "AI Summary already exists" the way it once could.
+
   hasAiSummary: boolean;
   stage: ApplicationStage;
   currentStep: number;
@@ -98,8 +92,6 @@ type BackendApplicant = {
   contactMessage?: string | null;
 };
 
-// Raw extracted-CV fields from GET /api/applications/{id}/candidate-profile - a plain DB
-// read, distinct from InlineAiSummary's AI-generated narrative below.
 type CandidateProfile = {
   hasAnalysis: boolean;
   resumeUploaded: boolean;
@@ -113,8 +105,6 @@ type CandidateProfile = {
   languages?: string | null;
 };
 
-// AI-generated narrative from POST /api/applications/{id}/ai-summary (same endpoint/cache
-// CandidateAiSummaryModal already uses).
 type InlineAiSummary = {
   hasAnalysis: boolean;
   professionalBackground?: string;
@@ -129,10 +119,7 @@ type InlineAiSummary = {
   message?: string;
 };
 
-// CVAnalysis stores education/certification/license as coarse match-relevance categories
-// (see OpenAICVAnalysisService's fixed enums), not a free-text degree/institution/year - the
-// backend simply doesn't extract those specific fields. Humanizing the real category is honest;
-// inventing a degree name/institution/year that was never extracted would not be.
+// שלוש הפונקציות הבאות ממירות את קוד ההשכלה/ההסמכה/הרישיון שה-AI זיהה לטקסט תיאורי להצגה למעסיק
 function describeEducationEvidence(value: string | null | undefined): string | null {
   switch (value) {
     case "relevant_degree":
@@ -166,9 +153,6 @@ function describeLicensesEvidence(value: string | null | undefined): string | nu
   }
 }
 
-// Pure presentation mapping from the backend's already-decided recommendation category
-// ("accept"/"consider"/"reject" - see CandidateSummaryService.SummaryResult) to a localized
-// label. Never decides the category itself - that judgment is entirely backend-sourced.
 function recommendationLabel(category: string | null, page: Record<string, string | undefined>): string {
   if (category === "accept") return page.accept || "Accept";
   if (category === "consider") return page.keepUnderReview || "Keep Under Review";
@@ -176,6 +160,7 @@ function recommendationLabel(category: string | null, page: Record<string, strin
   return page.awaitingAnalysis || "Awaiting Analysis";
 }
 
+// ממפה סטטוס בקשה גולמי מהשרת לשלב תצוגה (חדש/בסינון/ברשימה קצרה/הוכרע) עבור טאבי הסינון
 function deriveStage(status: string | null): ApplicationStage {
   const normalized = (status || "").toLowerCase();
   if (normalized === "accepted" || normalized === "rejected") return "Decided";
@@ -184,10 +169,7 @@ function deriveStage(status: string | null): ApplicationStage {
   return "New";
 }
 
-// Highest match score first; ties broken by earliest application date, then by
-// application id — both stable, real values, so the order never changes between
-// page loads or repeated clicks. Unscored applicants (match === null) sort last,
-// since -1 is always lower than any real 0-100 score.
+// ממיין מועמדים לפי דירוג AI - ציון התאמה גבוה קודם, ואז לפי תאריך הגשה מוקדם יותר
 function compareByAiRank(a: ApplicationItem, b: ApplicationItem) {
   const scoreDiff = (b.match ?? -1) - (a.match ?? -1);
   if (scoreDiff !== 0) return scoreDiff;
@@ -196,12 +178,14 @@ function compareByAiRank(a: ApplicationItem, b: ApplicationItem) {
   return a.id - b.id;
 }
 
+// ממיין מועמדים לפי תאריך הגשה, מהחדש לישן
 function compareByDateDesc(a: ApplicationItem, b: ApplicationItem) {
   const dateDiff = (b.date || "").localeCompare(a.date || "");
   if (dateDiff !== 0) return dateDiff;
   return a.id - b.id;
 }
 
+// ממיר שלב תצוגה למספר צעד בפס ההתקדמות שמוצג למועמד/למעסיק
 function deriveStep(stage: ApplicationStage): number {
   if (stage === "Decided") return 5;
   if (stage === "Shortlisted") return 4;
@@ -209,8 +193,6 @@ function deriveStep(stage: ApplicationStage): number {
   return 1;
 }
 
-// "en-US" matches the fixed-locale convention already used elsewhere for dates in this
-// codebase (e.g. CompanyJobPostings.tsx) rather than the viewer's browser/OS locale.
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "";
   const date = new Date(dateStr);
@@ -221,12 +203,7 @@ function formatDate(dateStr: string | null): string {
 type ProgressStepState = "completed" | "current" | "pending" | "rejected";
 type ProgressStep = { key: string; label: string; state: ProgressStepState };
 
-// Derives the real pipeline position from the application's actual status string (never a
-// fixed "every stage active" placeholder) plus whether a CV analysis/match score exists for
-// this candidate+job. A single `status` field has no history, so stages the pipeline could
-// have skipped (e.g. Shortlisted before an Accept) are only ever marked "completed" when that
-// can be inferred honestly (Accepted implies Shortlisted happened; Rejected does not, since a
-// rejection can happen from any earlier stage) - never fabricated.
+// בונה את רשימת שלבי ההתקדמות (הוגש/ניתוח AI/בבדיקה/ברשימה קצרה/הוחלט) עם המצב של כל שלב לפי הסטטוס הנוכחי
 function computeCandidateProgress(status: string | null, hasAnalysis: boolean, labels: {
   applied: string; aiAnalysis: string; underReview: string; shortlisted: string; accepted: string; rejected: string;
 }): ProgressStep[] {
@@ -254,8 +231,6 @@ function computeCandidateProgress(status: string | null, hasAnalysis: boolean, l
   ];
 }
 
-// Reuses acceptApplicationModal's translations - same fixed vocabulary the company just chose
-// from in AcceptApplicationModal, echoed back here so they can confirm what was sent.
 function contactMethodLabel(t: any, method: string | null, other: string | null): string {
   const m = t.acceptApplicationModal || {};
   switch (method) {
@@ -276,6 +251,7 @@ function contactMethodLabel(t: any, method: string | null, other: string | null)
   }
 }
 
+// ממפה אובייקט בקשה כפי שמגיע מהשרת למבנה שהעמוד עובד איתו (כולל חישוב שלב וצעד תצוגה)
 function mapApplicant(item: BackendApplicant): ApplicationItem {
   const match = typeof item.matchPercent === "number" ? item.matchPercent : null;
   const stage = deriveStage(item.status);
@@ -317,30 +293,19 @@ function CompanyApplications() {
   const [activeTab, setActiveTab] = useState<
     "All" | "New" | "Screening" | "Shortlisted" | "Decided"
   >("All");
-  // AI Ranking only makes sense within a single job posting's candidate pool,
-  // so it's the default sort whenever the list is scoped to one job.
+
   const [sortMode, setSortMode] = useState<"aiRank" | "date">(filterJobId ? "aiRank" : "date");
   const [selectedApplication, setSelectedApplication] =
     useState<ApplicationItem | null>(null);
   const [aiSummaryApplication, setAiSummaryApplication] =
     useState<ApplicationItem | null>(null);
 
-  // Raw, already-extracted CVAnalysis fields (skills/experience/education/languages) for the
-  // candidate info cards - a plain DB read (see /candidate-profile), never an OpenAI call, so
-  // it's safe to fetch every time the detail view opens.
   const [candidateProfile, setCandidateProfile] = useState<CandidateProfile | null>(null);
   const [candidateProfileLoading, setCandidateProfileLoading] = useState(false);
 
-  // The richer AI-generated summary (professional background, key skills, strengths,
-  // weaknesses, overall suitability) - only auto-fetched when a cached CandidateAiSummary is
-  // already known to exist (selectedApplication.hasAiSummary), which guarantees the call below
-  // is a cache hit and never triggers a fresh OpenAI request.
   const [inlineAiSummary, setInlineAiSummary] = useState<InlineAiSummary | null>(null);
   const [inlineAiSummaryLoading, setInlineAiSummaryLoading] = useState(false);
 
-  // Hiring Decision card - shared across Accept/Reject/Shortlist/Keep Under Review so only one
-  // status-changing request can be in flight at a time, and success/error feedback is visible
-  // regardless of which action triggered it.
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [statusUpdateError, setStatusUpdateError] = useState("");
   const [statusUpdateSuccess, setStatusUpdateSuccess] = useState("");
@@ -351,13 +316,8 @@ function CompanyApplications() {
   const [contactModalError, setContactModalError] = useState("");
   const [contactModalSuccess, setContactModalSuccess] = useState(false);
 
-  // The application being accepted - opens AcceptApplicationModal to collect the required
-  // contact method (and optional message) BEFORE the status actually changes, instead of
-  // accepting immediately and leaving those fields empty.
   const [acceptTarget, setAcceptTarget] = useState<ApplicationItem | null>(null);
 
-  // Same pattern for rejection - a rejection reason is mandatory, company-written feedback,
-  // so RejectApplicationModal collects it before the status actually changes.
   const [rejectTarget, setRejectTarget] = useState<ApplicationItem | null>(null);
 
   const [showInterviewModal, setShowInterviewModal] = useState(false);
@@ -366,6 +326,7 @@ function CompanyApplications() {
   const [interviewType, setInterviewType] = useState(
     page.online || "Online"
   );
+  const [interviewLocation, setInterviewLocation] = useState("");
   const [interviewNotes, setInterviewNotes] = useState("");
   const [isSchedulingInterview, setIsSchedulingInterview] = useState(false);
   const [interviewModalError, setInterviewModalError] = useState("");
@@ -375,6 +336,7 @@ function CompanyApplications() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
+  // טוען את כל הבקשות של החברה, או רק את הבקשות למשרה ספציפית אם הגענו מסינון לפי משרה
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -415,14 +377,13 @@ function CompanyApplications() {
     "Decided",
   ];
 
+  // מסנן את הבקשות לפי הטאב הנבחר (הכל/חדש/בסינון/ברשימה קצרה/הוכרע)
   const filteredApplications = useMemo(() => {
     if (activeTab === "All") return applications;
     return applications.filter((app) => app.stage === activeTab);
   }, [activeTab, applications]);
 
-  // AI Rank (#1, #2, ...) is computed once from the full job-scoped candidate pool
-  // (not the tab-filtered view), so a candidate's rank stays the same no matter
-  // which stage tab is active. Only scored candidates receive a rank.
+  // כשמסננים לפי משרה, מחשב לכל בקשה את הדירוג שלה מבין המועמדים למשרה הזו לפי ציון ההתאמה
   const rankByApplicationId = useMemo(() => {
     if (!filterJobId) return new Map<number, number>();
 
@@ -438,6 +399,7 @@ function CompanyApplications() {
     return ranked;
   }, [applications, filterJobId]);
 
+  // ממיין את רשימת הבקשות המוצגת לפי דירוג AI או לפי תאריך, בהתאם לבחירת המשתמש
   const sortedApplications = useMemo(() => {
     const comparator = sortMode === "aiRank" ? compareByAiRank : compareByDateDesc;
     return [...filteredApplications].sort(comparator);
@@ -445,9 +407,6 @@ function CompanyApplications() {
 
   const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
-  // Single badge styling/label for the AI match score, shared by the card badge, the
-  // detail-page header badge, and the ring caption below it — so the exact same score
-  // never renders two different labels (e.g. "Medium Fit" next to "Strong Match").
   const getScoreBadgeStyles = (match: number | null) => {
     if (match === null) return "bg-white/10 text-white/50 border border-white/15";
     const tier = getMatchTier(match);
@@ -459,6 +418,7 @@ function CompanyApplications() {
     return matchLabel || getMatchLabel(match);
   };
 
+  // שולח לשרת עדכון סטטוס לבקשה (התקבל/נדחה/רשימה קצרה/בבדיקה) ומעדכן את המצב המקומי בהתאם
   const applyStatusUpdate = async (
     id: number,
     status: "Accepted" | "Rejected" | "Shortlisted" | "Under Review",
@@ -504,13 +464,13 @@ function CompanyApplications() {
     );
   };
 
-  // Opens AcceptApplicationModal instead of accepting immediately - contact method is required
-  // for an acceptance, so the status change itself is deferred until the modal collects it.
+  // פותח את מודל האישור שבו המעסיק בוחר איך ליצור קשר עם המועמד לפני קבלתו בפועל
   const handleAccept = (id: number) => {
     const app = applications.find((item) => item.id === id) ?? null;
     setAcceptTarget(app);
   };
 
+  // מאשר את קבלת המועמד ושומר בשרת את פרטי דרך יצירת הקשר וההודעה שנבחרו
   const handleConfirmAccept = async (
     contactMethod: ContactMethod,
     contactMethodOther: string,
@@ -529,9 +489,7 @@ function CompanyApplications() {
     }
   };
 
-  // Shortlist/Keep Under Review apply immediately (no modal) - neither requires the mandatory
-  // extra input Accept/Reject do, but they still share isUpdatingStatus so they can't overlap
-  // with any other in-flight status change, and surface the same inline success/error feedback.
+  // מעביר את הבקשה לסטטוס "רשימה קצרה"
   const handleShortlist = async (id: number) => {
     if (isUpdatingStatus) return;
     setIsUpdatingStatus(true);
@@ -547,6 +505,7 @@ function CompanyApplications() {
     }
   };
 
+  // מחזיר בקשה למצב "בבדיקה" (למשל אם המעסיק מתחרט על החלטה קודמת)
   const handleKeepUnderReview = async (id: number) => {
     if (isUpdatingStatus) return;
     setIsUpdatingStatus(true);
@@ -562,14 +521,13 @@ function CompanyApplications() {
     }
   };
 
-  // Opens RejectApplicationModal instead of rejecting immediately - a rejection reason is
-  // mandatory, company-written feedback, so the status change itself is deferred until the
-  // modal collects it.
+  // פותח את מודל הדחייה שבו המעסיק מזין את סיבת הדחייה למועמד
   const handleReject = (id: number) => {
     const app = applications.find((item) => item.id === id) ?? null;
     setRejectTarget(app);
   };
 
+  // מאשר את דחיית המועמד ושומר בשרת את סיבת הדחייה שתישלח אליו
   const handleConfirmReject = async (rejectionReason: string) => {
     if (!rejectTarget) return;
     setIsUpdatingStatus(true);
@@ -584,18 +542,13 @@ function CompanyApplications() {
     }
   };
 
+  // מעדכן בקשה עם ציון ההתאמה וההמלצה שהתקבלו מניתוח ה-AI לאחר שהופק סיכום
   const applyAiMatchScore = (id: number, matchScore: number, matchLabel: string, recommendation: string) => {
     const patch = {
       match: matchScore,
       matchLabel: matchLabel || getMatchLabel(matchScore),
       recommendation: recommendation || null,
-      // A CandidateAiSummary is guaranteed to exist now - this callback only ever fires once
-      // the modal's fetch has actually resolved with a result. Previously this patch (and thus
-      // implicitly "a summary now exists") only applied when the match score's VALUE changed,
-      // which silently stopped working once match became JobMatchScore-sourced (it's usually
-      // already correct by the time this fires, since JobMatchScore is populated independently
-      // of the AI Summary) - applying unconditionally on id match is what actually keeps
-      // hasAiSummary correct for the rest of this session without a page reload.
+
       hasAiSummary: true,
     };
 
@@ -604,12 +557,12 @@ function CompanyApplications() {
     setSelectedApplication((prev) => (prev && prev.id === id ? { ...prev, ...patch } : prev));
   };
 
+  // פותח את פרטי הבקשה ומסמן אותה כנצפתה על ידי החברה, ואם היא עדיין "הוגש" מעביר אותה ל"בבדיקה"
   const openApplicationDetail = (app: ApplicationItem) => {
     setSelectedApplication(app);
 
     if (!app.viewedByCompany) {
-      // Mirrors ApplicationController#markViewed's own transition rule exactly, so the status
-      // badge reflects the real backend state immediately instead of lagging until a reload.
+
       const normalizedStatus = (app.status || "").toLowerCase();
       const movesToUnderReview = normalizedStatus === "applied" || normalizedStatus === "ai screening" || !app.status;
 
@@ -629,11 +582,7 @@ function CompanyApplications() {
     }
   };
 
-  // Only auto-fetch the richer AI narrative when a cached CandidateAiSummary is already known
-  // to exist (hasAiSummary) - guarantees this call is a cache hit and never triggers a fresh
-  // OpenAI generation just from opening the page. `match` is NOT a safe proxy for this: it's
-  // JobMatchScore-sourced now, and JobMatchScore is typically populated well before any AI
-  // Summary is ever generated for the same pair.
+  // מבקש מהשרת ליצור/להביא סיכום AI לבקשה הזו ומציג אותו בעמוד הפרטים
   const fetchInlineAiSummary = (applicationId: number) => {
     setInlineAiSummaryLoading(true);
     apiFetch(`/api/applications/${applicationId}/ai-summary?language=${language}`, { method: "POST" })
@@ -642,6 +591,7 @@ function CompanyApplications() {
       .finally(() => setInlineAiSummaryLoading(false));
   };
 
+  // כשנפתחת בקשה, טוען את פרופיל המועמד ומביא סיכום AI קיים אם כבר נוצר בעבר
   useEffect(() => {
     setStatusUpdateError("");
     setStatusUpdateSuccess("");
@@ -671,7 +621,7 @@ function CompanyApplications() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [selectedApplication?.id, language]);
 
   const openContactModal = (app: ApplicationItem) => {
@@ -687,6 +637,7 @@ function CompanyApplications() {
     setInterviewDate("");
     setInterviewTime("");
     setInterviewType(page.online || "Online");
+    setInterviewLocation("");
     setInterviewNotes("");
     setInterviewModalError("");
     setInterviewModalSuccess(false);
@@ -701,15 +652,8 @@ function CompanyApplications() {
     setShowInterviewModal(false);
   };
 
-  // Derived view-model for the Candidate Details page (only meaningful while
-  // selectedApplication is set, but cheap enough to compute unconditionally every render
-  // rather than fight hook-ordering rules with a conditional useMemo).
   const detailMatch = selectedApplication?.match ?? null;
-  // Sourced ENTIRELY from the backend (CandidateSummaryService.SummaryResult.recommendation /
-  // ApplicantView.recommendation) - prefers the freshly-fetched AI summary's value when
-  // available, same precedence recommendationExplanation below already uses, falling back to
-  // the value already on the list row. Never computed from detailMatch here - the frontend only
-  // maps this fixed backend category to a localized label/description below.
+
   const detailRecommendation =
     (inlineAiSummary?.hasAnalysis ? inlineAiSummary.recommendation : null) ??
     selectedApplication?.recommendation ??
@@ -722,9 +666,7 @@ function CompanyApplications() {
   const detailIsAccepted = selectedApplication?.status === "Accepted";
   const detailIsShortlisted = selectedApplication?.status === "Shortlisted";
 
-  // Presentation-only mapping from the backend's already-decided category to a localized
-  // label/description - this never itself decides accept/consider/reject; that judgment comes
-  // entirely from detailRecommendation above (see CandidateSummaryService.SummaryResult).
+  // קובע את הפעולה שה-AI ממליץ עליה (קבל/שקול/דחה) ואת הנימוק המוצג עבורה
   const aiRecommendedAction =
     detailRecommendation === "accept"
       ? { label: page.accept || "Accept", reason: `The match score is ${detailMatch}% and the candidate's profile aligns well with this role's requirements.` }
@@ -752,6 +694,7 @@ function CompanyApplications() {
       })
     : [];
 
+  // מוריד את קובץ קורות החיים של המועמד ופותח אותו בטאב חדש
   const handleDownloadResume = async () => {
     if (!selectedApplication) return;
     try {
@@ -864,10 +807,7 @@ function CompanyApplications() {
             <div className="space-y-5">
               {sortedApplications.map((app, index) => {
                 const aiRank = rankByApplicationId.get(app.id);
-                // Same "already decided" check as the detail modal's detailIsFinal - once a
-                // company has accepted or rejected a candidate, Accept/Reject here must be
-                // disabled too, not just in the modal, so the list card can't contradict the
-                // "Accepted"/"Rejected" badge it's showing right next to these buttons.
+
                 const isFinal = ["accepted", "rejected"].includes((app.status || "").toLowerCase());
 
                 return (
@@ -1572,6 +1512,7 @@ function CompanyApplications() {
                     </button>
 
                     {!contactModalSuccess && (
+                      // שולח הודעה חופשית מהמעסיק למועמד דרך המערכת
                       <button
                         onClick={async () => {
                           if (!messageText.trim() || isSendingMessage) return;
@@ -1689,6 +1630,22 @@ function CompanyApplications() {
 
                   <div className="mt-4">
                     <label className="mb-2 block text-sm text-white/70">
+                      {page.interviewLocation || "Location / Meeting Link"}
+                    </label>
+                    <input
+                      type="text"
+                      value={interviewLocation}
+                      onChange={(e) => setInterviewLocation(e.target.value)}
+                      className="w-full rounded-[14px] border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+                      placeholder={
+                        page.interviewLocationPlaceholder ||
+                        "e.g. https://zoom.us/j/... or the office address"
+                      }
+                    />
+                  </div>
+
+                  <div className="mt-4">
+                    <label className="mb-2 block text-sm text-white/70">
                       {page.notes || "Notes"}
                     </label>
                     <textarea
@@ -1724,6 +1681,7 @@ function CompanyApplications() {
                     </button>
 
                     {!interviewModalSuccess && (
+                      // שולח לשרת בקשה לקביעת ראיון עם המועמד בתאריך/שעה/סוג שנבחרו
                       <button
                         onClick={async () => {
                           if (!interviewDate || !interviewTime || isSchedulingInterview) {
@@ -1742,6 +1700,7 @@ function CompanyApplications() {
                                 applicationId: selectedApplication.id,
                                 scheduledAt: `${interviewDate}T${interviewTime}`,
                                 type: interviewType,
+                                location: interviewLocation,
                                 notes: interviewNotes,
                               }),
                             });
@@ -1783,8 +1742,7 @@ function CompanyApplications() {
               onClose={() => {
                 const closedId = aiSummaryApplication.id;
                 setAiSummaryApplication(null);
-                // If this was opened for the application currently on screen, refresh the inline
-                // summary too - it's now guaranteed cached (just generated), so this is a cache hit.
+
                 if (selectedApplication?.id === closedId) {
                   fetchInlineAiSummary(closedId);
                 }
@@ -1796,10 +1754,6 @@ function CompanyApplications() {
           )}
         </AnimatePresence>
 
-        {/* Rendered as a sibling of the list/detail ternary above (like aiSummaryApplication's
-            modal just above), not nested inside the detail-view branch - handleAccept/handleReject
-            are called from the LIST view's per-row buttons, so a modal that only existed inside
-            the detail branch never rendered no matter what the user clicked. */}
         <AnimatePresence>
           {acceptTarget && (
             <AcceptApplicationModal
@@ -1830,9 +1784,6 @@ function CompanyApplications() {
   );
 }
 
-// Renders computeCandidateProgress()'s output - 4 visually distinct states (completed/
-// current/pending/rejected), replacing the old binary active/inactive stepper that could only
-// ever show a fixed bucket ("Decision") instead of the application's real outcome.
 function CandidateProgressSteps({ steps }: { steps: ProgressStep[] }) {
   return (
     <div className="space-y-4">

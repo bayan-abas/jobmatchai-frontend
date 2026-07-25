@@ -9,14 +9,12 @@ type LanguageContextType = {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-// Single source of truth for "is this language RTL" - previously every component repeated
-// `language === "ar" || language === "he"` inline. Exported so new/redesigned components can
-// share one definition instead of re-deriving it (see useIsRTL below).
+// בודק אם השפה הנתונה נכתבת מימין לשמאל
 export function isRTLLanguage(lang: Language): boolean {
   return lang === "ar" || lang === "he";
 }
 
-// Apply direction to <html> immediately so it's ready before first render
+// מעדכן את כיוון הכתיבה ואת שפת המסמך ברמת ה-HTML כדי שכל הדף (כולל CSS) יתאים לשפה
 function applyDirection(lang: Language) {
   const isRTL = isRTLLanguage(lang);
   document.documentElement.dir = isRTL ? "rtl" : "ltr";
@@ -25,21 +23,20 @@ function applyDirection(lang: Language) {
 
 const VALID_LANGUAGES: Language[] = ["en", "ar", "he"];
 
-// Set direction from saved preference before any component renders. Validated against the real
-// union (not just cast) - a corrupted/stale/tampered localStorage value would otherwise become
-// the app's `language`, and every page that does `translations[language]` with no `|| translations.en`
-// fallback would crash with "Cannot read properties of undefined" on first render.
+// קורא את השפה השמורה מ-localStorage, ומחזיר אנגלית כברירת מחדל אם אין ערך תקין
 function readStoredLanguage(): Language {
   const stored = localStorage.getItem("jobmatch_language");
   return (VALID_LANGUAGES as string[]).includes(stored ?? "") ? (stored as Language) : "en";
 }
 
+// מופעל מיד בטעינת המודול (לפני הרינדור הראשון) כדי שלא יהיה פלאש של כיוון LTR לפני שה-RTL נטען
 const _initialLang = readStoredLanguage();
 applyDirection(_initialLang);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(_initialLang);
 
+  // מחליף את שפת הממשק, מעדכן את כיוון הכתיבה (RTL/LTR) ושומר את הבחירה לפעם הבאה
   const setLanguage = (lang: Language) => {
     applyDirection(lang);
     setLanguageState(lang);
@@ -53,6 +50,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// hook לגישה לשפה הנוכחית ולפונקציית ההחלפה; זורק שגיאה אם משתמשים בו מחוץ ל-LanguageProvider
 export function useLanguage() {
   const context = useContext(LanguageContext);
 
@@ -63,8 +61,7 @@ export function useLanguage() {
   return context;
 }
 
-// Shared replacement for the `const isRTL = language === "ar" || language === "he"` line
-// duplicated across most page/component files.
+// hook נוחות שמחזיר ישירות אם השפה הנוכחית היא RTL, בלי לחשב את זה בכל קומפוננטה
 export function useIsRTL(): boolean {
   const { language } = useLanguage();
   return isRTLLanguage(language);

@@ -2,13 +2,10 @@ type SkeletonProps = {
   className?: string;
 };
 
-// Base shimmer block. Replaces plain "Loading..." text and bespoke animate-pulse divs scattered
-// per-page with one consistent primitive - never renders fake/placeholder DATA, only shape.
 export function Skeleton({ className = "" }: SkeletonProps) {
   return <div className={`animate-pulse rounded-control bg-white/[0.07] ${className}`} />;
 }
 
-// A generic content card's loading placeholder (job card, application card, dashboard stat card).
 export function CardSkeleton({ className = "" }: SkeletonProps) {
   return (
     <div className={`rounded-panel border border-white/10 bg-white/[0.03] p-6 ${className}`}>
@@ -27,7 +24,6 @@ export function CardSkeleton({ className = "" }: SkeletonProps) {
   );
 }
 
-// A repeated list of CardSkeletons, for job/application/notification list loading states.
 export function ListSkeleton({ count = 3, className = "" }: { count?: number; className?: string }) {
   return (
     <div className={`space-y-4 ${className}`} aria-hidden="true">
@@ -38,7 +34,6 @@ export function ListSkeleton({ count = 3, className = "" }: { count?: number; cl
   );
 }
 
-// A dashboard stat-card grid loading state.
 export function StatSkeleton({ className = "" }: SkeletonProps) {
   return (
     <div className={`rounded-panel border border-white/10 bg-white/[0.03] p-6 ${className}`}>

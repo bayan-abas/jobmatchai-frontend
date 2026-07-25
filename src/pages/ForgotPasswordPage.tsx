@@ -62,6 +62,7 @@ function ForgotPasswordPage() {
 
   const c = content[language];
 
+  // שולח לשרת בקשה לאיפוס סיסמה עבור המייל שהוזן
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -84,9 +85,11 @@ function ForgotPasswordPage() {
       });
 
       if (data.devResetLink) {
+        // בסביבת פיתוח אין שליחת מייל אמיתית, אז השרת מחזיר את הלינק ישירות
         console.info("Dev-mode password reset link:", data.devResetLink);
       }
 
+      // מוצג "נשלח" גם אם המייל לא קיים במערכת - כדי לא לחשוף אילו אימיילים רשומים
       setSubmitted(true);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t?.feedback?.somethingWentWrong || "Server connection failed.");
@@ -102,7 +105,7 @@ function ForgotPasswordPage() {
     >
       <div className="mx-auto max-w-6xl overflow-hidden rounded-panel border border-white/10 bg-white/5 shadow-elevated backdrop-blur-xl">
         <div className="grid lg:min-h-[640px] lg:grid-cols-2">
-          {/* LEFT PANEL */}
+
           <div className="relative hidden overflow-hidden lg:flex">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.22),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(139,92,246,0.22),transparent_30%)]" />
             <div className="relative z-10 flex w-full flex-col justify-between p-10">
@@ -137,9 +140,8 @@ function ForgotPasswordPage() {
             </div>
           </div>
 
-          {/* RIGHT PANEL */}
           <div className="p-6 sm:p-8 lg:p-10">
-            {/* Top Nav */}
+
             <div className="mb-6 flex items-center justify-between gap-3">
               <Button
                 variant="secondary"

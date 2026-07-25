@@ -35,6 +35,7 @@ function PostJob() {
   const [maxSalary, setMaxSalary] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // מוסיף כישור לרשימת הכישורים הנדרשים, אם הוא לא ריק ולא כבר קיים
   const addSkill = () => {
     const trimmed = skillInput.trim();
     if (!trimmed) return;
@@ -43,23 +44,24 @@ function PostJob() {
     setSkillInput("");
   };
 
+  // מסיר כישור מהרשימה
   const removeSkill = (skillToRemove: string) => {
     setSkills(skills.filter((skill) => skill !== skillToRemove));
   };
 
+  // TODO אין עדיין API לטיוטות בפועל - כרגע רק מציג הודעה בלי לשמור שום דבר
   const handleSaveDraft = () => {
     toast.info(p.jobSavedAsDraft);
   };
 
-  // "" (not yet entered) parses to null - only a value the user actually typed is validated;
-  // a genuinely negative number is only possible via paste/autofill since the number inputs
-  // below already block typing "-" as the onChange handler's first character.
+  // ממיר מחרוזת שדה מספרי אופציונלי למספר, ומחזיר null אם השדה ריק או לא תקין
   const parseOptionalNumber = (value: string): number | null => {
     if (!value.trim()) return null;
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : null;
   };
 
+  // מוודא שהשדות תקינים ושולח את המשרה החדשה לשרת ליצירה במסד הנתונים
   const handlePostJob = async () => {
     if (isSubmitting) return;
 
@@ -83,10 +85,6 @@ function PostJob() {
     const maxSalaryNum = parseOptionalNumber(maxSalary);
     const minExperienceNum = parseOptionalNumber(minExperience);
 
-    // Defense in depth: the number inputs already block typing/pasting a leading "-", and
-    // `min={0}` covers the spinner arrows, but neither stops a pasted or autofilled negative
-    // value from ever reaching this state - this is the real gate. The backend independently
-    // re-validates the same rules (see JobCreateRequest) in case this check is ever bypassed.
     if (
       [minSalaryNum, maxSalaryNum, minExperienceNum].some(
         (value) => value !== null && value < 0

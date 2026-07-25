@@ -35,6 +35,7 @@ type JobCompanyDetails = {
   status: string;
 };
 
+// מפרק מחרוזת דרישות/כישורים (מופרדת בפסיקים, נקודה-פסיק, קו אנכי או שורה חדשה) לרשימת פריטים
 function splitList(value?: string): string[] {
   return (value || "")
     .split(/[,;|\n]/)
@@ -66,6 +67,7 @@ function CompanyJobDetailsPage() {
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState("");
 
+  // טוען את פרטי המשרה המלאים (כולל מספר מועמדים וממוצע התאמה) לפי המזהה בכתובת
   useEffect(() => {
     if (!jobId) return;
 

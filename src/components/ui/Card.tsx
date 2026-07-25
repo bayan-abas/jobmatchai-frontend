@@ -14,11 +14,6 @@ const PADDING_CLASSES = {
   lg: "p-8",
 };
 
-// The `rounded-[Npx] border border-white/10 bg-white/[0.0N] shadow-[...]` surface repeated on
-// nearly every card/panel across the app, as one component. `interactive` adds the hover-lift +
-// press feedback used for clickable cards (job cards, stat cards) via plain CSS transitions -
-// non-interactive cards (form panels, static sections) skip it so hovering a form doesn't
-// visually "lift" for no reason.
 function Card({ children, padding = "md", interactive = false, as = "div", className = "", ...rest }: CardProps) {
   const Component = as;
 

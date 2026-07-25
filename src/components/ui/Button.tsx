@@ -13,11 +13,6 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   fullWidth?: boolean;
 };
 
-// The one button implementation the whole app should use - previously every page hand-wrote its
-// own gradient/border classNames per button, with inconsistent padding, focus states, and touch
-// targets. `loading` disables the button AND swaps in a spinner (see AuthContext-adjacent forms'
-// prior double-submit risk - callers just need to flip one boolean instead of juggling both
-// `disabled` and a manual spinner element).
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
     "bg-gradient-to-r from-brand-500 to-brand-400 text-white shadow-brand-glow hover:shadow-[0_16px_36px_rgba(127,76,255,0.4)] disabled:from-brand-500/40 disabled:to-brand-400/40",

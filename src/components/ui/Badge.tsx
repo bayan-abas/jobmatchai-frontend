@@ -18,9 +18,6 @@ const TONE_CLASSES: Record<BadgeTone, string> = {
   neutral: "border-white/15 bg-white/[0.06] text-ink-300",
 };
 
-// Status pill used for application statuses (Pending/Under Review/Shortlisted/Accepted/Rejected)
-// and match-tier labels. Deliberately always renders an icon slot alongside color + text - never
-// color alone - so status is never communicated by hue only (see the accessibility requirement).
 function Badge({ children, tone = "neutral", icon, className = "" }: BadgeProps) {
   return (
     <span
@@ -32,10 +29,6 @@ function Badge({ children, tone = "neutral", icon, className = "" }: BadgeProps)
   );
 }
 
-// Maps this app's actual application-status strings (as stored/returned by the backend - see
-// CompanyApplications.tsx/Applications.tsx's own getStatusBadgeStyles equivalents) to a tone,
-// so every list/detail view renders the exact same color for the exact same status instead of
-// each page re-deciding it slightly differently.
 export function applicationStatusTone(status: string | null | undefined): BadgeTone {
   switch ((status ?? "").toLowerCase()) {
     case "accepted":

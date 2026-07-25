@@ -39,33 +39,23 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const TOKEN_STORAGE_KEY = "jobmatch_token";
 
-// Remember Me stores the token in localStorage (survives browser/computer restarts) instead of
-// sessionStorage (cleared when the browser closes) - this reads whichever one currently has it,
-// so a page reload keeps working no matter which storage the original login chose.
+// קורא את הטוקן השמור, בין אם נשמר ב-localStorage (זכור אותי) או ב-sessionStorage
 function readStoredToken(): string | null {
   return localStorage.getItem(TOKEN_STORAGE_KEY) ?? sessionStorage.getItem(TOKEN_STORAGE_KEY);
 }
 
-// Stray form-draft keys written by the candidate/company registration and profile pages.
-// None of these are ever read back anywhere (verified - they're write-only leftovers), but
-// clearing them here means every logout path (sidebar, 401 auto-logout, delete-account)
-// gets the same cleanup for free instead of each call site having to duplicate this list.
+// שאריות מגרסה ישנה שהחזיקה את הנתונים האלה ב-localStorage לפני שהם עברו לאובייקט המשתמש מהשרת
 const STRAY_LOCAL_STORAGE_KEYS = [
   "phone", "location", "currentTitle", "experience", "skills", "summary",
   "resumeName", "isPremium", "industry", "companySize", "website", "description",
 ];
 
-// The backend stores/returns role case as-is (e.g. some accounts have "COMPANY"/"CANDIDATE"
-// from other write paths), but every frontend role check (ProtectedRoute, LoginPage's
-// post-login redirect, CandidateLayout's label) compares against the lowercase "candidate"/
-// "company" literals. Normalizing here, once, at the single place AuthUser enters state,
-// means every consumer can keep doing a plain lowercase comparison. Exported so call sites
-// that read the raw API response directly (e.g. LoginPage's own redirect decision, which
-// runs before this context's async state update lands) can normalize the same way.
+// מנרמל את התפקיד לאותיות קטנות כדי שההשוואות ל-"candidate"/"company" יעבדו גם אם השרת מחזיר מקרה אחר
 export function normalizeRole(role: string | null | undefined): Role {
   return (role || "").toLowerCase() as Role;
 }
 
+// מיישר את אובייקט המשתמש שמתקבל מהשרת לפורמט האחיד שהאפליקציה מצפה לו
 function normalizeUser(user: AuthUser): AuthUser {
   return { ...user, role: normalizeRole(user.role) };
 }
@@ -78,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const tokenRef = useRef<string | null>(token);
   tokenRef.current = token;
 
+  // מנתק: מנקה את המשתמש והטוקן מהזיכרון ומכל מקומות האחסון (כולל שאריות ישנות)
   const logout = () => {
     tokenRef.current = null;
     setToken(null);
@@ -85,23 +76,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem(TOKEN_STORAGE_KEY);
     localStorage.removeItem(TOKEN_STORAGE_KEY);
     STRAY_LOCAL_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
-    // Deliberately NOT clearing the match-score session cache here - it's already keyed by
-    // email (see matchScoreSession.ts's storageKey), so a different candidate logging in
-    // afterward can never read this one's cached scores regardless. Wiping it on every logout
-    // meant logging back in shortly after (or an auto-logout from a single 401, via
-    // setUnauthorizedHandler below) forced every job's match score to be re-fetched from
-    // scratch instead of resolving instantly from this same tab's cache.
+
   };
 
+  // מחבר את מודול ה-API לקונטקסט: איך לשלוף את הטוקן הנוכחי, ומה לעשות כשהשרת מחזיר 401
   useEffect(() => {
     setAuthTokenGetter(() => tokenRef.current);
     setUnauthorizedHandler(() => logout());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, []);
 
   useEffect(() => {
     let cancelled = false;
 
+    // בעליית האפליקציה: אם יש טוקן שמור, מנסה לשלוף את המשתמש מהשרת כדי לשחזר את ההתחברות
     async function rehydrate() {
       if (!tokenRef.current) {
         setIsLoading(false);
@@ -129,25 +117,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, []);
 
+  // שומר את הטוקן והמשתמש אחרי התחברות מוצלחת, ובוחר איפה לאחסן את הטוקן לפי "זכור אותי"
   const login = (newToken: string, newUser: AuthUser, rememberMe = false) => {
-    // tokenRef.current is normally kept in sync by the render-time assignment above,
-    // but that only happens on the NEXT render after setToken schedules one. Callers
-    // that immediately fire an authenticated request right after login() (e.g.
-    // CandidateRegisterPage saving profile fields right after auto-login) would
-    // otherwise read the stale/null token via getToken(), get a 401, and trigger an
-    // immediate logout - undoing the login that just happened. Updating the ref here
-    // makes the new token available synchronously, before React re-renders.
+
     tokenRef.current = newToken;
     setToken(newToken);
     setUser(normalizeUser(newUser));
 
-    // rememberMe persists the token in localStorage so it survives closing the browser/
-    // restarting the computer; otherwise it goes in sessionStorage, cleared when the tab/
-    // browser closes (the pre-existing behavior). Clear the other storage so a re-login that
-    // flips the choice doesn't leave a stale copy of the token behind in both places.
     if (rememberMe) {
       localStorage.setItem(TOKEN_STORAGE_KEY, newToken);
       sessionStorage.removeItem(TOKEN_STORAGE_KEY);
@@ -157,6 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // מרענן את פרטי המשתמש מהשרת (למשל אחרי עדכון פרופיל) בלי לגעת בטוקן עצמו
   const refreshUser = async () => {
     if (!tokenRef.current) {
       return;
@@ -166,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const me = await apiFetch("/api/auth/me");
       setUser(normalizeUser(me));
     } catch {
-      // ignore - keep the previously loaded user on a transient failure
+
     }
   };
 
@@ -177,6 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// hook לגישה לקונטקסט האימות; זורק שגיאה אם משתמשים בו מחוץ ל-AuthProvider
 export function useAuth() {
   const context = useContext(AuthContext);
 

@@ -1,15 +1,7 @@
-// This platform only ever serves Israel-based jobs (see backend externaljobs.import.country,
-// always "il"), so a generic world-country filter was always effectively a single-option
-// dead end. Israeli regions are what candidates actually think in when browsing local jobs.
 export const ISRAELI_REGIONS = ["Tel Aviv", "Center", "Jerusalem", "Haifa", "North", "South"] as const;
 
 export type IsraeliRegion = (typeof ISRAELI_REGIONS)[number];
 
-// Best-effort geographic classification of ISRAELI_CITIES (utils/israeliCities.ts) into the
-// region buckets above, using the common Israeli job-board grouping (Tel Aviv/Gush Dan split
-// out from the wider Central district). Doesn't need to be authoritative/exhaustive - it only
-// has to be good enough to make the region filter useful; getRegionForLocation() below falls
-// back to loose keyword matching for city strings that aren't in this table at all.
 const CITY_REGION: Record<string, IsraeliRegion> = {
   "Tel Aviv-Yafo": "Tel Aviv",
   "Ramat Gan": "Tel Aviv",
@@ -145,9 +137,6 @@ const NORMALIZED_CITY_REGION: Record<string, IsraeliRegion> = Object.fromEntries
   Object.entries(CITY_REGION).map(([city, region]) => [city.toLowerCase(), region])
 );
 
-// Loose keyword fallback for city strings from external providers that don't exactly match
-// the curated list above (different transliteration, a district/area name instead of a city,
-// or a Jobicy-style broad tag like "Israel"/"EMEA").
 const REGION_KEYWORDS: [IsraeliRegion, string[]][] = [
   ["Tel Aviv", ["tel aviv", "gush dan", "yafo", "jaffa"]],
   ["Jerusalem", ["jerusalem", "al-quds"]],
@@ -157,6 +146,7 @@ const REGION_KEYWORDS: [IsraeliRegion, string[]][] = [
   ["Center", ["center", "central", "sharon", "shfela"]],
 ];
 
+// מסווג מיקום (עיר/טקסט חופשי) לאזור בארץ - קודם התאמה מדויקת לעיר, אז התאמה חלקית, ולבסוף לפי מילות מפתח
 export function getRegionForLocation(...values: (string | null | undefined)[]): IsraeliRegion | null {
   for (const value of values) {
     if (!value) continue;
@@ -166,6 +156,7 @@ export function getRegionForLocation(...values: (string | null | undefined)[]): 
     const exact = NORMALIZED_CITY_REGION[normalized];
     if (exact) return exact;
 
+    // בדיקה דו-כיוונית כדי לתפוס גם שם עיר חלקי (למשל "תל אביב" בלי "-יפו") וגם כשהמשתמש הקליד יותר ממה שיש במפה
     for (const [city, region] of Object.entries(NORMALIZED_CITY_REGION)) {
       if (normalized.startsWith(city) || city.startsWith(normalized)) {
         return region;
@@ -182,6 +173,7 @@ export function getRegionForLocation(...values: (string | null | undefined)[]): 
   return null;
 }
 
+// עטיפה נוחה של getRegionForLocation לשם עיר בודד
 export function getRegionForCity(city?: string | null): IsraeliRegion | null {
   return getRegionForLocation(city);
 }

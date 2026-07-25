@@ -7,7 +7,7 @@ export type MatchTier = {
   ring: string;
 };
 
-// 85-100 green, 70-84 light green, 50-69 orange, 0-49 red.
+// מחזיר את סט הצבעים/סגנון המתאים לציון ההתאמה, לפי טווח (מצוין/טוב/בינוני/חלש)
 export function getMatchTier(score: number): MatchTier {
   if (score >= 85) {
     return {
@@ -52,9 +52,7 @@ export function getMatchTier(score: number): MatchTier {
   };
 }
 
-// Mirrors CandidateSummaryService.deriveMatchLabel on the backend, so any
-// match percent (whether sourced from a cached AI summary or the candidate's
-// own job-match score) renders a consistent label.
+// מתרגם ציון התאמה מספרי לתווית טקסטואלית קריאה למשתמש
 export function getMatchLabel(score: number): string {
   if (score >= 85) return "Excellent Match";
   if (score >= 70) return "Strong Match";

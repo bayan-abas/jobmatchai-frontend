@@ -12,9 +12,6 @@ type FormFieldProps = {
   className?: string;
 };
 
-// Consistent label + control + helper/error-text stack for every form in the app (previously
-// every auth/profile/job-posting form hand-rolled its own label markup with no shared
-// required-indicator or error-message convention).
 function FormField({ label, htmlFor, required, error, helperText, children, className = "" }: FormFieldProps) {
   const isRTL = useIsRTL();
 

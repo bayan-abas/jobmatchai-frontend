@@ -1,9 +1,3 @@
-// A forgotten VITE_API_BASE_URL at build time (e.g. left unset in a hosting provider's env
-// config) previously made every fetch silently target "undefined/api/..." with no clear signal
-// pointing at the misconfiguration - every API call would just fail. Falling back to localhost
-// keeps local dev working exactly as before (matching .env.example's documented default), and
-// logging loudly for any other case is what makes a misconfigured production build fail obviously
-// instead of looking like a generic "network error" everywhere in the app.
 const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
 if (!rawApiBaseUrl) {
   console.error(
@@ -27,17 +21,11 @@ export function setUnauthorizedHandler(handler: () => void) {
   onUnauthorized = handler;
 }
 
-// A 401 from any single endpoint isn't proof the session is dead - background calls
-// (notifications, recently-viewed, etc.) can fail one-off for reasons unrelated to auth,
-// and logging the user out on the spot means a single flaky request kicks them back to
-// the login page seconds after a successful login. Before acting on a 401, confirm with
-// the one authoritative session-check endpoint - only log out if that agrees the token is
-// actually invalid. Uses a raw fetch (not apiFetch) so a 401 here can't recurse back into
-// this same handler, and dedupes concurrent 401s (e.g. several parallel dashboard calls
-// failing together) into a single confirmation check.
 let sessionCheckInFlight: Promise<void> | null = null;
 
+// כש-401 מתקבל, מוודא מול השרת שהסשן באמת פג (ולא שהטוקן פשוט חסר לרגע) לפני שמנתקים את המשתמש
 function confirmSessionExpired() {
+  // אם כמה בקשות מקבלות 401 באותו זמן, לא לשלוח כמה בדיקות /me במקביל
   if (sessionCheckInFlight) {
     return sessionCheckInFlight;
   }
@@ -57,7 +45,7 @@ function confirmSessionExpired() {
       }
     })
     .catch(() => {
-      // Network error while confirming - don't punish the user for a connectivity blip.
+
     })
     .finally(() => {
       sessionCheckInFlight = null;
@@ -66,13 +54,7 @@ function confirmSessionExpired() {
   return sessionCheckInFlight;
 }
 
-// window.open(url) navigates the browser directly to that URL with no way to attach an
-// Authorization header, so it can't be used against a JWT-protected endpoint like CV
-// download/view - the request arrives unauthenticated and the backend rejects it. Fetching
-// the file as a blob (with the same Bearer header apiFetch attaches) and opening an object
-// URL created from that blob is the standard way to let the browser render/open an
-// authenticated file in a new tab without ever putting the token in a URL (which would leak
-// into browser history and server logs).
+// כמו apiFetch אבל מחזיר Blob גולמי (לקבצים כמו הורדת PDF) במקום לנתח JSON
 export async function apiFetchBlob(path: string): Promise<Blob> {
   const token = getToken();
   const headers = new Headers();
@@ -97,11 +79,7 @@ export async function apiFetchBlob(path: string): Promise<Blob> {
 
 export type SseEvent = { event: string; data: any };
 
-// Native EventSource can't send an Authorization header, so it can't be used against a
-// JWT-protected endpoint (the exact same limitation that broke the "View CV" button's
-// window.open() call earlier - see apiFetchBlob above). fetch() CAN send custom headers, so
-// this reads the response body as a stream and manually parses SSE frames
-// ("event: name\ndata: json\n\n", blank-line-delimited) instead of relying on EventSource.
+// פותח חיבור SSE לשרת ומפרק את זרם התגובה ל-frame-ים (event/data) שמועברים ל-callback בזמן אמת
 export async function apiFetchStream(
   path: string,
   options: RequestInit,
@@ -158,7 +136,7 @@ export async function apiFetchStream(
         try {
           onEvent({ event: eventName, data: JSON.parse(dataLine) });
         } catch {
-          // Malformed frame - skip rather than crash the whole stream over one bad event.
+
         }
       }
     }
@@ -178,6 +156,7 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// wrapper מרכזי לכל קריאות ה-API - מוסיף טוקן הרשאה, מטפל בשגיאות ומנסה שוב פעם אחת ל-GET שנכשל ברמת הרשת
 export async function apiFetch(path: string, options: RequestInit = {}): Promise<any> {
   const token = getToken();
   const headers = new Headers(options.headers || {});
@@ -198,20 +177,13 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
   try {
     response = await fetch(url, requestInit);
   } catch (networkError) {
-    // The browser blocks the request before it ever reaches the network - a CORS preflight
-    // rejection, DNS failure, connection refused, mixed content, etc. - and fetch() only ever
-    // throws a bare TypeError for all of these, by design of the browser security model: no
-    // status, no body, no indication of which one. This is the single choke point every caller
-    // passes through, so log full request context here once instead of every call site's catch
-    // block guessing blind and showing a generic "Server connection failed" with nothing to go on.
+
     console.error(`apiFetch: network-level failure for ${method} ${url}`, {
       requestBody: options.body,
       error: networkError,
     });
 
-    // A GET is safe to retry once - it's read-only, so a brief connection blip (e.g. the
-    // backend momentarily unavailable right after a long AI call) doesn't risk a duplicate
-    // side effect the way blindly retrying a POST/PUT/DELETE would.
+    // רק GET בטוח לנסות שוב אוטומטית - POST/PUT/DELETE יכולים לגרום לפעולה כפולה
     if (method !== "GET") {
       throw networkError;
     }
@@ -239,15 +211,7 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
   return data;
 }
 
-// A cloud host that spins the backend down after a period of inactivity (e.g. Render's free
-// tier) makes the FIRST request after a while either hang for 30-60+ seconds while the instance
-// wakes up, or fail outright with a network error / 502-504 while it's still starting. apiFetch's
-// own single 400ms retry (above) is meant for a brief connectivity blip, not this - a page whose
-// only load attempt fails during a cold start previously showed a dead-end "make sure the backend
-// is running" message with no way forward except a manual refresh. This wraps any apiFetch call
-// with several retries over an increasing (capped) delay, so a page that calls this instead only
-// ever shows a real, terminal error after the backend has had a realistic chance to finish waking
-// up - the caller never needs to ask the user to refresh.
+// עוטף apiFetch בלוגיקת retry עם backoff מעריכי - שימושי לבקשות שרצות אחרי פעולה כבדה בצד שרת (כמו ניתוח CV)
 export async function apiFetchWithRetry(
   path: string,
   options: RequestInit = {},
@@ -266,10 +230,8 @@ export async function apiFetchWithRetry(
     try {
       return await apiFetch(path, options);
     } catch (error) {
-      // A real 4xx (bad request, unauthorized, not found, validation error) fails identically
-      // no matter how many times it's retried - only a network-level failure (no ApiError at
-      // all, i.e. fetch() itself never got a response) or a 5xx (exactly what a waking-up or
-      // momentarily overloaded backend returns) is worth retrying.
+
+      // שגיאת רשת או 5xx זה משהו זמני שכדאי לנסות שוב, 4xx זו שגיאה אמיתית ואין טעם
       const isRetryable = !(error instanceof ApiError) || error.status >= 500;
       if (!isRetryable || attempt === maxAttempts) {
         throw error;
@@ -279,7 +241,6 @@ export async function apiFetchWithRetry(
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
-  // Unreachable - the loop above always either returns or throws - but keeps TypeScript happy
-  // about every code path returning a value.
+
   throw new ApiError("Request failed", 0);
 }

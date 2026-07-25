@@ -37,6 +37,7 @@ function AcceptApplicationModal({ candidateName, jobTitle, t, isRTL, onConfirm, 
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // ממיר את קוד שיטת יצירת הקשר לטקסט המתורגם שמוצג למשתמש
   const methodLabel = (method: ContactMethod) => {
     switch (method) {
       case "phone_call":
@@ -54,6 +55,7 @@ function AcceptApplicationModal({ candidateName, jobTitle, t, isRTL, onConfirm, 
     }
   };
 
+  // מוודא שנבחרה שיטת יצירת קשר תקינה, ואז מאשר את המועמד ושולח לו הודעה
   const handleConfirm = async () => {
     if (!contactMethod) {
       setError(m.missingMethodError);

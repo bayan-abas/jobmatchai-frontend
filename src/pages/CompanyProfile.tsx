@@ -32,9 +32,7 @@ type BackendApplicant = {
   matchPercent: number | null;
 };
 
-// LinkedIn/GitHub are stored as free text (e.g. "linkedin.com/company/x") - without a
-// protocol prefix an <a href> resolves as a relative link on this same site instead of
-// actually leaving it, so this adds "https://" only when one isn't already present.
+// לינקדאין/גיטהאב נשמרים בלי פרוטוקול (למשל "linkedin.com/company/x") אז מוסיפים https בשביל ה-href
 function withProtocol(url: string) {
   return /^https?:\/\//i.test(url) ? url : `https://${url}`;
 }
@@ -71,9 +69,7 @@ function CompanyProfile() {
     companySize: user?.companySize || c.defaultCompanySize,
     location: user?.location || c.defaultLocation,
     website: user?.website || c.defaultWebsite,
-    // Unlike the other fields, description has no baked-in placeholder value - an empty
-    // one gets its own friendly empty state below instead of a fallback string that could
-    // get silently saved as the "real" description the moment the user hits Save.
+
     description: user?.companyDescription || "",
     linkedin: user?.linkedin || "",
     github: user?.github || "",
@@ -85,6 +81,7 @@ function CompanyProfile() {
   const [applicationsCount, setApplicationsCount] = useState<number | null>(null);
   const [avgMatchScore, setAvgMatchScore] = useState<number | null>(null);
 
+  // מסנכרן את הטופס המקומי עם נתוני המשתמש מהקונטקסט בכל פעם שהם משתנים (למשל אחרי רענון)
   useEffect(() => {
     setCompanyData({
       companyName: user?.name || c.defaultCompanyName,
@@ -98,9 +95,10 @@ function CompanyProfile() {
       founded: user?.founded || "",
       companyType: user?.companyType || "",
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [user]);
 
+  // טוען את המשרות והבקשות של החברה כדי להציג מספר משרות, מספר בקשות וממוצע ציון התאמה בפרופיל
   useEffect(() => {
     if (!user?.email) return;
 
@@ -140,6 +138,7 @@ function CompanyProfile() {
     }));
   };
 
+  // שולח את פרטי הפרופיל הערוכים לשרת ומרענן את נתוני המשתמש בהצלחה
   const handleSave = async () => {
     if (!user?.id) return;
 
@@ -183,6 +182,7 @@ function CompanyProfile() {
     setChangePasswordSuccess(false);
   };
 
+  // מוודא שהסיסמה החדשה תקינה ותואמת, ואז שולח בקשה לשרת להחלפת הסיסמה
   const handleChangePassword = async () => {
     setChangePasswordError("");
 
@@ -233,6 +233,7 @@ function CompanyProfile() {
     setDeleteError("");
   };
 
+  // מוחק לצמיתות את חשבון החברה לאחר אימות סיסמה והקלדת "DELETE" לאישור
   const handleDeleteAccount = async () => {
     if (!user?.id) return;
 
@@ -471,8 +472,7 @@ function CompanyProfile() {
                   <Mail size={16} />
                   {c.contactEmail}
                 </div>
-                {/* Email isn't editable here - changing an account's login email is a
-                    separate, more sensitive flow than a general profile update. */}
+
                 <p className="break-all text-lg font-medium">{user?.email || ""}</p>
               </div>
 

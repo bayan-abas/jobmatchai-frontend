@@ -25,6 +25,7 @@ function SkillExplanationModal({ skillName, jobTitle, language, t, isRTL, onClos
   const [data, setData] = useState<SkillExplanationData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // מבקש מה-AI להסביר למה הכישור הזה חשוב ואיך רלוונטי למשרה, בכל פתיחה של המודל
   useEffect(() => {
     let cancelled = false;
     setLoading(true);

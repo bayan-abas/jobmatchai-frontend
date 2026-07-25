@@ -19,17 +19,12 @@ type SortOrder = "match" | "newest" | "oldest";
 type MatchScoreEntry = {
   matchPercent: number | null;
   matchReason: string;
-  // true = real "field match" verdict; false = real "not a field match" verdict (matchReason
-  // explains why); null = the AI couldn't compute this job at all - a transient failure, not
-  // a verdict, and never cached by the backend, so it's worth retrying.
+
   fieldRelated: boolean | null;
-  // See JobMatches.tsx's identically-named fields for the full rationale - same backend
-  // VocationalRoleClassifier-driven categorization applies to external jobs too.
+
   generalVocationalRole: boolean;
   excludedFromListing: boolean;
-  // True when this is a last-known-good fallback served because a fresh recompute just failed -
-  // see backend JobMatchScore#stale. Real number, possibly a little behind; the retry-scheduling
-  // effect below (not the user) is responsible for eventually replacing it with a fresh one.
+
   stale: boolean;
 };
 
@@ -41,6 +36,7 @@ function ExternalJobsPage() {
   const p = t.externalJobsPage;
   const isRTL = language === "ar" || language === "he";
 
+  // מזהה את המשתמש המחובר לפי המייל שלו, לשימוש בשמירת משרות ובחישוב ההתאמה
   const readCandidateIdentity = () => ({
     email: user?.email || "",
   });
@@ -48,8 +44,7 @@ function ExternalJobsPage() {
   const [jobs, setJobs] = useState<ExternalJobData[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
-  // See JobMatches.tsx's identically-named state for the full rationale (a sleeping backend
-  // waking back up after inactivity, retried automatically instead of a dead-end error).
+
   const [reconnecting, setReconnecting] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -65,22 +60,18 @@ function ExternalJobsPage() {
   const [matchScores, setMatchScores] = useState<Map<number, MatchScoreEntry>>(new Map());
   const [hasAnalysis, setHasAnalysis] = useState<boolean | null>(null);
   const [matchScoresLoading, setMatchScoresLoading] = useState(false);
-  // Bumped by a failed card's "Retry" action to force the match-score streaming effect below to
-  // run again. The backend's own per-(candidate,job) score cache means re-requesting an
-  // already-scored job just returns the cached result instantly - only the genuinely failed
-  // one(s) actually trigger new AI work.
+
   const [matchRetryNonce, setMatchRetryNonce] = useState(0);
-  // Caps how many times the effect below will auto-schedule its own retry for a stale fallback
-  // score before giving up and just leaving the (still real, just possibly outdated) last-known
-  // percentage on screen - a persistently-failing job must never retry forever in the background.
+
   const staleRetryCountRef = useRef(0);
-  const MAX_STALE_RETRIES = 5;
+  const MAX_STALE_RETRIES = 5; // אחרי זה מפסיקים לנסות - מניחים שהניתוח נתקע
   const [savedJobIds, setSavedJobIds] = useState<Set<number>>(new Set());
-  // See JobMatches.tsx's identically-named state for the full rationale.
+
   const [jobCategory, setJobCategory] = useState<"profession" | "vocational">("profession");
-  // See JobMatches.tsx's identically-named state for the full rationale.
+
   const [matchYouFilter, setMatchYouFilter] = useState(true);
 
+  // טוען את כל המשרות החיצוניות מהשרת, עם ניסיון חוזר אוטומטי אם החיבור נכשל
   const loadExternalJobs = () => {
     setLoading(true);
     setFetchError("");
@@ -99,11 +90,13 @@ function ExternalJobsPage() {
       .finally(() => setLoading(false));
   };
 
+  // טעינה ראשונית של המשרות ברגע שהעמוד עולה
   useEffect(() => {
     loadExternalJobs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, []);
 
+  // מייצר סטרים של ציוני התאמה לכל המשרות שנטענו, מול קורות החיים העדכניים של המשתמש
   useEffect(() => {
     const identity = readCandidateIdentity();
     setIsLoggedIn(Boolean(identity.email));
@@ -115,25 +108,12 @@ function ExternalJobsPage() {
     const externalJobIds = jobs.map((job) => job.id);
     const controller = new AbortController();
 
-    // Fresh job list / language change -> start clean instead of carrying over stale entries
-    // from a previous stream (e.g. a job that's no longer in the current filtered set).
     setHasAnalysis(null);
     setMatchScores(new Map());
     setMatchScoresLoading(true);
 
-    // Tracked locally (not via React state, which wouldn't be readable synchronously inside the
-    // "done" handler below) - true the moment any job in THIS pass came back as a stale fallback
-    // (see backend JobMatchScore#stale) OR a hard error with no fallback available (fieldRelated
-    // === null - e.g. a brand-new job with no prior score at all). Drives the auto-retry
-    // scheduling once the batch settles - this is the secondary safety net, not the primary fix
-    // (see backend matching.queue.await-timeout-ms's own comment for the actual root-cause fix),
-    // so it must also cover the no-fallback case, not just the stale one.
     let needsRetry = false;
 
-    // Checked before ever opening the SSE connection - a candidate with no CV has nothing to
-    // compute (the backend would immediately reply with its own "no-analysis" event anyway, no
-    // AI/queue work triggered), but skipping the request entirely here is what stops the
-    // "Calculating match score..." flash from ever appearing in that case.
     fetchCurrentCvIdentity().then((cvIdentity) => {
       if (controller.signal.aborted) return;
 
@@ -164,12 +144,11 @@ function ExternalJobsPage() {
               stale?: boolean;
             };
             setHasAnalysis(true);
+            // stale / fieldRelated null = השרת עוד מחשב את הציון - נצטרך לרענן בהמשך
             if (match.stale || match.fieldRelated === null) {
               needsRetry = true;
             }
-            // Per-card progressive update: each "score" event updates just that one job's entry,
-            // so a job that's already resolved shows its real percentage immediately instead of
-            // waiting for every other job in the batch to finish too.
+
             setMatchScores((prev) => {
               const next = new Map(prev);
               next.set(match.jobId, {
@@ -188,15 +167,9 @@ function ExternalJobsPage() {
           if (evt.event === "done") {
             setMatchScoresLoading(false);
 
-            // Auto-retry, silently in the background, for whatever came back stale OR hard-
-            // errored this pass - bumping matchRetryNonce is exactly what the existing manual
-            // "Retry" button already does, just triggered automatically instead of waiting for a
-            // click. The backend's own per-(candidate,job) cache means anything already fresh
-            // resolves instantly; only the genuinely-unresolved job(s) trigger new AI work.
-            // Secondary safety net only - the actual fix is the backend's queue-await-timeout
-            // increase, which should make this rarely fire at all.
             if (needsRetry && !controller.signal.aborted && staleRetryCountRef.current < MAX_STALE_RETRIES) {
               staleRetryCountRef.current += 1;
+              // backoff הדרגתי כדי לא להציף את השרת בזמן שהוא עדיין מחשב
               const delayMs = 8000 + staleRetryCountRef.current * 4000;
               window.setTimeout(() => {
                 if (!controller.signal.aborted) {
@@ -222,6 +195,7 @@ function ExternalJobsPage() {
     };
   }, [jobs, language, matchRetryNonce]);
 
+  // טוען את רשימת המשרות החיצוניות שהמשתמש כבר שמר, כדי לסמן אותן ב-UI
   useEffect(() => {
     const identity = readCandidateIdentity();
     if (!identity.email) return;
@@ -236,6 +210,7 @@ function ExternalJobsPage() {
       .catch(() => {});
   }, []);
 
+  // שומר/מוחק משרה מהרשימה השמורה, עם עדכון אופטימי של ה-UI לפני תשובת השרת
   const handleToggleSave = (job: ExternalJobData) => {
     const identity = readCandidateIdentity();
     if (!identity.email) return;
@@ -281,6 +256,7 @@ function ExternalJobsPage() {
     }
   };
 
+  // מרכיב את רשימת הערים לבחירה - ערים קבועות של האזור פלוס ערים שבאמת מופיעות במשרות
   const cities = useMemo(() => {
     const regionCities = regionFilter
       ? ISRAELI_CITIES.filter((city) => getRegionForLocation(city) === regionFilter)
@@ -298,6 +274,7 @@ function ExternalJobsPage() {
     return Array.from(new Set([...regionCities, ...jobCities])).sort((a, b) => a.localeCompare(b));
   }, [jobs, regionFilter]);
 
+  // רשימת סוגי המשרות הקיימים בפועל, לתפריט הסינון
   const types = useMemo(
     () => Array.from(new Set(jobs.map((job) => job.type).filter(Boolean))) as string[],
     [jobs]
@@ -311,15 +288,12 @@ function ExternalJobsPage() {
     minSalary > 0 ||
     sortOrder !== "match";
 
+  // מתרגם את מצב הניתוח/ההתאמה של המשרה למצב תצוגה ברור לכרטיס (התחברות, טעינה, ציון וכו')
   const getMatchInfo = (job: ExternalJobData): MatchInfo => {
     if (!isLoggedIn) return { status: "loggedOut", percent: 0 };
     if (hasAnalysis === null) return { status: "loading", percent: 0 };
     if (!hasAnalysis) return { status: "noAnalysis", percent: 0 };
 
-    // Checked before matchScoresLoading (unlike the old all-or-nothing version) - this job's
-    // own entry may already have arrived over the stream even while other jobs in the batch
-    // are still being scored, and it should show its real result immediately rather than
-    // waiting for the whole batch.
     const entry = matchScores.get(job.id);
     if (!entry) {
       return matchScoresLoading
@@ -338,6 +312,7 @@ function ExternalJobsPage() {
     return { status: "scored", percent: entry.matchPercent };
   };
 
+  // מסנן את המשרות לפי כל הפילטרים (חיפוש, אזור, עיר, סוג, תעשייה, שכר, קטגוריית התאמה) וממיין לפי הבחירה
   const filteredJobs = useMemo(() => {
     const search = searchTerm.trim().toLowerCase();
 
@@ -354,17 +329,9 @@ function ExternalJobsPage() {
       const matchesIndustry = !industryFilter || inferIndustry(job) === industryFilter;
 
       const jobSalary = extractSalaryNumber(job.salary);
-      // minSalary is the slider value in thousands (label reads "Xk"), while
-      // extractSalaryNumber returns the raw shekel figure - comparing them directly
-      // made this filter pass almost everything regardless of slider position.
+
       const matchesSalary = jobSalary === 0 ? true : jobSalary >= minSalary * 1000;
 
-      // See JobMatches.tsx's categorizedJobs for the full rationale - when matchYouFilter is on
-      // (the default), a genuinely-unrelated, non-vocational job is hidden entirely and a
-      // vocational one is routed to its own tab instead of being mixed into profession-based
-      // results. When matchYouFilter is off, every job matches regardless of profession - no
-      // split, nothing hidden. A job with no match entry yet (not logged in, still loading, no
-      // CV) always counts as "profession" so nothing vanishes before it's even been classified.
       const entry = matchScores.get(job.id);
       const matchesCategory = !matchYouFilter
         ? true
@@ -394,7 +361,7 @@ function ExternalJobsPage() {
       const scoreB = infoB.status === "scored" ? infoB.percent : -1;
       return scoreB - scoreA;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [
     jobs,
     searchTerm,
@@ -412,9 +379,7 @@ function ExternalJobsPage() {
     matchYouFilter,
   ]);
 
-  // Whether the "General & Vocational Jobs" tab is worth showing at all - independent of
-  // jobCategory (unlike filteredJobs above) so switching tabs doesn't make the OTHER tab's button
-  // disappear from under the candidate.
+  // סופר כמה משרות מסווגות כ"מקצועות כלליים" כדי להציג אותן בטאב הנפרד
   const vocationalJobsCount = useMemo(() => {
     return jobs.filter((job) => {
       const entry = matchScores.get(job.id);
@@ -469,8 +434,6 @@ function ExternalJobsPage() {
               <h3 className="text-[18px] font-extrabold text-white">{t.jobMatches.smartFilters}</h3>
             </div>
 
-            {/* See JobMatches.tsx's identically-purposed toggle for the full rationale. Only
-                meaningful once logged in with match data to personalize against. */}
             {isLoggedIn && (
               <div className="mb-4 flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3.5">
                 <div className={isRTL ? "text-right" : "text-left"}>
@@ -495,12 +458,6 @@ function ExternalJobsPage() {
               </div>
             )}
 
-            {/* grid-cols-1 below (not bare "grid") - same overflow bug as the job-card list
-                further down this page: the implicit single column otherwise sizes to its
-                widest child's content instead of the container's width. Search stays inline at
-                every width (primary action); region/city/type/industry/sort/salary collapse
-                behind a "Filters" sheet below lg - the hidden lg:grid block still renders at
-                lg+ so this section keeps its original layout on larger screens unchanged. */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div
                 className={`flex items-center gap-3 rounded-[20px] border border-white/10 bg-[rgba(17,24,74,0.75)] px-4 py-3 lg:col-span-3 ${
@@ -778,21 +735,9 @@ function ExternalJobsPage() {
           </div>
         )}
 
-        {/* grid-cols-1 (not bare "grid") is load-bearing here, not cosmetic - a bare grid's
-            single implicit column sizes to its widest child's own content width instead of the
-            container's width, so a job card with enough fixed-width content (e.g. the actions
-            column) can overflow past this section's actual boundary at ANY viewport size,
-            including desktop. minmax(0,1fr) via grid-cols-1 is what makes children actually
-            shrink to fit instead. Found live: articles were rendering ~150-750px wider than
-            their grid parent at every tested viewport (375/768/1440px). */}
         <section className="grid grid-cols-1 gap-5">
           {loading && <ListSkeleton count={4} />}
 
-          {/* Job cards render immediately once the list loads (each one starts as its own
-              "Calculating match..." ring - see ExternalJobCard) - this banner is purely an
-              extra reassurance that the AI matching pass itself is genuinely still working,
-              since scoring dozens of jobs can take a while even though results stream in
-              progressively rather than all at once. */}
           {!loading && isLoggedIn && matchScoresLoading && (
             <div className="flex items-center gap-3 rounded-[20px] border border-cyan-400/20 bg-cyan-400/[0.06] px-5 py-4 text-[14px] text-cyan-100">
               <Loader2 size={18} className="shrink-0 animate-spin text-cyan-300" />

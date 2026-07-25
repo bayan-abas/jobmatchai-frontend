@@ -3,29 +3,18 @@ import { motion, useReducedMotion } from "motion/react";
 import { getMatchTier } from "../../utils/matchScore";
 
 type ScoreRingProps = {
-  /** null = indeterminate (no score yet / not applicable) - renders a muted static ring. */
+
   percent: number | null;
   size?: number;
-  /** Overrides the centered label (e.g. "!" for an error state, "?" for unknown). */
+
   label?: string;
   pulse?: boolean;
   className?: string;
 };
 
-// The animated circular match-score gauge, previously hand-duplicated (as a conic-gradient div)
-// across ExternalJobCard, CandidateAiSummaryModal, CompanyApplications (list AND detail),
-// JobMatches, and JobDetailsPage - always fed a percent this component never recomputes. Built
-// on an SVG ring (motion's `pathLength` prop) rather than conic-gradient because it's the only
-// approach motion can natively animate the fill of - it also draws a proper rounded-cap arc
-// instead of a hard pie-slice edge.
 function ScoreRing({ percent, size = 88, label, pulse = false, className = "" }: ScoreRingProps) {
   const reduceMotion = useReducedMotion();
-  // Clamped once, immediately, so every other computation below (tier color, ring fraction,
-  // count-up animation, and the rendered label) reads from the SAME safe value - a caller that
-  // passes a negative or >100 number (a bug upstream, or a legacy pre-validation value read back
-  // from storage) can never make it to the screen as anything other than 0-100. Previously only
-  // the ring's fraction was clamped here; the animated text label was not, so an out-of-range
-  // `percent` rendered a wrong/negative number even though the ring itself looked fine.
+
   const clampedPercent = percent !== null ? Math.max(0, Math.min(100, percent)) : null;
   const tier = clampedPercent !== null ? getMatchTier(clampedPercent) : null;
   const stroke = size * 0.09;
@@ -60,7 +49,7 @@ function ScoreRing({ percent, size = 88, label, pulse = false, className = "" }:
     return () => {
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [clampedPercent, reduceMotion]);
 
   return (

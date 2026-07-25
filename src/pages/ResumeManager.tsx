@@ -53,20 +53,18 @@ function ResumeManager() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
 
-  // showToast(type, text) previously duplicated the shared Toast component's own visual style
-  // and stacking/auto-dismiss logic locally on this page - this maps those same call sites onto
-  // the app-wide useToast() (see components/ui/Toast.tsx), which every other redesigned page
-  // already uses, instead of keeping a second, slightly different-looking implementation here.
   const showToast = (type: "success" | "error" | "info", text: string) => {
     toast[type](text);
   };
 
   const getSafeErrorMessage = (errorText: string, fallback: string) => {
+    // לפעמים חוזרת שגיאת שרת גולמית (stack trace / SQL) - לא רוצים להציג את זה למשתמש
     const rawServerError = /\b(JDBC|SQL|Exception|ERROR:|column|java\.|org\.|hibernate)\b/i;
     if (!errorText || rawServerError.test(errorText)) return fallback;
     return errorText;
   };
 
+  // מפרק מחרוזת מופרדת בפסיקים/נקודה-פסיק/שורות לרשימת פריטים נקייה (למשל מילות מפתח חסרות)
   const splitText = (value: string | null | undefined) => {
     if (!value) return [];
     return value
@@ -75,6 +73,7 @@ function ResumeManager() {
       .filter(Boolean);
   };
 
+  // ממיר את תשובת הניתוח הגולמית מהשרת לאובייקט תצוגה, כולל חישוב רמת מוכנות ה-ATS מהציון
   const buildAnalysis = (data: Record<string, string>): AnalysisResult => {
     const score = Number(data.overallScore || 0);
     const atsReadiness =
@@ -91,6 +90,7 @@ function ResumeManager() {
     };
   };
 
+  // בעליית העמוד - טוען את פרטי הקו"ח השמור כרגע ואת הניתוח הקיים שלו (אם יש)
   useEffect(() => {
     const fetchCurrentCV = async () => {
       try {
@@ -122,7 +122,7 @@ function ResumeManager() {
             const data = await apiFetch(`/api/cv/analysis`);
             setAnalysis(buildAnalysis(data));
           } catch {
-            // no analysis available yet; keep previous behavior of silently skipping
+
           }
         } else {
           setFileName("");
@@ -139,7 +139,7 @@ function ResumeManager() {
     };
 
     fetchCurrentCV();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, []);
 
   const handleChoose = () => {
@@ -153,6 +153,7 @@ function ResumeManager() {
     setAnalysisStep("");
   };
 
+  // מעלה את קובץ הקו"ח שנבחר לשרת ומאפס ניתוח/ציוני התאמה קודמים שכבר לא רלוונטיים
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -178,10 +179,8 @@ function ResumeManager() {
       setDisplayFileName(uploadResult.originalFileName || uploadResult.fileName);
       resetAnalysis();
       localStorage.setItem("resumeFileName", uploadResult.fileName);
-      // The Job Matches / Dashboard session cache is keyed by cv identity and self-invalidates
-      // on its own (see utils/matchScoreSession.ts), but clearing it immediately here means a
-      // page that was already open in another tab never has even a moment where it could show
-      // a match score computed against the CV that just got replaced.
+
+      // קו"ח חדש = ציוני ההתאמה הישנים כבר לא רלוונטיים
       clearMatchScoreSession();
 
       showToast("success", r.uploadSuccess);
@@ -201,6 +200,7 @@ function ResumeManager() {
     }
   };
 
+  // מוריד את הקו"ח כ-blob ופותח אותו בלשונית חדשה לצפייה
   const handleViewCV = async () => {
     if (!fileName) return;
 
@@ -218,16 +218,13 @@ function ResumeManager() {
     }
   };
 
+  // מוחק את הקו"ח הנוכחי מהשרת אחרי אישור המשתמש, ומנקה גם את הניתוח וציוני ההתאמה
   const handleDelete = async () => {
     if (!user) {
       showToast("error", r.errorEmailNotFound);
       return;
     }
 
-    // Deleting the CV on file is meaningful/somewhat-destructive (it clears the analysis and
-    // invalidates every match score computed against it) - a candidate could easily hit this by
-    // mistake right next to "View CV"/"Analyze", so it's routed through the shared confirm
-    // dialog rather than firing immediately like FavoritesPage's lightweight "unsave" does.
     const confirmed = await confirm({ tone: "danger", confirmLabel: t.common.delete });
     if (!confirmed) return;
 
@@ -242,8 +239,7 @@ function ResumeManager() {
       setDisplayFileName("");
       resetAnalysis();
       localStorage.removeItem("resumeFileName");
-      // See the matching comment in handleUpload above - immediate, explicit invalidation on
-      // top of the cv-identity self-check.
+
       clearMatchScoreSession();
 
       showToast("success", r.deleteSuccess);
@@ -259,6 +255,7 @@ function ResumeManager() {
     }
   };
 
+  // מפעיל ניתוח AI על הקו"ח הנוכחי ושומר את הציון והתובנות שחוזרים מהשרת
   const handleAnalyze = async () => {
     if (!fileName || isAnalyzing) return;
 
@@ -284,10 +281,7 @@ function ResumeManager() {
       setProgress(100);
       setAnalysisStep(r.analysisComplete);
       setAnalysis(buildAnalysis(data));
-      // This is the moment the candidate's cv_text_hash actually changes on the backend (a
-      // re-analysis of new/changed CV content) - match scores computed against the previous
-      // analysis are no longer valid for this candidate. See the matching comment in
-      // handleUpload above.
+
       clearMatchScoreSession();
 
       showToast("success", r.analyzeSuccess);
@@ -680,4 +674,3 @@ function ResumeManager() {
 }
 
 export default ResumeManager;
-

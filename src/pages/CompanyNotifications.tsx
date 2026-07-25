@@ -37,6 +37,7 @@ const STATUS_TYPES = new Set([
 const APPLICATION_TYPES = new Set(["APPLICATION_SUBMITTED"]);
 const AI_TYPES = new Set(["AI_ANALYSIS_COMPLETED"]);
 
+// בוחר אייקון וצבע רקע להתראה לפי סוג האירוע שלה (בקשה חדשה, ניתוח AI, סטטוס משרה וכו')
 function getIcon(type: string) {
   if (APPLICATION_TYPES.has(type)) {
     return {
@@ -85,6 +86,7 @@ function startOfDay(date: Date) {
 
 type GroupKey = "today" | "yesterday" | "earlier";
 
+// ממיין תאריך התראה לקבוצה של היום/אתמול/מוקדם יותר לצורך קיבוץ בתצוגה
 function groupKeyFor(iso: string): GroupKey {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "earlier";
@@ -98,8 +100,6 @@ function groupKeyFor(iso: string): GroupKey {
   return "earlier";
 }
 
-// Today/Yesterday groups already convey the day, so just the time is clearer there;
-// anything older shows a short date since "Earlier" spans an unbounded range.
 function formatItemTime(iso: string, group: GroupKey) {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
@@ -120,6 +120,7 @@ function CompanyNotifications() {
   const [notifications, setNotifications] = useState<BackendNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // טוען את ההתראות מהשרת, ואם יש כאלה שלא נקראו - מסמן אותן כנקראו אוטומטית בכניסה לעמוד
   useEffect(() => {
     let cancelled = false;
 
@@ -130,16 +131,10 @@ function CompanyNotifications() {
 
         setNotifications(data);
 
-        // Opening this page is itself "seeing" the notifications - mark everything
-        // read right away instead of waiting for an explicit click, so the badge
-        // clears the moment the user opens the panel.
         if (data.some((item) => !item.read)) {
           setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
           notifyNotificationsChanged(0);
-          // keepalive: the browser would otherwise cancel this in-flight request if the
-          // user closes the tab/navigates away right after opening the page (a completely
-          // normal flow) - without it, the badge clears locally but the read status never
-          // reaches the database, so it reappears unread on the next visit.
+
           apiFetch("/api/notifications/mark-all-read", { method: "POST", keepalive: true }).catch(() => null);
         }
       } catch {
@@ -165,9 +160,7 @@ function CompanyNotifications() {
     [notifications]
   );
 
-  // Backend already returns notifications ordered by createdAt desc (see
-  // NotificationService.getNotifications), so grouping preserves that order within
-  // each bucket without needing to re-sort.
+  // מקבץ את ההתראות לשלוש קבוצות תצוגה (היום/אתמול/מוקדם יותר) ומשמיט קבוצות ריקות
   const groupedNotifications = useMemo(() => {
     const buckets: Record<GroupKey, BackendNotification[]> = {
       today: [],
@@ -190,15 +183,13 @@ function CompanyNotifications() {
 
   const hasNotifications = notifications.length > 0;
 
+  // מסמן את כל ההתראות כנקראו, מקומית ובשרת
   const markAllAsRead = async () => {
     if (!hasNotifications) return;
 
     const hasUnread = notifications.some((item) => !item.read);
     setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
-    // Marking everything read makes the new unread count deterministically 0 -
-    // push that to every badge right away instead of waiting on a fresh
-    // GET /unread-count round trip, which can take several seconds and made
-    // the badges look stuck even though the backend write itself succeeded.
+
     notifyNotificationsChanged(0);
 
     if (!hasUnread) return;
@@ -206,6 +197,7 @@ function CompanyNotifications() {
     await apiFetch("/api/notifications/mark-all-read", { method: "POST", keepalive: true }).catch(() => null);
   };
 
+  // מוחק את כל ההתראות, מקומית ובשרת
   const clearAll = async () => {
     if (!hasNotifications) return;
 
@@ -218,8 +210,6 @@ function CompanyNotifications() {
     );
   };
 
-  // Clicking any single notification clears the whole unread badge, not just
-  // that one item - mirrors the candidate-side notifications page.
   const markOneAsRead = () => markAllAsRead();
 
   const emptyStateHints = [

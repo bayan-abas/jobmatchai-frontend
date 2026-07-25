@@ -15,9 +15,7 @@ type CandidateSummaryData = {
   overallSuitability?: string;
   matchScore?: number;
   matchLabel?: string;
-  // Fixed-vocabulary hiring-decision category ("accept"/"consider"/"reject") computed once by
-  // the backend from matchScore - see CandidateSummaryService.SummaryResult. This component and
-  // its consumers only ever display it (mapped to a localized label); never re-derive it.
+
   recommendation?: string;
   message?: string;
 };
@@ -33,24 +31,16 @@ type CandidateAiSummaryModalProps = {
   onScoreReady?: (matchScore: number, matchLabel: string, recommendation: string) => void;
 };
 
-// Keyed by `${applicationId}:${language}` so re-opening the modal for the same candidate in the
-// SAME language reuses the already-fetched summary instead of calling the backend (and OpenAI)
-// again - but switching the UI language always falls through to a fresh fetch instead of
-// silently showing the previous language's cached text (the backend itself caches per-language,
-// so that fetch is cheap - see CandidateSummaryService - this is just the frontend's OWN memo,
-// which must not short-circuit before the language-aware fetch it's memoizing ever runs again).
+// מטמון גלובלי לסיכומי AI כדי לא לבקש מהשרת שוב סיכום שכבר נוצר לאותו מועמד
 const summaryCache = new Map<string, CandidateSummaryData>();
 
-// Tracks a fetch that's still in flight. If the modal is closed and reopened for
-// the same candidate+language before the first request finishes (the AI call can take a
-// few seconds), we must await the SAME promise instead of firing a second POST —
-// otherwise the backend could see two overlapping "no cached row yet" requests.
 const pendingFetches = new Map<string, Promise<CandidateSummaryData>>();
 
 function summaryCacheKey(applicationId: number, language: string): string {
   return `${applicationId}:${language}`;
 }
 
+// מבקש מהשרת ליצור סיכום AI למועמד, ומונע שתי בקשות זהות בו-זמנית לאותו מפתח
 function fetchSummary(applicationId: number, language: string): Promise<CandidateSummaryData> {
   const cacheKey = summaryCacheKey(applicationId, language);
   const existing = pendingFetches.get(cacheKey);
@@ -84,6 +74,7 @@ function CandidateAiSummaryModal({
   const [loading, setLoading] = useState(!summaryCache.has(cacheKey));
   const [error, setError] = useState(false);
 
+  // טוען את סיכום ה-AI מהמטמון אם כבר קיים, אחרת מביא מהשרת ושומר במטמון לפעם הבאה
   useEffect(() => {
     const key = summaryCacheKey(applicationId, language);
 
@@ -115,15 +106,12 @@ function CandidateAiSummaryModal({
     };
   }, [applicationId, language]);
 
-  // Propagate the saved score back to the candidate list as soon as it's known,
-  // whether it just came from OpenAI or was served from the cache. Deliberately
-  // keyed only on `data` (not `onScoreReady`, which is a fresh inline function
-  // on every parent render) so this fires once per result, not once per render.
+  // מעדכן את הרכיב ההורה בציון ההתאמה ברגע שהסיכום מגיע
   useEffect(() => {
     if (data && data.hasAnalysis && typeof data.matchScore === "number") {
       onScoreReady?.(data.matchScore, data.matchLabel || "", data.recommendation || "");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [data]);
 
   return (
@@ -187,10 +175,7 @@ function CandidateAiSummaryModal({
         {!loading && !error && data && data.hasAnalysis && <AiDisclaimer className="mb-5" />}
 
         {!loading && !error && data && data.hasAnalysis && typeof data.matchScore === "number" && (() => {
-          // Clamped once and reused everywhere below - previously only the bar's width was
-          // clamped, so an out-of-range matchScore (a bug upstream, or a legacy value read back
-          // from storage) rendered a wrong/negative number in the text label even though the
-          // bar itself looked fine.
+
           const clampedScore = Math.max(0, Math.min(100, data.matchScore));
           const tier = getMatchTier(clampedScore);
           return (

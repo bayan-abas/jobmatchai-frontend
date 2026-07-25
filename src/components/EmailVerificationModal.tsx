@@ -27,12 +27,14 @@ function EmailVerificationModal({ email, t, isRTL, onVerify, onResend, onClose }
     inputRef.current?.focus();
   }, []);
 
+  // טיימר לספירה לאחור של זמן ההמתנה לפני שאפשר לבקש שוב שליחת קוד
   useEffect(() => {
     if (cooldown <= 0) return;
     const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
     return () => clearTimeout(timer);
   }, [cooldown]);
 
+  // שולח את הקוד שהוזן לאימות מול השרת (דרך הקולבק שהעמוד הקורא סיפק)
   const handleVerify = async () => {
     const cleanCode = code.trim();
     if (cleanCode.length !== 6) {
@@ -51,6 +53,7 @@ function EmailVerificationModal({ email, t, isRTL, onVerify, onResend, onClose }
     }
   };
 
+  // מבקש קוד אימות חדש ומאתחל את טיימר הקירור, רק אם הקירור הקודם כבר נגמר
   const handleResend = async () => {
     if (cooldown > 0 || resending) return;
     setError("");

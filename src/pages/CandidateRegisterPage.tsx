@@ -57,9 +57,6 @@ function CandidateRegisterPage() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Holds everything handleVerifyAndRegister needs once the modal's code is confirmed - the
-  // account isn't created until then, so this is the only place these cleaned-up values live
-  // between "send code" and "verify code" (two separate render cycles apart).
   const [pendingRegistration, setPendingRegistration] = useState<null | {
     fullName: string;
     email: string;
@@ -71,8 +68,6 @@ function CandidateRegisterPage() {
     summary: string;
   }>(null);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
-
-
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -109,6 +104,7 @@ function CandidateRegisterPage() {
     setSkills((prev) => prev.filter((skill) => skill !== skillToRemove));
   };
 
+  // מאמת את שדות הטופס ואז מבקש מהשרת לשלוח קוד אימות למייל, לפני שהחשבון נוצר בפועל
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -219,9 +215,7 @@ function CandidateRegisterPage() {
     }
   };
 
-  // Runs only once the modal confirms the code is correct - this is the exact same
-  // register -> login -> profile PUT -> resume upload -> navigate sequence the account
-  // creation flow always used, just gated behind a valid verificationCode now.
+  // אחרי אימות הקוד: יוצר את המשתמש בפועל, מתחבר אוטומטית, ואז מעדכן פרופיל ומעלה קורות חיים אם יש
   const handleVerifyAndRegister = async (code: string) => {
     if (!pendingRegistration) return;
     const { fullName, email, password, phone, location, currentTitle, experience, summary } = pendingRegistration;
@@ -281,9 +275,7 @@ function CandidateRegisterPage() {
           body: resumeFormData,
         });
       } catch (resumeError) {
-        // Resume upload is optional at registration - don't block account creation over it,
-        // but don't pretend it succeeded either (the "Upload Resume (Optional)" UI previously
-        // only ever stored the file name, never actually sent the file to the backend).
+
         console.error(resumeError);
       }
     }
@@ -296,6 +288,7 @@ function CandidateRegisterPage() {
     }, 900);
   };
 
+  // שולח מחדש קוד אימות לאותו מייל שכבר התחיל תהליך הרשמה
   const handleResendCode = async () => {
     if (!pendingRegistration) return;
     await apiFetch("/api/auth/send-verification-code", {

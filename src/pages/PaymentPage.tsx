@@ -40,13 +40,7 @@ function PaymentPage() {
 
   const monthlyPrice = 9.99;
 
-  // Demo/simulated checkout - no Stripe account, no real card processor. Deliberately never
-  // sends the card fields anywhere: they only exist to make the flow FEEL like a real checkout
-  // for demo purposes (see the field-shaped validation below), then this calls the backend's
-  // demo endpoint (see PaymentController#activatePremiumDemo), which activates Premium directly
-  // on the account with no Stripe involved at all. refreshUser() picking up premium=true is what
-  // flips this same page into its "Premium Activated!" view below - no separate success route,
-  // matching the single-page flow this had before Stripe was ever wired in.
+  // מוודא שפרטי כרטיס האשראי תקינים בפורמט ואז מפעיל מנוי פרימיום
   const handleSubscribe = async () => {
     const errors: typeof fieldErrors = {};
     if (!cardName.trim()) errors.cardName = t.common.required;
@@ -60,6 +54,7 @@ function PaymentPage() {
     setIsActivating(true);
 
     try {
+      // אין אינטגרציה עם סליקה אמיתית - זה פרויקט גמר, השדות נבדקים בפורמט בלבד ומפעילים פרימיום ישירות
       await apiFetch("/api/payments/demo/activate-premium", { method: "POST" });
       await refreshUser();
       toast.success(t.paymentPage.activatedPlan);
@@ -72,6 +67,7 @@ function PaymentPage() {
     }
   };
 
+  // מבקש אישור מהמשתמש ורק אז מבטל את מנוי הפרימיום בצד השרת
   const handleCancelSubscription = async () => {
     const confirmed = await confirm({
       title: t.paymentPage.cancelModalTitle || "Cancel Premium subscription?",

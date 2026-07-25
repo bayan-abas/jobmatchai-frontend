@@ -15,6 +15,7 @@ function PaymentSuccessPage() {
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [error, setError] = useState("");
 
+  // אחרי חזרה מהתשלום מאמת מול השרת (לפי session_id מה-URL) שהעסקה אכן הצליחה
   useEffect(() => {
     const sessionId = searchParams.get("session_id");
 

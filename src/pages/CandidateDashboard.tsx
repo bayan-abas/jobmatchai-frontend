@@ -77,10 +77,7 @@ type BackendExternalJob = {
   type?: string;
 };
 
-// The Job/ExternalJob entities have no boolean "remote" column - BackendJob.remote is never
-// actually present on the raw API response (Job's own client-side mapping in JobMatches.tsx
-// derives it the same way instead of trusting a field that doesn't exist), so this checks the
-// same signal (job type/location text) rather than silently defaulting to true for everything.
+// בודק אם משרה היא רימוטית - לפי שדה remote מפורש או לפי טקסט חופשי בסוג/מיקום
 function isRemoteJob(job: { remote?: boolean; type?: string; location?: string }): boolean {
   if (typeof job.remote === "boolean") return job.remote;
   return /remote/i.test(job.type || "") || /remote/i.test(job.location || "");
@@ -111,17 +108,11 @@ function CandidateDashboard() {
 
   const [topMatches, setTopMatches] = useState<MatchItem[]>([]);
   const [applications, setApplications] = useState<RecentApplication[]>([]);
-  // Count of jobs (internal + external) the candidate actually MATCHES - not the total number
-  // of jobs available. See fetchDashboardData below for the "matched" definition (fieldRelated
-  // && matchPercent !== null), kept consistent with JobMatches.tsx's own "scored" status.
+
   const [matchedJobsCount, setMatchedJobsCount] = useState("0");
-  // True for the whole span AI match-scoring is running - the "Job Matches" tile shows a
-  // spinner/message instead of matchedJobsCount while this is true, so the candidate never sees
-  // the count tick up 0, 1, 2... one job at a time (see fetchDashboardData's matching phase).
+
   const [matchesLoading, setMatchesLoading] = useState(false);
-  // null = not yet known, false = no CV on file (matchedJobsCount's "0" would be misleading -
-  // the system genuinely doesn't know how many jobs match without a CV to compare against), true
-  // = a real CVAnalysis exists and matchedJobsCount reflects an actual computed count.
+
   const [hasAnalysis, setHasAnalysis] = useState<boolean | null>(null);
   const [applicationsCount, setApplicationsCount] = useState("0");
   const [applicationsThisMonth, setApplicationsThisMonth] = useState(0);
@@ -144,13 +135,12 @@ function CandidateDashboard() {
     100
   );
 
+  // טוען את כל נתוני הדשבורד - משרות, הגשות, קו"ח נוכחי ומשרות חיצוניות, ובונה מהם את הסטטיסטיקות
   useEffect(() => {
     const controller = new AbortController();
 
     const fetchDashboardData = async () => {
-      // Reset before fetching so a failure partway through (or switching accounts
-      // without a full page reload) never leaves a previous session's match scores
-      // visible on screen.
+
       setTopMatches([]);
       setApplications([]);
       setMatchedJobsCount("0");
@@ -213,10 +203,6 @@ function CandidateDashboard() {
           })
         );
 
-        // Applications render immediately with no percentage yet (ScoreRing/percent: null
-        // already render a pending state) - match percentages fill in below once the
-        // streaming score computation resolves each one, instead of the whole dashboard
-        // waiting on every job's AI score before showing anything.
         setApplications(
           appsData
             .filter((app) => typeof app.id === "number" || typeof app.jobId === "number")
@@ -235,9 +221,7 @@ function CandidateDashboard() {
         console.error("Dashboard fetch error:", error);
         setError(t.dashboard.loadError || "We couldn't load your dashboard data. Please try refreshing the page.");
       } finally {
-        // The dashboard shell (stats tiles, recently viewed, quick actions) is ready as soon
-        // as the fast, non-AI data above is in - it no longer waits for every job's match
-        // score to be computed first. Scores stream in below and fill in progressively.
+
         setLoading(false);
       }
 
@@ -259,13 +243,9 @@ function CandidateDashboard() {
       const matchByJobId = new Map<number, MatchScoreEntry>();
       const externalMatchByJobId = new Map<number, MatchScoreEntry>();
 
-      // Recomputed every time a new score arrives (internal or external) - this is what makes
-      // the "Job Matches" tile, "Top Matches" list, and each recent application's percent fill
-      // in one at a time as results stream in, rather than all-at-once at the very end.
+      // מעדכן מחדש את מספר ההתאמות ואת רשימת ה-top matches בכל פעם שמגיע ציון חדש מהסטרים
       const applyDerivedState = () => {
-        // "Job Matches" = jobs the candidate actually matches, not the total number of jobs
-        // available - a real, related score was computed for this job (fieldRelated &&
-        // matchPercent !== null).
+
         const matchedInternalCount = jobIdsFromJobs.filter((id) => {
           const entry = matchByJobId.get(id);
           return Boolean(entry && entry.fieldRelated && entry.matchPercent !== null);
@@ -276,10 +256,6 @@ function CandidateDashboard() {
         }).length;
         setMatchedJobsCount(String(matchedInternalCount + matchedExternalCount));
 
-        // "Top Job Matches" must draw from the SAME combined internal+external pool the
-        // "Job Matches" count above does - it used to only ever look at internal jobs, so a
-        // candidate whose real matches happened to be mostly/entirely external ones saw a
-        // nonzero count next to a "No job matches yet" list, which read as broken.
         const internalMatches: MatchItem[] = jobsData
           .filter((job) => {
             if (typeof job.id !== "number") return false;
@@ -326,21 +302,9 @@ function CandidateDashboard() {
         );
       };
 
-      // Session-scoped + progressive: the first time this tab session asks about a job, this
-      // streams real scores (one OpenAI call per unscored job, computed server-side) and caches
-      // each result for the rest of the session - see utils/matchScoreSession.ts. Shared with
-      // JobMatches.tsx, so a job already scored there resolves here instantly with no network
-      // call at all, and vice versa. Resolved fresh (never assumed/cached client-side) so a
-      // deleted/replaced CV can never surface stale scores here either - see
-      // fetchCurrentCvIdentity's own comment.
-      //
-      // The "Job Matches" tile deliberately does NOT show matchedJobsCount ticking up 0, 1, 2...
-      // as each job resolves - that read as broken/janky rather than "working". Instead the tile
-      // shows a loading spinner/message for the whole streak and only reveals the final number
-      // once every internal AND external job has been accounted for (both streams' onDone has
-      // fired) - see matchesLoading below and its use in the stats tile render.
       if (combinedJobIds.length > 0 || externalJobIds.length > 0) {
         setMatchesLoading(true);
+        // שני streams נפרדים (job פנימי וחיצוני) - מכבים loading רק אחרי ששניהם נגמרו
         let pendingStreams = (combinedJobIds.length > 0 ? 1 : 0) + (externalJobIds.length > 0 ? 1 : 0);
         const onStreamDone = () => {
           pendingStreams -= 1;
@@ -352,11 +316,6 @@ function CandidateDashboard() {
         fetchCurrentCvIdentity().then((cvIdentity) => {
           if (controller.signal.aborted) return;
 
-          // No CV means matchedJobsCount's "0" would be misleading (the system genuinely can't
-          // know how many jobs match without one) - resolved here, before either stream call, so
-          // the "Job Matches" tile can show a clear upload CTA instead. streamSessionMatches
-          // would also short-circuit this itself, but doing it here means hasAnalysis is set
-          // correctly without waiting on that round trip.
           if (cvIdentity === NO_CV_IDENTITY) {
             setHasAnalysis(false);
             setMatchesLoading(false);
@@ -415,6 +374,7 @@ function CandidateDashboard() {
     };
   }, [userEmail, language, user]);
 
+  // טוען את מספר המשרות הכולל במערכת (פנימיות/חיצוניות) לכרטיסי הסטטיסטיקה
   useEffect(() => {
     apiFetch(`/api/dashboard/stats`)
       .then((data) => {
@@ -429,6 +389,7 @@ function CandidateDashboard() {
       .catch(() => {});
   }, []);
 
+  // טוען את רשימת המשרות שהמועמד צפה בהן לאחרונה
   useEffect(() => {
     if (!userEmail) return;
 
@@ -437,6 +398,7 @@ function CandidateDashboard() {
       .catch(() => {});
   }, [userEmail]);
 
+  // בונה את מערך כרטיסי הסטטיסטיקה (התאמות, הגשות, ראיונות, ציון פרופיל) שמוצגים בראש הדשבורד
   const stats = useMemo(
     () => [
       {
@@ -445,9 +407,7 @@ function CandidateDashboard() {
         label: t.dashboard.stats.jobMatches,
         iconBg: "bg-[#5e66ff1f]",
         iconColor: "text-[#7c88ff]",
-        // No CV means "0 Job Matches" would misleadingly read as "we checked and you match
-        // nothing" - the system genuinely hasn't been able to check at all. Routes to the resume
-        // upload flow instead of an empty Job Matches page in that case.
+
         onClick: () => navigate(hasAnalysis === false ? "/resume-manager" : "/job-matches"),
         loading: matchesLoading,
         noAnalysis: hasAnalysis === false,
@@ -568,9 +528,7 @@ function CandidateDashboard() {
                     </p>
                   </div>
                 ) : stat.noAnalysis ? (
-                  // No CV means matchedJobsCount's "0" would misleadingly read as "we checked and
-                  // you match nothing" rather than "we haven't been able to check yet" - a CTA in
-                  // its place is the honest version of this tile until a CV is on file.
+
                   <div className={isRTL ? "text-right" : "text-left"}>
                     <p className="text-[15px] font-bold leading-snug text-white">
                       {t.dashboard.noCvTitle}

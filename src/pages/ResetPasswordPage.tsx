@@ -22,6 +22,7 @@ function ResetPasswordPage() {
   const [fieldErrors, setFieldErrors] = useState<{ newPassword?: string; confirmPassword?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // מאמת את הסיסמה החדשה ושולח אותה לשרת יחד עם הטוקן מהלינק כדי לעדכן את הסיסמה בפועל
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 

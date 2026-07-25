@@ -123,10 +123,12 @@ function AIChatButton() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
+  // שולח הודעה חדשה לצ'אט ה-AI עם היסטוריית השיחה ומחכה לתשובה מהשרת
   const sendMessage = async (customText?: string) => {
     const text = (customText ?? input).trim();
     if (!text || isTyping) return;
 
+    // רק 20 הודעות אחרונות - לא לשלוח את כל ההיסטוריה לשרת בכל בקשה
     const history = messages.slice(-20).map((m) => ({
       role: m.sender === "ai" ? "assistant" : "user",
       content: m.text,
@@ -161,6 +163,7 @@ function AIChatButton() {
     sendMessage();
   };
 
+  // מתחיל שיחה חדשה - מנקה את ההיסטוריה וחוזר להודעת הפתיחה
   const resetChat = () => {
     setMessages([{ id: 1, sender: "ai", text: content.welcome }]);
     setInput("");
@@ -202,7 +205,7 @@ function AIChatButton() {
           } max-[980px]:!inset-x-3 max-[980px]:!bottom-[calc(88px+env(safe-area-inset-bottom))] max-[980px]:!top-[max(16px,env(safe-area-inset-top))] max-[980px]:!h-auto max-[980px]:!w-auto max-[980px]:!max-h-none`}
           dir={isRTL ? "rtl" : "ltr"}
         >
-          {/* Header */}
+
           <div className="border-b border-white/10 bg-[linear-gradient(135deg,rgba(127,76,255,0.22),rgba(68,211,255,0.10))] px-5 py-4">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -235,7 +238,6 @@ function AIChatButton() {
             </div>
           </div>
 
-          {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-4">
             <AiDisclaimer className="mb-4" />
 
@@ -293,7 +295,6 @@ function AIChatButton() {
             </div>
           </div>
 
-          {/* Input */}
           <form
             onSubmit={handleSubmit}
             className="border-t border-white/10 bg-[rgba(255,255,255,0.03)] p-4"

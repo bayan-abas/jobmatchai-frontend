@@ -27,10 +27,6 @@ const VARIANT_META: Record<ToastVariant, { icon: typeof CheckCircle2; classes: s
 let nextId = 1;
 const AUTO_DISMISS_MS = 5000;
 
-// Replaces the app's 4 remaining native `alert(...)` call sites and gives every form a
-// consistent transient-feedback surface (as opposed to inline-only banners, which stay
-// reachable for validation errors - this is for one-off confirmations/failures). Mounted once
-// near the app root (see App.tsx) so any page can call useToast() without prop drilling.
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const isRTL = useIsRTL();

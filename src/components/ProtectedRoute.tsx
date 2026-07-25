@@ -8,6 +8,7 @@ type ProtectedRouteProps = {
   requiredRole?: "candidate" | "company";
 };
 
+// בודק אם יש משתמש מחובר (ובעל התפקיד הנדרש) לפני שמאפשר גישה לעמוד מוגן, אחרת מפנה להתחברות/דשבורד המתאים
 function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
 

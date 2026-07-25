@@ -54,7 +54,7 @@ function CandidateSidebar({ isCollapsed, setIsCollapsed }: CandidateSidebarProps
         isCollapsed ? "w-[96px]" : "w-[320px]"
       } ${isRTL ? "right-0 border-l" : "left-0 border-r"} max-[980px]:hidden`}
     >
-      {/* Header */}
+
       <div className="flex items-center justify-between border-b border-white/10 px-5 pb-5 pt-5">
         <button
           type="button"
@@ -84,7 +84,6 @@ function CandidateSidebar({ isCollapsed, setIsCollapsed }: CandidateSidebarProps
         </button>
       </div>
 
-      {/* Nav items */}
       <div className="flex flex-1 flex-col overflow-y-auto px-3 pt-4 pb-2">
         <div className="flex flex-col gap-1">
           {menuItems.map((item) => {
@@ -127,7 +126,6 @@ function CandidateSidebar({ isCollapsed, setIsCollapsed }: CandidateSidebarProps
         </div>
       </div>
 
-      {/* Bottom: language switcher + logout */}
       <div className="border-t border-white/10 px-3 pb-5 pt-4">
         {!isCollapsed && (
           <div className="mb-4 flex rounded-[18px] border border-white/10 bg-white/[0.03] p-1">

@@ -15,23 +15,17 @@ export type ExternalJobData = {
   description?: string;
   requirements?: string;
   skills?: string;
-  // Resolved server-side from the provider's own category/occupation data when available (see
-  // backend ExternalJobData.industry) - one of jobInference.ts's INDUSTRY_KEYS, or absent when
-  // the provider gave no such signal, in which case inferIndustry() falls back to title-based
-  // classification.
+
   industry?: string;
   sourceName?: string;
   sourceUrl?: string;
   applyUrl?: string;
   externalJobId?: string;
   importedAt?: string;
-  // The source's own posted/updated date for this listing, when the provider supplies one -
-  // distinct from importedAt (when OUR system last confirmed it's still live).
+
   publishedAt?: string;
 };
 
-// "error" = the AI couldn't compute this job's match at all (a transient failure, never
-// cached by the backend) - distinct from "noScore", which is a real AI verdict.
 export type MatchStatus = "loggedOut" | "loading" | "noAnalysis" | "scored" | "noScore" | "error";
 
 export type MatchInfo = {
@@ -55,6 +49,7 @@ function ExternalJobCard({ job, matchInfo, t, isRTL, onViewDetails, isSaved, onT
   const navigate = useNavigate();
   const p = t.externalJobsPage;
 
+  // מפרק את מחרוזת הכישורים שמגיעה מהמקור החיצוני לרשימת תגיות נקייה
   const skills = (job.skills || "")
     .split(/[,;|]/)
     .map((skill) => skill.trim())
@@ -64,6 +59,7 @@ function ExternalJobCard({ job, matchInfo, t, isRTL, onViewDetails, isSaved, onT
     ? new Date(job.publishedAt).toLocaleDateString()
     : null;
 
+  // פותח את דף ההגשה של המשרה החיצונית בטאב חדש
   const handleApply = () => {
     if (job.applyUrl) {
       window.open(job.applyUrl, "_blank", "noopener,noreferrer");
@@ -109,11 +105,6 @@ function ExternalJobCard({ job, matchInfo, t, isRTL, onViewDetails, isSaved, onT
             </button>
           )}
 
-          {/* No CVAnalysis for this candidate - the backend already refuses to compute or
-              show a percentage in this case (hasAnalysis=false), so this is purely making
-              that existing, correct "no score without a CV" behavior visible instead of a
-              bare "?" with no explanation - same message + CTA pattern already used on the
-              internal Job Matches page and the job details page. */}
           {matchInfo.status === "noAnalysis" && (
             <div className="mt-2 flex max-w-[150px] flex-col items-center gap-2 text-center">
               <span className="text-[11px] font-medium text-white/50">{p.noAnalysisMessage}</span>

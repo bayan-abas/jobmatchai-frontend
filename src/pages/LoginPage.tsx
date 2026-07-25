@@ -27,6 +27,7 @@ function LoginPage() {
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // שולח בקשת התחברות לשרת, שומר את הטוקן ומנתב לדשבורד המתאים לפי תפקיד המשתמש
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 

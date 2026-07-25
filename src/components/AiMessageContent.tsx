@@ -13,17 +13,12 @@ import {
 } from "lucide-react";
 import { getMatchTier } from "../utils/matchScore";
 
-// Renders an AI chat reply that follows the backend's structured template (see
-// AIChatService's responseFormatTemplate): "## Heading" sections, "- " bullets, and
-// "**bold**" spans. Falls back to plain text (still with bold support) for any message
-// that doesn't contain that structure at all - the static welcome message, the generic
-// error fallback, and any older/legacy message all still render exactly as before.
-
 type Section = {
   heading: string | null;
   lines: string[];
 };
 
+// מפרסר פורמט מיני-מארקדאון שה-AI מוחזר בו (## כותרות, שורות רגילות) - תלוי בפרומפט בבקאנד
 function parseSections(text: string): Section[] {
   const rawLines = text.split(/\r?\n/);
   const sections: Section[] = [];
@@ -49,6 +44,7 @@ function parseSections(text: string): Section[] {
   return sections;
 }
 
+// מפריד שורות טקסט לבולטים (מתחילים ב- או •) לעומת שורות תיאור רגילות
 function splitBulletsAndCaptions(lines: string[]): { bullets: string[]; captions: string[] } {
   const bullets: string[] = [];
   const captions: string[] = [];
@@ -62,6 +58,7 @@ function splitBulletsAndCaptions(lines: string[]): { bullets: string[]; captions
   return { bullets, captions };
 }
 
+// מחפש בטקסט אחוז מספרי (כמו אחוז ההתאמה) ומחזיר אותו כמספר
 function extractPercent(lines: string[]): number | null {
   const match = lines.join(" ").match(/(\d{1,3})\s*%/);
   if (!match) return null;
@@ -69,6 +66,7 @@ function extractPercent(lines: string[]): number | null {
   return Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : null;
 }
 
+// הופך **טקסט** בפורמט מארקדאון לטקסט מודגש אמיתי ב-JSX
 function renderInlineBold(text: string): ReactNode {
   const parts = text.split(/(\*\*.+?\*\*)/g);
   return parts.map((part, index) =>
@@ -82,6 +80,7 @@ function renderInlineBold(text: string): ReactNode {
   );
 }
 
+// בוחר אייקון מתאים לפי מילות מפתח בכותרת של הסקשן שה-AI החזיר
 function iconForHeading(heading: string) {
   const key = heading.toLowerCase();
   if (key.includes("candidate")) return User;
@@ -96,6 +95,7 @@ function iconForHeading(heading: string) {
   return Info;
 }
 
+// מציג את אחוז ההתאמה בתגית צבעונית לפי הרמה (גבוה/בינוני/נמוך)
 function MatchScoreBadge({ percent }: { percent: number }) {
   const tier = getMatchTier(percent);
   return (
@@ -116,6 +116,7 @@ function MatchScoreBadge({ percent }: { percent: number }) {
   );
 }
 
+// מרנדר סקשן בודד מתשובת ה-AI - כותרת עם אייקון, ואחריה בולטים או טקסט
 function SectionCard({ heading, lines, isRTL }: { heading: string; lines: string[]; isRTL: boolean }) {
   const { bullets, captions } = splitBulletsAndCaptions(lines);
   const Icon = iconForHeading(heading);
@@ -154,6 +155,7 @@ function SectionCard({ heading, lines, isRTL }: { heading: string; lines: string
   );
 }
 
+// הרכיב הראשי - מפרסר את תשובת ה-AI ומחליט אם להציג כטקסט חופשי או כסקשנים מעוצבים
 function AiMessageContent({ text, isRTL }: { text: string; isRTL: boolean }) {
   const sections = parseSections(text);
   const isStructured = sections.some((section) => section.heading !== null);
@@ -173,6 +175,7 @@ function AiMessageContent({ text, isRTL }: { text: string; isRTL: boolean }) {
           );
         }
 
+        // הכותרות "Summary" ו-"Match Score" מטופלות בנפרד כי אלה בדיוק המחרוזות שהפרומפט של ה-AI מחזיר
         const headingKey = section.heading.toLowerCase();
 
         if (headingKey === "summary") {

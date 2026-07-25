@@ -1,13 +1,9 @@
-// Company job postings and most external-job providers store salary as a bare numeric
-// range with no currency marker at all (e.g. "10000 - 20000") - this platform is Israel-only,
-// so those get a Shekel prefix for display. A few external sources (e.g. Jobicy, a global
-// remote-jobs board) attach their own real currency code/symbol to the figure - that's left
-// untouched rather than relabeled, since a remote role may genuinely be paid in a different
-// currency and relabeling it ₪ would misrepresent the actual posting.
 const HAS_CURRENCY_MARKER = /[$€£₪]|USD|EUR|GBP|ILS|NIS/i;
 
+// שכר שנשמר כ-0 זה בפועל "לא הוזן" (נתונים ישנים) - עדיף להסתיר מאשר להציג "₪0"
 const IS_ZERO = /^0+(\.0+)?$/;
 
+// מציג שכר לתצוגה - מסתיר ערכים ריקים/אפסיים ומוסיף סימן ₪ אם אין כבר סימן מטבע
 export function formatSalary(salary?: string | null): string | null {
   const trimmed = (salary || "").trim();
   if (!trimmed || IS_ZERO.test(trimmed)) {
@@ -17,11 +13,7 @@ export function formatSalary(salary?: string | null): string | null {
   return HAS_CURRENCY_MARKER.test(trimmed) ? trimmed : `₪ ${trimmed}`;
 }
 
-// Company-posted jobs store salary as a bare number or a "min - max" range (see
-// formatSalary above) - this renders that same raw value as a polished "₪min – ₪max / month"
-// string for detail views, with locale-aware thousands separators instead of the raw digits.
-// A value that already carries its own currency marker is left to formatSalary/untouched,
-// since we can't safely reinterpret e.g. "$120k - $150k" as two plain ILS numbers.
+// כנ"ל אבל בונה טווח שכר מפורמט ("₪X – ₪Y / month") מתוך המספרים שנמצאו בטקסט החופשי
 export function formatSalaryRange(salary?: string | null): string | null {
   const trimmed = (salary || "").trim();
   if (!trimmed || IS_ZERO.test(trimmed)) {

@@ -79,24 +79,15 @@ type MatchScoreEntry = {
   matchedPreferredSkills: string[];
   missingRequiredSkills: string[];
   missingPreferredSkills: string[];
-  // true = AI decided this job matches the candidate's field; false = AI decided it doesn't
-  // (a real verdict, with matchReason explaining why); null = the AI couldn't compute this
-  // job's match at all (a transient failure, not a verdict) - the backend never caches this,
-  // so it's worth retrying rather than treating it the same as a genuine field mismatch.
+
   fieldRelated: boolean | null;
-  // True when the job posting itself was too thin to support a reliable comparison at all - a
-  // deterministic backend verdict (see JobMatchService#isInsufficientJobData), never an AI call.
+
   insufficientData: boolean;
-  // Title-only, candidate-independent classification (see backend VocationalRoleClassifier) -
-  // a generalist/vocational role (Cashier, Delivery Driver, etc.) that's kept in its own
-  // "General & Vocational Jobs" section rather than mixed into profession-based results.
+
   generalVocationalRole: boolean;
-  // A non-vocational job the candidate's resolved profession is genuinely unrelated to - hidden
-  // from every listing entirely, never just downweighted.
+
   excludedFromListing: boolean;
-  // True when this is a last-known-good fallback served because a fresh recompute just failed -
-  // see backend JobMatchScore#stale. Real number, possibly a little behind; the retry-scheduling
-  // effect below (not the user) is responsible for eventually replacing it with a fresh one.
+
   stale: boolean;
 };
 
@@ -111,24 +102,14 @@ function JobMatches() {
   const [minSalary, setMinSalary] = useState(0);
   const [minMatch, setMinMatch] = useState(0);
   const [showSavedJobs, setShowSavedJobs] = useState(false);
-  // "profession": jobs the candidate's resolved profession is actually related to (the default,
-  // ranked-by-match view). "vocational": generalist/entry-level roles (Cashier, Delivery Driver,
-  // etc.) that are never excluded outright but are deliberately kept out of the profession-ranked
-  // view too, since a numeric match score against them isn't a meaningful professional-fit signal
-  // - see MatchScoreEntry#generalVocationalRole. A third bucket (genuinely unrelated, non-
-  // vocational jobs) is filtered out of BOTH tabs entirely - see categorizedJobs below.
+
   const [jobCategory, setJobCategory] = useState<"profession" | "vocational">("profession");
-  // The "Jobs That Match You" filter - on by default. On: exactly today's split (profession
-  // matches vs. the separate vocational tab, genuinely-unrelated jobs hidden). Off: every job on
-  // the platform, unsplit, regardless of the candidate's profession - see categorizedJobs below.
+
   const [matchYouFilter, setMatchYouFilter] = useState(true);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
-  // True only while a retry (see apiFetchWithRetry) is in flight after an initial failure - a
-  // cloud host that sleeps the backend after inactivity (e.g. Render's free tier) makes the
-  // first request after a while fail or hang while it wakes up. Shown instead of a dead-end
-  // error so the candidate never has to manually refresh the page for this to resolve itself.
+
   const [reconnecting, setReconnecting] = useState(false);
   const [applyMessage, setApplyMessage] = useState("");
   const [applyingJobId, setApplyingJobId] = useState<number | null>(null);
@@ -140,29 +121,17 @@ function JobMatches() {
   const [matchScores, setMatchScores] = useState<Map<number, MatchScoreEntry>>(new Map());
   const [hasAnalysis, setHasAnalysis] = useState<boolean | null>(null);
   const [matchScoresLoading, setMatchScoresLoading] = useState(false);
-  // Bumped by a failed card's "Retry" action to force the match-score streaming effect below to
-  // run again - a transient AI failure is never persisted to the session cache (see
-  // matchScoreSession.ts), so re-running it naturally only re-requests the jobs that actually
-  // failed; anything already scored resolves instantly from cache instead of double-billing an
-  // OpenAI call.
-  const [matchRetryNonce, setMatchRetryNonce] = useState(0);
-  // Caps how many times the effect below will auto-schedule its own retry for a stale fallback
-  // score before giving up and just leaving the (still real, just possibly outdated) last-known
-  // percentage on screen - a persistently-failing job must never retry forever in the background.
-  const staleRetryCountRef = useRef(0);
-  const MAX_STALE_RETRIES = 5;
 
-  // Jobs render immediately once fetched; match percentages stream in progressively (see the
-  // streamSessionMatches effect below) rather than blocking the page.
-  //
-  // The current page number lives in the URL (?page=N), not local-only state, specifically so
-  // that opening a job from, say, page 3 and then going back restores page 3 itself, not page 1
-  // - see ScrollToTop.tsx, which restores the scroll position for this exact URL (path + query)
-  // on back/forward navigation. goToPage below is the only way this should ever change.
+  const [matchRetryNonce, setMatchRetryNonce] = useState(0);
+
+  const staleRetryCountRef = useRef(0);
+  const MAX_STALE_RETRIES = 5; // אחרי זה מפסיקים לנסות - מניחים שהניתוח נתקע
+
   const JOBS_PER_PAGE = 24;
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
 
+  // מעדכן את מספר העמוד ב-URL כדי שאפשר יהיה לשתף/לרענן ולהישאר באותו עמוד
   const goToPage = (nextPage: number) => {
     setSearchParams(
       (prev) => {
@@ -193,11 +162,13 @@ function JobMatches() {
   const t = translations[language] || translations.en;
   const isRTL = language === "ar" || language === "he";
 
+  // מחזיר את המייל והשם של המשתמש המחובר, בשימוש בכל קריאה שדורשת זיהוי מועמד
   const readCandidateIdentity = () => ({
     email: user?.email || "",
     name: user?.name || "Candidate",
   });
 
+  // מנרמל מחרוזת (אותיות קטנות, בלי תווים מוזרים) כדי שהשוואות טקסט יעבדו טוב יותר
   const normalize = (value?: string) =>
     String(value || "")
       .toLowerCase()
@@ -205,19 +176,13 @@ function JobMatches() {
       .replace(/\s+/g, " ")
       .trim();
 
-  // Delegates to the shared, single-source-of-truth implementations in utils/jobInference.ts
-  // (also used by ExternalJobsPage) rather than keeping a second copy here - this file used to
-  // have its own independent copy of all three, which is how a substring-matching bug (bare
-  // "it"/"ui" keywords matching inside ordinary words like "hospital" or "position", so
-  // healthcare/education jobs got misclassified as "technology") went unfixed here even after
-  // being fixed in the shared copy.
   const inferIndustry = sharedInferIndustry;
   const inferLevel = sharedInferLevel;
   const inferExperience = sharedInferExperience;
 
+  // הופך משרה כפי שהיא מגיעה מהשרת למבנה Job של הפרונט, כולל השלמת שדות חסרים והסקת תעשייה/רמה/אזור
   const buildJobFromBackend = (backendJob: BackendJob): Job => {
-    // Skill match/miss tags are AI-computed (semantic, not substring matching) and
-    // populated later from the /api/jobs/match-scores response — see getMatchInfo().
+
     return {
       id: backendJob.id,
       title: backendJob.title || "Untitled Job",
@@ -236,6 +201,7 @@ function JobMatches() {
     };
   };
 
+  // טוען את כל המשרות מהשרת, ואם המשתמש מחובר גם טוען את ההגשות שלו כדי לדעת אילו משרות כבר הוגשו וכמה הגשות היו החודש
   const loadJobs = () => {
     setLoading(true);
     setFetchError("");
@@ -283,28 +249,19 @@ function JobMatches() {
       });
   };
 
+  // טעינת המשרות פעם אחת כשהעמוד עולה
   useEffect(() => {
     loadJobs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, []);
 
-  // Match-score fetching itself lives further down (after filteredJobs/paginatedJobs are
-  // computed) - it only ever requests scores for the page of jobs actually on screen, not the
-  // whole list. See that effect's own comment for why.
-
-// The dropdown must only ever offer values inferIndustry() can actually return (see
-// utils/jobInference.ts's INDUSTRY_KEYS) - this used to be a much larger, independently
-// hand-written list of ~140 granular categories ("software", "cybersecurity", "callCenter",
-// "hotelManagement", ...) that inferIndustry() never produces, so selecting almost any of
-// them was guaranteed to show zero jobs no matter what data existed.
 const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
 
   const seniorityOptions = ["allLevels", "entry", "mid", "senior", "lead"];
 
-  // Same "only offer values the inferrer can actually return" rule as industryOptions above -
-  // see utils/jobInference.ts's REGION_KEYS.
   const regionOptions = ["allRegions", ...REGION_KEYS];
 
+  // אם הגענו לעמוד עם כותרת משרה מסוימת (למשל מהצ'אט), מנווטים ישר לדף הפרטים שלה
   useEffect(() => {
     const titleFromNav = location.state?.selectedJobTitle;
     if (!titleFromNav || jobs.length === 0) return;
@@ -315,9 +272,10 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
     }
 
     window.history.replaceState({}, document.title);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [location.state, jobs]);
 
+  // סוגר את תפריטי הפילטרים הנפתחים (תעשייה/ותק/אזור) בלחיצה מחוץ להם
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -339,6 +297,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // טוען את המשרות השמורות של המשתמש מהשרת, ובפעם הראשונה גם מהגר משרות שמורות ישנות מה-localStorage לשרת
   useEffect(() => {
     const identity = readCandidateIdentity();
     if (!identity.email) return;
@@ -387,9 +346,10 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
     } else {
       loadSavedJobs();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, []);
 
+  // מוציא מספר שכר מתוך מחרוזת חופשית (עם ₪/k/פסיקים וכו') כדי שאפשר יהיה לסנן ולמיין לפיו
   const extractSalaryNumber = (salary: string) => {
     if (!salary) return 0;
 
@@ -415,15 +375,11 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
   type MatchInfo =
     | { status: "loading" }
     | { status: "noAnalysis" }
-    // The job posting itself was too thin (title-only, no real requirements/skills) to support
-    // a reliable comparison - a deterministic backend verdict, never an AI call spent confirming
-    // it. Distinct from "error": this is stable/cached, not something a refresh will change.
+
     | { status: "insufficientData" }
-    // The AI tried and gave a real verdict that this job isn't a field match - matchReason
-    // explains why, straight from the AI's own comparison of the CV and the job posting.
+
     | { status: "noScore"; reason: string }
-    // The AI could not compute a score at all (a transient failure), not a verdict - never
-    // shown as if it were a real "not a match" result, and never cached, so reloading retries.
+
     | { status: "error"; reason: string }
     | {
         status: "scored";
@@ -437,6 +393,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
         missingPreferredSkills: string[];
       };
 
+  // מתרגם את הנתונים הגולמיים של ציון ההתאמה למשרה למצב תצוגה אחד ברור (טוען/אין ניתוח/שגיאה/מחושב וכו')
   const getMatchInfo = (job: Job): MatchInfo => {
     if (hasAnalysis === null) {
       return { status: "loading" };
@@ -446,19 +403,9 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
       return { status: "noAnalysis" };
     }
 
-    // A job that already has a resolved entry (cached from a previous visit, or just arrived on
-    // this one) must render it immediately - checking matchScoresLoading FIRST here used to force
-    // every card back to "Calculating match score..." for as long as ANY job in the whole
-    // (potentially hundreds-strong) batch was still pending, even ones that resolved instantly
-    // (e.g. the deterministic insufficient-data gate, or an already-cached score from
-    // sessionStorage). This is what made an already-scored job look like it was recalculating on
-    // every single page visit.
     const entry = typeof job.id === "number" ? matchScores.get(job.id) : undefined;
     if (!entry) {
-      // Genuinely nothing for this job yet - "loading" while the batch is still in flight is the
-      // honest state; only once the WHOLE batch has settled (matchScoresLoading is false) does a
-      // still-missing entry mean this specific job's computation gap, not "no CV" (hasAnalysis is
-      // already known true above), so the "Analyze your CV" CTA would be misleading here.
+
       return matchScoresLoading ? { status: "loading" } : { status: "error", reason: "" };
     }
 
@@ -487,37 +434,23 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
     };
   };
 
-  // Deliberately does NOT filter by match score/minMatch - every job passing the other filters
-  // stays visible as a card (including a genuine "not a field match" or still-loading one) so the
-  // candidate can keep browsing everything. minMatch only narrows the count below (see
-  // matchingJobsCount), never which cards render - see matchingJobsCount's comment for why.
+  // מסנן את כל המשרות לפי הפילטרים שנבחרו: תעשייה, ותק, אזור (או רימוט) ושכר מינימלי
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
       const matchesIndustry = !industry || job.industry === industry;
       const matchesLevel =
         !seniority || job.level.toLowerCase() === seniority.toLowerCase();
-      // A remote job isn't tied to any one region, so it stays visible no matter which region
-      // is selected - only an on-site job actually gets narrowed down by this filter.
+
       const matchesRegion = !region || job.remote || job.region === region;
       const jobSalary = extractSalaryNumber(job.salary);
-      // minSalary is the slider value in thousands (label reads "$Xk"), while
-      // extractSalaryNumber returns the raw dollar figure - comparing them directly
-      // made this filter pass almost everything regardless of slider position.
+
       const matchesSalary = jobSalary === 0 ? true : jobSalary >= minSalary * 1000;
 
       return matchesIndustry && matchesLevel && matchesRegion && matchesSalary;
     });
   }, [jobs, industry, seniority, region, minSalary]);
 
-  // Splits filteredJobs into the two listing sections when matchYouFilter is ON: hides a
-  // genuinely-unrelated, non-vocational job (excludedFromListing) from BOTH entirely, then routes
-  // every remaining job to "vocational" or "profession" by generalVocationalRole - never mixing
-  // the two, per the product decision that a Cashier/Delivery-Driver-style posting shouldn't be
-  // presented alongside (or as if it were) a real profession-based match. When matchYouFilter is
-  // OFF, none of that applies - every filtered job shows, unsplit, regardless of profession; the
-  // candidate turned personalization off, so nothing is hidden or re-bucketed on their behalf. A
-  // job with no match entry yet (still loading, no CV, or an error) always counts as "profession"
-  // so nothing a candidate hasn't looked at yet silently vanishes into a tab they're not viewing.
+  // מחלק את המשרות המסוננות לטאב "התאמה למקצוע" מול "משרות כלליות/מקצועיות אחרות", לפי ניתוח ה-AI
   const categorizedJobs = useMemo(() => {
     if (!matchYouFilter) {
       return filteredJobs;
@@ -534,9 +467,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
     });
   }, [filteredJobs, matchScores, jobCategory, matchYouFilter]);
 
-  // Whether the "General & Vocational Jobs" tab is worth showing at all - a candidate whose
-  // filtered results contain no vocational jobs (or none scored yet) never sees an empty tab.
-  // Irrelevant (and never rendered) once matchYouFilter is off - see its render site below.
+  // סופר כמה משרות מסווגות כ"כלליות/וקוקציונליות" כדי להציג את המספר על כפתור הטאב
   const vocationalJobsCount = useMemo(() => {
     return filteredJobs.filter((job) => {
       const entry = typeof job.id === "number" ? matchScores.get(job.id) : undefined;
@@ -544,12 +475,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
     }).length;
   }, [filteredJobs, matchScores]);
 
-  // Highest match percent first, always - recomputed on every score that arrives (matchScores
-  // is a dependency below), so the list keeps re-sorting itself as results stream in rather than
-  // settling into place only once. Jobs with no verdict yet (still calculating, or a genuine
-  // "not a field match") sort after every scored job, using Array.sort's stable-sort guarantee
-  // to keep their relative order steady between renders instead of visibly shuffling among
-  // themselves on every unrelated score update - never job id/date/company, only match percent.
+  // ממיין את המשרות לפי אחוז ההתאמה, מהגבוה לנמוך (משרות בלי ציון יורדות לסוף)
   const sortedJobs = useMemo(() => {
     return [...categorizedJobs].sort((a, b) => {
       const infoA = getMatchInfo(a);
@@ -558,35 +484,25 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
       const scoreB = infoB.status === "scored" ? infoB.percent : -1;
       return scoreB - scoreA;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [categorizedJobs, matchScores, hasAnalysis, matchScoresLoading]);
 
   const totalPages = Math.max(1, Math.ceil(sortedJobs.length / JOBS_PER_PAGE));
 
+  // חותך את הרשימה הממוינת לעמוד הנוכחי בלבד (עימוד)
   const paginatedJobs = useMemo(() => {
     const start = (page - 1) * JOBS_PER_PAGE;
     return sortedJobs.slice(start, start + JOBS_PER_PAGE);
   }, [sortedJobs, page]);
 
-  // Changing a filter changes which jobs exist on "page 1" - always land back there instead of
-  // potentially showing an out-of-range empty page. Deliberately does NOT depend on `jobs` (the
-  // fetched list) - only on the filters themselves, which only change via explicit user
-  // interaction - so the initial data load on mount never fights the page number restored from
-  // the URL (see the page/goToPage comment above) by silently resetting it back to 1. A re-sort
-  // triggered by an arriving score does NOT reset page either - the candidate's chosen page
-  // number is preserved even as which jobs occupy it may change (see sortedJobs above).
+  // כל שינוי בפילטרים מחזיר אותנו לעמוד 1, כדי לא להישאר בעמוד ריק
   useEffect(() => {
     goToPage(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [industry, seniority, minSalary, jobCategory, matchYouFilter]);
 
-  // Smooth-scrolls to top whenever the candidate changes page WHILE already on this page
-  // (Previous/Next, or the filter-triggered reset above) - otherwise the new page's jobs render
-  // starting from wherever they had scrolled to previously. Deliberately skipped on this
-  // component's very first render: when the page number was just restored from the URL (see
-  // above) after coming back from a job's details, ScrollToTop.tsx already restores the exact
-  // scroll offset, and forcing a scroll-to-top here would immediately fight that.
   const skipNextPageScroll = useRef(true);
+  // גולל חזרה לראש העמוד בכל מעבר עמוד, חוץ מהטעינה הראשונית
   useEffect(() => {
     if (skipNextPageScroll.current) {
       skipNextPageScroll.current = false;
@@ -595,13 +511,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [page]);
 
-  // Progressive match scoring for every filtered job (not just the current page) - the correct
-  // sort order above depends on knowing every job's score, not only the visible page's. Streamed
-  // rather than blocking (see utils/matchScoreSession.ts's streamSessionMatches), so results
-  // still render one card at a time as they resolve instead of the whole list waiting on the
-  // slowest job, and the currently-visible page's jobs are requested first so what the candidate
-  // is actually looking at resolves before jobs further down the (still-unsorted-by-score) list.
-  // Already-cached jobs (this session, or ever computed server-side) resolve instantly.
+  // שולף בסטרימינג את ציוני ההתאמה של כל המשרות המסוננות מול קורות החיים של המשתמש, כשעדיפות למשרות שבעמוד הנוכחי
   useEffect(() => {
     const identity = readCandidateIdentity();
     if (!identity.email) {
@@ -617,6 +527,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
       return;
     }
 
+    // קודם שולחים לחישוב את המשרות שבעמוד הנוכחי, כדי שהמשתמש יראה ציונים מהר
     const visibleIds = new Set(
       paginatedJobs.map((job) => job.id).filter((id): id is number => typeof id === "number")
     );
@@ -628,21 +539,8 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
     const controller = new AbortController();
     setMatchScoresLoading(true);
 
-    // Tracked locally (not via React state, which wouldn't be readable synchronously inside the
-    // onDone callback below) - true the moment any job in THIS pass came back as a stale fallback
-    // (see backend JobMatchScore#stale / matchScoreSession.ts's own doc comments) OR a hard error
-    // with no fallback available (fieldRelated === null - e.g. a brand-new job with no prior
-    // score at all, which the queue-backlog timeout fix reduces but doesn't guarantee to zero for
-    // an unusually large batch). Drives the auto-retry scheduling after the batch settles - this
-    // is the secondary safety net, not the primary fix (see matching.queue.await-timeout-ms's own
-    // comment for the actual root-cause fix), so it must also cover the no-fallback case, not
-    // just the stale one.
     let needsRetry = false;
 
-    // Always resolved fresh (never assumed/cached client-side) before touching the session
-    // cache - this is what lets a deleted/replaced CV self-correct: a stale bucket left over
-    // from the previous CV simply won't match this identity and gets bypassed (see
-    // utils/matchScoreSession.ts).
     fetchCurrentCvIdentity().then((cvIdentity) => {
       if (controller.signal.aborted) return;
 
@@ -654,6 +552,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
         language,
         (jobId, entry) => {
           setHasAnalysis(true);
+          // stale / fieldRelated null = השרת עוד מחשב את הציון (למשל CV הועלה מחדש) - נצטרך לרענן
           if (entry.stale || entry.fieldRelated === null) {
             needsRetry = true;
           }
@@ -681,16 +580,9 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
           setHasAnalysis(hasAnalysisResult);
           setMatchScoresLoading(false);
 
-          // Auto-retry, silently in the background, for whatever came back stale OR hard-errored
-          // this pass - neither is written into the session cache (see matchScoreSession.ts), so
-          // re-running this same effect genuinely re-requests just those jobs from the backend;
-          // anything already fresh resolves instantly from cache. Bumping matchRetryNonce is
-          // exactly what the existing manual "Retry" button already does, just triggered
-          // automatically instead of waiting for a click. Secondary safety net only - the actual
-          // fix is the backend's queue-await-timeout increase (see application.properties), which
-          // should make this rarely fire at all.
           if (needsRetry && !controller.signal.aborted && staleRetryCountRef.current < MAX_STALE_RETRIES) {
             staleRetryCountRef.current += 1;
+            // backoff הדרגתי - 12s, 16s, 20s... כדי לא להציף את השרת בזמן שהוא עדיין מחשב
             const delayMs = 8000 + staleRetryCountRef.current * 4000;
             window.setTimeout(() => {
               if (!controller.signal.aborted) {
@@ -708,28 +600,19 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
     return () => {
       controller.abort();
     };
-    // Deliberately keyed on filteredJobs (not paginatedJobs/page) - changing page must not
-    // restart this fetch, since every filtered job is already being requested up front.
-    // matchRetryNonce is included so a failed card's "Retry" button can force this to run
-    // again on demand.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [filteredJobs, language, matchRetryNonce]);
 
-  // The headline count candidates actually care about: of the jobs currently shown (after
-  // industry/seniority/salary), how many are REAL matches - the AI gave this job a genuine
-  // field-related score, and that score clears the Min Match slider. A "noScore" (unrelated
-  // field), still-"loading", or "error" card stays visible for browsing (see filteredJobs above)
-  // but must never count as a "match" here regardless of the slider position. Climbs as scores
-  // stream in for the full filtered list (see the streaming effect above), not just the page
-  // currently on screen.
+  // סופר כמה משרות עומדות גם בפילטרים וגם באחוז ההתאמה המינימלי, למספר שמוצג למשתמש
   const matchingJobsCount = useMemo(() => {
     return categorizedJobs.filter((job) => {
       const info = getMatchInfo(job);
       return info.status === "scored" && info.percent >= minMatch;
     }).length;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [categorizedJobs, minMatch, matchScores, hasAnalysis, matchScoresLoading]);
 
+  // סופר כמה פילטרים פעילים כרגע, כדי להציג את המספר ליד "פילטרים חכמים"
   const activeFiltersCount =
     (industry ? 1 : 0) +
     (seniority ? 1 : 0) +
@@ -742,6 +625,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
     return typeof job.id === "number" && savedJobIds.has(job.id);
   };
 
+  // שומר משרה: מעדכן את המצב מיד (עדכון אופטימי) ואז שולח לשרת, ומחזיר אחורה אם הבקשה נכשלת
   const handleSaveJob = (job: Job) => {
     if (typeof job.id !== "number") return;
     const jobId = job.id;
@@ -771,6 +655,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
     });
   };
 
+  // מסיר משרה מהשמורות באותה גישה - עדכון מיידי במסך ואז מחיקה בשרת, עם חזרה אחורה אם נכשל
   const handleRemoveSavedJob = (job: Job) => {
     if (typeof job.id !== "number") return;
     const jobId = job.id;
@@ -792,6 +677,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
     });
   };
 
+  // מתג שמירה/הסרה - בוחר איזו פעולה להפעיל לפי המצב הנוכחי של המשרה
   const handleToggleSaveJob = (job: Job) => {
     if (isJobSaved(job)) {
       handleRemoveSavedJob(job);
@@ -805,6 +691,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
     return appliedJobIds.includes(job.id);
   };
 
+  // בודק שאפשר להגיש למשרה הזו (יש ID, לא הוגשה כבר, לא חרג ממכסת התוכנית החינמית, מחובר) ואז פותח את מודל ההגשה
   const handleApply = (job: Job) => {
     if (!job.id) {
       setApplyMessage(
@@ -835,6 +722,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
     setPendingApplyJob(job);
   };
 
+  // שולח את הגשת המועמדות בפועל לשרת עם התשובות מהראיון המקדים, ומעדכן את רשימת ההגשות ומונה החודש בהצלחה
   const handleSubmitApplication = (answers: Record<string, string>) => {
     const job = pendingApplyJob;
     if (!job || !job.id) return;
@@ -882,6 +770,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
   const dropdownAnimationClosed =
     "pointer-events-none -translate-y-1 opacity-0 scale-[0.98]";
 
+  // מציג כרטיס משרה בודד עם ציון ההתאמה, פרטי המשרה, כישורים תואמים/חסרים וכפתורי שמירה/הגשה
   const renderJobCard = (job: Job, index: number, fromSaved = false) => {
     const matchInfo = getMatchInfo(job);
 
@@ -1042,11 +931,6 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
 
               if (matchedSkills.length === 0 && missingSkills.length === 0) return null;
 
-              // Required skills keep the original solid emerald/rose treatment; a PREFERRED skill
-              // (see MatchScoreEntry#missingPreferredSkills/matchedPreferredSkills) uses a lighter/
-              // dashed variant of the same color instead of a different hue, so it still reads as
-              // "matched"/"missing" at a glance while being visually distinct enough to tell apart
-              // - see the legend text below the chips.
               return (
                 <div className={`flex flex-wrap gap-2 ${isRTL ? "md:flex-row-reverse" : ""}`}>
                   {matchedSkills.map((skill) => (
@@ -1261,10 +1145,6 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                   </div>
                 </div>
 
-                {/* Always visible regardless of filtersOpen (unlike the dropdown/slider filters
-                    below) - this is the one filter that governs whether ANY personalization is
-                    applied at all, so it stays reachable even with the rest of the panel
-                    collapsed. See categorizedJobs above for exactly what toggling it changes. */}
                 <div className="mt-5 flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3.5">
                   <div className={isRTL ? "text-right" : "text-left"}>
                     <p className="text-[15px] font-semibold text-white">{t.jobMatches.matchYouFilterLabel}</p>
@@ -1543,10 +1423,6 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                 )}
               </div>
 
-              {/* Only while there's a real CVAnalysis AND the batch hasn't fully settled yet -
-                  never shown for the "no CV" case (nothing is actually being calculated then),
-                  and disappears the moment matchScoresLoading flips false (every requested job
-                  has been accounted for), matching getMatchInfo's own per-job "loading" gate. */}
               {hasAnalysis === true && matchScoresLoading && (
                 <div
                   className={`mb-5 flex items-start gap-3 rounded-2xl border border-[#7c88ff55] bg-[#7c88ff14] px-5 py-4 text-white/85 ${
@@ -1583,12 +1459,6 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                 {matchingJobsCount} {t.jobMatches.jobsMatchCriteria}
               </p>
 
-              {/* Only worth showing once there's actually a second bucket to switch to - a
-                  candidate with zero vocational jobs in their filtered results never sees an
-                  empty, pointless tab, and the split itself is meaningless once matchYouFilter
-                  is off (every job already shows together, unsplit). See categorizedJobs/
-                  vocationalJobsCount above for what each tab actually contains and why they're
-                  never mixed. */}
               {matchYouFilter && hasAnalysis === true && vocationalJobsCount > 0 && (
                 <div className={`mt-5 flex flex-wrap gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
                   <button

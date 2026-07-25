@@ -107,6 +107,7 @@ function CompanyRegisterPage() {
     }));
   };
 
+  // מאמת את שדות טופס ההרשמה של החברה ומבקש מהשרת לשלוח קוד אימות למייל לפני יצירת החשבון
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -205,6 +206,7 @@ function CompanyRegisterPage() {
     }
   };
 
+  // אחרי אימות הקוד: יוצר את חשבון החברה, מתחבר אוטומטית ומעדכן את שאר פרטי הפרופיל
   const handleVerifyAndRegister = async (code: string) => {
     if (!pendingRegistration) return;
     const { companyName, email, password, phone, location, industry, companySize, website, description } =
@@ -263,6 +265,7 @@ function CompanyRegisterPage() {
     }, 900);
   };
 
+  // שולח מחדש את קוד האימות לאותו מייל
   const handleResendCode = async () => {
     if (!pendingRegistration) return;
     await apiFetch("/api/auth/send-verification-code", {

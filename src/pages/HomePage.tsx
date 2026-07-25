@@ -1,8 +1,30 @@
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useLanguage } from "../context/LanguageContext";
 import { Button, Reveal, useToast } from "../components/ui";
+import ScrollProgressBar from "../components/landing/ScrollProgressBar";
+import AnimatedBackground from "../components/landing/AnimatedBackground";
+import AnimatedCounter from "../components/landing/AnimatedCounter";
+import AnimatedUnderline from "../components/landing/AnimatedUnderline";
+import SpotlightCard from "../components/landing/SpotlightCard";
+import PulseIcon from "../components/landing/PulseIcon";
+import RippleButton from "../components/landing/RippleButton";
+import TimelineLine from "../components/landing/TimelineLine";
+import AIBrainVisualization from "../components/landing/AIBrainVisualization";
+import SplitLetters from "../components/landing/SplitLetters";
+
+const LETTER_STAGGER = 0.028;
+
+// כיוון כניסה שונה לכל אחד מ-4 כרטיסי "מופעל על ידי AI" - שמאל/ימין/מעלה/מטה - כדי שהם ייכנסו מכל הכיוונים
+const FEATURE_DIRECTIONS = ["left", "right", "down", "up"] as const;
+
+// כל אייקון בסקשן ה-AI מקבל אנימציה משלו כדי להרגיש "חי" בצורה שונה: מוח פועם, ברק זוהר, מטרה מסתובבת
+const FEATURE_ICON_VARIANTS: Record<string, "pulse" | "glow" | "rotate"> = {
+  "🧠": "pulse",
+  "🎯": "rotate",
+  "⚡": "glow",
+};
 
 type Language = "en" | "ar" | "he";
 
@@ -255,7 +277,9 @@ function HomePage() {
 
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [message, setMessage] = useState("");
+  const howItWorksRef = useRef<HTMLDivElement>(null);
 
+  // גולל בצורה חלקה לסקשן המבוקש בעמוד לפי המזהה שלו
   const scrollToSection = (id: string) => {
     const section = document.getElementById(id);
     if (section) {
@@ -263,6 +287,7 @@ function HomePage() {
     }
   };
 
+  // מדמה שליחת הודעת יצירת קשר (בלי קריאה אמיתית לשרת) ומציג הודעת הצלחה
   const handleSendMessage = () => {
     if (!message.trim()) return;
     toast.success(t.modalSuccess);
@@ -277,12 +302,21 @@ function HomePage() {
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(115,73,255,0.18),transparent_22%),radial-gradient(circle_at_80%_85%,rgba(0,153,255,0.16),transparent_24%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:72px_72px] opacity-25 [mask-image:linear-gradient(to_bottom,rgba(255,255,255,0.75),transparent)]" />
+      <AnimatedBackground />
+      <ScrollProgressBar />
 
       <nav className="relative z-30 flex items-center justify-between px-8 py-6 max-[900px]:flex-col max-[900px]:gap-4 max-[900px]:px-5">
         <div className="flex items-center gap-3">
           <div className="h-3.5 w-3.5 rounded-full bg-gradient-to-br from-[#42d4ff] to-[#8b5cf6] shadow-[0_0_18px_rgba(66,212,255,0.7)]" />
           <span className="text-[26px] font-extrabold tracking-[-0.6px]">
-            JobMatchAI
+            <SplitLetters
+              text="JobMatchAI"
+              staggerStep={0.045}
+              y={14}
+              dir="ltr"
+              className="bg-gradient-to-r from-[#b38cff] via-[#8e7dff] to-[#3ec9ff] bg-clip-text text-transparent"
+              letterClassName="animate-gradient-move bg-[length:400%_auto] bg-gradient-to-r from-[#b38cff] via-[#8e7dff] to-[#3ec9ff] bg-clip-text text-transparent"
+            />
           </span>
         </div>
 
@@ -303,7 +337,6 @@ function HomePage() {
             {t.jobs}
           </button>
         </div>
-
 
         <div className="flex items-center gap-3 max-[900px]:flex-wrap max-[900px]:justify-center">
           <div className="flex items-center gap-1 rounded-[18px] border border-white/10 bg-white/[0.05] p-1 backdrop-blur-md">
@@ -327,7 +360,6 @@ function HomePage() {
             ))}
           </div>
 
-
           <Button variant="ghost" onClick={() => navigate("/login")}>
             {t.login}
           </Button>
@@ -340,62 +372,82 @@ function HomePage() {
 
       <section
         id="home"
-        className="relative z-20 flex min-h-[calc(100vh-96px)] flex-col items-center justify-center px-6 pb-20 pt-6 text-center"
+        className="relative z-20 min-h-[calc(100vh-96px)] px-6 pb-20 pt-6"
       >
-        <div className="mb-8 inline-flex items-center rounded-full border border-[#7c7cff]/30 bg-[#5d5cff]/15 px-6 py-3 text-[15px] font-medium text-[#c8d3ff] shadow-[0_8px_30px_rgba(93,92,255,0.15)] backdrop-blur-md max-[480px]:px-4 max-[480px]:py-2 max-[480px]:text-[13px]">
-          ✧ {t.heroBadge}
+        <div className="pointer-events-none absolute inset-0 -z-10 flex items-center justify-center opacity-90 max-[900px]:opacity-50">
+          <AIBrainVisualization className="h-[820px] w-[820px] max-[1200px]:h-[640px] max-[1200px]:w-[640px] max-[640px]:h-[420px] max-[640px]:w-[420px]" />
         </div>
 
-        <h1 className="max-w-[1100px] text-[92px] font-extrabold leading-[0.96] tracking-[-3px] text-white max-[1200px]:text-[76px] max-[900px]:text-[52px] max-[900px]:tracking-[-1.6px]">
-          {t.heroTitle1}
-          {t.heroTitle2 && (
-            <>
-              <br />
-              {t.heroTitle2}
-            </>
-          )}
-          <br />
-          <span className="bg-gradient-to-r from-[#b38cff] via-[#8e7dff] to-[#3ec9ff] bg-clip-text text-transparent">
-            {t.heroTitle3}
-          </span>
-        </h1>
+        <div className="relative z-10 flex min-h-[calc(100vh-96px)] flex-col items-center justify-center text-center">
+          <div className="mb-8 inline-flex items-center rounded-full border border-[#7c7cff]/30 bg-[#5d5cff]/15 px-6 py-3 text-[15px] font-medium text-[#c8d3ff] shadow-[0_8px_30px_rgba(93,92,255,0.15)] backdrop-blur-md max-[480px]:px-4 max-[480px]:py-2 max-[480px]:text-[13px]">
+            <span className="me-2">✧</span>
+            <SplitLetters text={t.heroBadge} splitBy="word" y={10} />
+          </div>
 
-        <p className="mt-8 max-w-[900px] text-[20px] leading-[1.75] text-[#bfcbe3] max-[900px]:text-[17px]">
-          {t.heroDescription}
-        </p>
+          <h1 className="max-w-[1100px] text-[92px] font-extrabold leading-[0.96] tracking-[-3px] text-white max-[1200px]:text-[76px] max-[900px]:text-[52px] max-[900px]:tracking-[-1.6px]">
+            <SplitLetters text={t.heroTitle1} staggerStep={LETTER_STAGGER} />
+            {t.heroTitle2 && (
+              <>
+                <br />
+                <SplitLetters
+                  text={t.heroTitle2}
+                  staggerStep={LETTER_STAGGER}
+                  delayStart={t.heroTitle1.length * LETTER_STAGGER}
+                />
+              </>
+            )}
+            <br />
+            <motion.span
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.6,
+                delay: (t.heroTitle1.length + t.heroTitle2.length) * LETTER_STAGGER + 0.15,
+                ease: [0.16, 1, 0.3, 1],
+              }}
+              className="animate-gradient-move inline-block bg-gradient-to-r from-[#b38cff] via-[#8e7dff] to-[#3ec9ff] bg-clip-text text-transparent"
+            >
+              {t.heroTitle3}
+            </motion.span>
+          </h1>
 
-        <div className="mt-10 flex flex-wrap justify-center gap-4">
-          <button
-            className="min-h-[64px] rounded-[18px] bg-gradient-to-r from-[#38bdf8] via-[#4f8cff] to-[#6366f1] px-10 text-[22px] font-extrabold text-white shadow-[0_14px_35px_rgba(79,140,255,0.28)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(79,140,255,0.35)] max-[900px]:text-[18px]"
-            onClick={() => scrollToSection("about")}
-          >
-            {t.heroSecondary}
-          </button>
+          <p className="mt-8 max-w-[900px] text-[20px] leading-[1.75] text-[#bfcbe3] max-[900px]:text-[17px]">
+            {t.heroDescription}
+          </p>
 
-          <button
-            className="min-h-[64px] rounded-[18px] border border-[#7f8cff]/30 bg-[rgba(103,109,255,0.10)] px-10 text-[22px] font-extrabold text-[#eef2ff] shadow-[0_10px_30px_rgba(103,109,255,0.15)] transition duration-300 hover:-translate-y-1 hover:bg-[rgba(103,109,255,0.18)] max-[900px]:text-[18px]"
-            onClick={() => setIsContactOpen(true)}
-          >
-            {t.heroContact}
-          </button>
-        </div>
+          <div className="mt-10 flex flex-wrap justify-center gap-4">
+            <RippleButton
+              className="min-h-[64px] rounded-[18px] bg-gradient-to-r from-[#38bdf8] via-[#4f8cff] to-[#6366f1] px-10 text-[22px] font-extrabold text-white shadow-[0_14px_35px_rgba(79,140,255,0.28)] hover:shadow-[0_20px_45px_rgba(79,140,255,0.35)] max-[900px]:text-[18px]"
+              onClick={() => scrollToSection("about")}
+            >
+              {t.heroSecondary}
+            </RippleButton>
 
-        <div className="mt-20 flex max-w-[1180px] flex-wrap justify-center gap-5">
-          {[
-            ["95%", t.stat1],
-            ["10K+", t.stat2],
-            ["50K+", t.stat3],
-            ["500+", t.stat4],
-          ].map(([value, label], index) => (
-            <Reveal key={value} delay={index * 0.08} y={20}>
-              <div className="min-w-[230px] rounded-[28px] border border-white/10 bg-white/[0.045] px-9 py-8 text-center shadow-[0_16px_45px_rgba(0,0,0,0.16)] backdrop-blur-[12px]">
-                <h3 className="mb-2 text-[42px] font-extrabold text-white">
-                  {value}
-                </h3>
-                <p className="text-[16px] text-[#c9d6ed]">{label}</p>
-              </div>
-            </Reveal>
-          ))}
+            <RippleButton
+              className="min-h-[64px] rounded-[18px] border border-[#7f8cff]/30 bg-[rgba(103,109,255,0.10)] px-10 text-[22px] font-extrabold text-[#eef2ff] shadow-[0_10px_30px_rgba(103,109,255,0.15)] hover:bg-[rgba(103,109,255,0.18)] max-[900px]:text-[18px]"
+              onClick={() => setIsContactOpen(true)}
+            >
+              {t.heroContact}
+            </RippleButton>
+          </div>
+
+          <div className="mt-20 flex max-w-[1180px] flex-wrap justify-center gap-5">
+            {[
+              ["95%", t.stat1],
+              ["10K+", t.stat2],
+              ["50K+", t.stat3],
+              ["500+", t.stat4],
+            ].map(([value, label], index) => (
+              <Reveal key={value} delay={index * 0.12} y={20}>
+                <SpotlightCard className="min-w-[230px] rounded-[28px] border border-white/10 bg-white/[0.045] px-9 py-8 text-center backdrop-blur-[12px]">
+                  <h3 className="mb-2 text-[42px] font-extrabold text-white">
+                    <AnimatedCounter value={value} />
+                  </h3>
+                  <p className="text-[16px] text-[#c9d6ed]">{label}</p>
+                </SpotlightCard>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -405,7 +457,7 @@ function HomePage() {
       >
         <Reveal className="mx-auto mb-14 max-w-[950px] text-center">
           <h2 className="text-[52px] font-extrabold leading-[1.2] tracking-[-1.4px] max-[900px]:text-[34px]">
-            {t.featuresTitle}
+            <SplitLetters text={t.featuresTitle} trigger="view" />
           </h2>
           <p className="mx-auto mt-4 max-w-[760px] text-[18px] leading-[1.8] text-[#bfcbe3] max-[900px]:text-[16px]">
             {language === "en" &&
@@ -424,18 +476,23 @@ function HomePage() {
             [t.feature3Title, t.feature3Text, "⚡"],
             [t.feature4Title, t.feature4Text, "🛡️"],
           ].map(([title, text, icon], index) => (
-            <Reveal key={title} delay={index * 0.08}>
-              <div
-                className={`h-full rounded-[28px] border border-white/10 bg-white/[0.045] p-6 shadow-[0_16px_45px_rgba(0,0,0,0.12)] backdrop-blur-[10px] ${
+            <Reveal key={title} delay={index * 0.15} direction={FEATURE_DIRECTIONS[index]}>
+              <SpotlightCard
+                glowBorder
+                className={`h-full rounded-[28px] border border-white/10 bg-white/[0.045] p-6 backdrop-blur-[10px] ${
                   isRTL ? "text-right" : "text-left"
                 }`}
               >
-                <div className="mb-6 flex h-[48px] w-[48px] items-center justify-center rounded-[14px] bg-[#6e59ff]/25 text-[22px]">
+                <PulseIcon
+                  delay={index * 0.5}
+                  variant={FEATURE_ICON_VARIANTS[icon] ?? "pulse"}
+                  className="mb-6 flex h-[48px] w-[48px] items-center justify-center rounded-[14px] bg-[#6e59ff]/25 text-[22px]"
+                >
                   {icon}
-                </div>
+                </PulseIcon>
                 <h3 className="mb-3 text-[20px] font-bold text-white">{title}</h3>
                 <p className="text-[16px] leading-[1.8] text-[#c5d0e8]">{text}</p>
-              </div>
+              </SpotlightCard>
             </Reveal>
           ))}
         </div>
@@ -450,9 +507,9 @@ function HomePage() {
             {t.aboutTag}
           </p>
           <h2 className="text-[42px] font-extrabold leading-[1.3] tracking-[-1px] max-[900px]:text-[30px]">
-            {t.aboutTitle}
+            <SplitLetters text={t.aboutTitle} splitBy="word" trigger="view" />
           </h2>
-          <span className="mt-5 inline-block h-1 w-[90px] rounded-full bg-gradient-to-r from-[#38bdf8] to-[#8b5cf6]" />
+          <AnimatedUnderline />
         </Reveal>
 
         <div className="mx-auto grid max-w-[1320px] grid-cols-3 gap-6 max-[1200px]:grid-cols-2 max-[800px]:grid-cols-1">
@@ -461,18 +518,21 @@ function HomePage() {
             ["02", t.about2Title, t.about2Text],
             ["03", t.about3Title, t.about3Text],
           ].map(([num, title, text], index) => (
-            <Reveal key={num} delay={index * 0.08}>
-              <div
-                className={`h-full rounded-[28px] border border-white/[0.08] bg-white/[0.045] p-8 shadow-[0_16px_45px_rgba(0,0,0,0.12)] transition hover:-translate-y-1 hover:bg-white/[0.06] ${
+            <Reveal key={num} delay={index * 0.12}>
+              <SpotlightCard
+                className={`h-full rounded-[28px] border border-white/[0.08] bg-white/[0.045] p-8 ${
                   isRTL ? "text-right" : "text-left"
                 }`}
               >
-                <div className="mb-5 flex h-[58px] w-[58px] items-center justify-center rounded-[18px] bg-gradient-to-br from-[#38bdf8] to-[#8b5cf6] text-[18px] font-extrabold text-white">
+                <PulseIcon
+                  delay={index * 0.5}
+                  className="mb-5 flex h-[58px] w-[58px] items-center justify-center rounded-[18px] bg-gradient-to-br from-[#38bdf8] to-[#8b5cf6] text-[18px] font-extrabold text-white"
+                >
                   {num}
-                </div>
+                </PulseIcon>
                 <h3 className="mb-4 text-[22px] font-bold text-white">{title}</h3>
                 <p className="text-[15px] leading-[1.95] text-[#d4def2]">{text}</p>
-              </div>
+              </SpotlightCard>
             </Reveal>
           ))}
         </div>
@@ -487,34 +547,39 @@ function HomePage() {
             {t.howTag}
           </p>
           <h2 className="text-[42px] font-extrabold leading-[1.3] tracking-[-1px] max-[900px]:text-[30px]">
-            {t.howTitle}
+            <SplitLetters text={t.howTitle} trigger="view" />
           </h2>
-          <span className="mt-5 inline-block h-1 w-[90px] rounded-full bg-gradient-to-r from-[#38bdf8] to-[#8b5cf6]" />
+          <AnimatedUnderline />
         </Reveal>
 
-        <div className="mx-auto grid max-w-[1080px] gap-5">
+        <div ref={howItWorksRef} className="relative mx-auto grid max-w-[1080px] gap-5">
+          <TimelineLine targetRef={howItWorksRef} />
+
           {[
             ["01", t.step1Title, t.step1Text],
             ["02", t.step2Title, t.step2Text],
             ["03", t.step3Title, t.step3Text],
             ["04", t.step4Title, t.step4Text],
           ].map(([num, title, text], index) => (
-            <Reveal key={num} delay={index * 0.08}>
-              <div
-                className={`flex gap-5 rounded-[24px] border border-white/[0.08] bg-white/[0.045] px-7 py-6 shadow-[0_16px_45px_rgba(0,0,0,0.1)] max-[900px]:flex-col ${
+            <Reveal key={num} delay={index * 0.12}>
+              <SpotlightCard
+                className={`flex gap-5 rounded-[24px] border border-white/[0.08] bg-white/[0.045] px-7 py-6 max-[900px]:flex-col ${
                   isRTL ? "text-right" : "text-left"
                 }`}
               >
-                <div className="flex h-[62px] min-w-[62px] items-center justify-center rounded-[20px] bg-gradient-to-br from-[#38bdf8] to-[#8b5cf6] text-[18px] font-extrabold text-white">
+                <PulseIcon
+                  delay={index * 0.4}
+                  className="flex h-[62px] min-w-[62px] items-center justify-center rounded-[20px] bg-gradient-to-br from-[#38bdf8] to-[#8b5cf6] text-[18px] font-extrabold text-white"
+                >
                   {num}
-                </div>
+                </PulseIcon>
                 <div>
                   <h3 className="mb-2 mt-1 text-[22px] font-bold text-white">
                     {title}
                   </h3>
                   <p className="text-[15px] leading-[1.9] text-[#d2dcf0]">{text}</p>
                 </div>
-              </div>
+              </SpotlightCard>
             </Reveal>
           ))}
         </div>
@@ -525,10 +590,13 @@ function HomePage() {
           id="career-cta"
           className="relative z-20 px-8 pb-[120px] pt-[20px] max-[900px]:px-5"
         >
-        <div className="mx-auto max-w-[1500px] rounded-[30px] border border-white/10 bg-[linear-gradient(135deg,rgba(35,32,90,0.9),rgba(32,59,104,0.82))] px-8 py-14 shadow-[0_24px_70px_rgba(0,0,0,0.28)] backdrop-blur-[10px] max-[900px]:px-5">
+        <SpotlightCard
+          glowBorder
+          className="mx-auto max-w-[1500px] rounded-[30px] border border-white/10 bg-[linear-gradient(135deg,rgba(35,32,90,0.9),rgba(32,59,104,0.82))] px-8 py-14 shadow-[0_24px_70px_rgba(0,0,0,0.28)] backdrop-blur-[10px] max-[900px]:px-5"
+        >
           <div className="mx-auto max-w-[900px] text-center">
             <h2 className="text-[48px] font-extrabold tracking-[-1.4px] text-white max-[900px]:text-[32px]">
-              {t.ctaTitle}
+              <SplitLetters text={t.ctaTitle} trigger="view" />
             </h2>
 
             <p className="mt-4 text-[18px] leading-[1.8] text-[#bfcbe3] max-[900px]:text-[16px]">
@@ -536,22 +604,22 @@ function HomePage() {
             </p>
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-              <button
+              <RippleButton
                 onClick={() => navigate("/register/candidate")}
-                className="min-w-[220px] rounded-[16px] bg-gradient-to-r from-[#22c1ee] to-[#2979ff] px-7 py-4 text-[17px] font-bold text-white shadow-[0_14px_35px_rgba(41,121,255,0.28)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_45px_rgba(41,121,255,0.34)]"
+                className="min-w-[220px] rounded-[16px] bg-gradient-to-r from-[#22c1ee] to-[#2979ff] px-7 py-4 text-[17px] font-bold text-white shadow-[0_14px_35px_rgba(41,121,255,0.28)] hover:shadow-[0_20px_45px_rgba(41,121,255,0.34)]"
               >
                 {t.ctaCandidate}
-              </button>
+              </RippleButton>
 
-              <button
+              <RippleButton
                 onClick={() => navigate("/register/company")}
-                className="min-w-[220px] rounded-[16px] bg-gradient-to-r from-[#7c3aed] to-[#5b5cf0] px-7 py-4 text-[17px] font-bold text-white shadow-[0_14px_35px_rgba(124,58,237,0.26)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_45px_rgba(124,58,237,0.34)]"
+                className="min-w-[220px] rounded-[16px] bg-gradient-to-r from-[#7c3aed] to-[#5b5cf0] px-7 py-4 text-[17px] font-bold text-white shadow-[0_14px_35px_rgba(124,58,237,0.26)] hover:shadow-[0_20px_45px_rgba(124,58,237,0.34)]"
               >
                 {t.ctaHiring}
-              </button>
+              </RippleButton>
             </div>
           </div>
-        </div>
+        </SpotlightCard>
         </section>
       </Reveal>
 
