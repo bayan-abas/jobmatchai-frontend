@@ -213,6 +213,69 @@ export function inferExperience(job: InferableJob): string {
   return "2+ years";
 }
 
+// A simpler 4-bucket geographic grouping than utils/israeliRegions.ts's 6-region taxonomy (Tel
+// Aviv/Center/Jerusalem/Haifa/North/South, used only by ExternalJobsPage.tsx) - this is what the
+// Job Matches page's own "Region" smart filter uses instead, with Sharon carved out as its own
+// bucket (Netanya, Kfar Saba, Herzliya, Raanana, etc.) rather than folded into "Center". Kept
+// self-contained rather than reusing/extending israeliRegions.ts so that file's existing 6-region
+// filter (and its own city table) is never touched by this change.
+export const REGION_KEYS = ["north", "center", "south", "sharon"] as const;
+export type RegionKey = (typeof REGION_KEYS)[number];
+
+// "sharon" is listed (and checked) first so a Sharon-area city's location string is caught
+// before it can fall through to the broader "center" bucket below it.
+const REGION_BUCKETS: [RegionKey, string[]][] = [
+  ["sharon", [
+    "netanya", "נתניה", "kfar saba", "כפר סבא", "raanana", "ra'anana", "רעננה",
+    "hod hasharon", "הוד השרון", "herzliya", "הרצליה", "ramat hasharon", "רמת השרון",
+    "even yehuda", "אבן יהודה", "kadima", "קדימה", "tzoran", "צורן", "tira", "טירה",
+    "kfar yona", "כפר יונה", "sharon", "שרון",
+  ]],
+  ["north", [
+    "haifa", "חיפה", "nahariya", "נהריה", "karmiel", "כרמיאל", "afula", "עפולה",
+    "nazareth", "נצרת", "tiberias", "טבריה", "safed", "tzfat", "צפת",
+    "kiryat shmona", "קריית שמונה", "acre", "akko", "עכו", "golan", "גולן",
+    "galilee", "galil", "גליל", "migdal haemek", "מגדל העמק", "yokneam", "יקנעם",
+    "katzrin", "קצרין", "kiryat ata", "קריית אתא", "kiryat motzkin", "קריית מוצקין",
+    "kiryat bialik", "קריית ביאליק", "kiryat yam", "קריית ים", "hadera", "חדרה",
+    "zichron yaakov", "זכרון יעקב", "beit shean", "בית שאן", "north", "צפון",
+  ]],
+  ["south", [
+    "beer sheva", "beersheba", "באר שבע", "ashdod", "אשדוד", "ashkelon", "אשקלון",
+    "eilat", "אילת", "dimona", "דימונה", "arad", "ערד", "sderot", "שדרות",
+    "netivot", "נתיבות", "kiryat gat", "קריית גת", "ofakim", "אופקים",
+    "yeruham", "ירוחם", "mitzpe ramon", "מצפה רמון", "rahat", "רהט",
+    "negev", "נגב", "arava", "ערבה", "south", "דרום",
+  ]],
+  ["center", [
+    "tel aviv", "תל אביב", "yafo", "jaffa", "יפו", "jerusalem", "ירושלים",
+    "ramat gan", "רמת גן", "givatayim", "גבעתיים", "petah tikva", "petach tikva",
+    "פתח תקווה", "rishon lezion", "ראשון לציון", "holon", "חולון", "bat yam",
+    "בת ים", "bnei brak", "בני ברק", "rehovot", "רחובות", "ness ziona",
+    "נס ציונה", "modiin", "מודיעין", "beit shemesh", "בית שמש", "lod", "לוד",
+    "ramla", "רמלה", "yavne", "יבנה", "rosh haayin", "ראש העין", "shoham",
+    "שוהם", "gedera", "גדרה", "center", "merkaz", "מרכז",
+  ]],
+];
+
+// Simple substring matching (not the word-boundary-padded approach bestBucket() above uses) -
+// deliberate, since normalize()'s \w-based cleanup strips Hebrew characters entirely (\w is
+// ASCII-only without the unicode regex flag), which would silently break every Hebrew city/
+// region keyword above. A location string is short (a city name, occasionally "City / Remote"),
+// so plain case-insensitive substring matching carries none of the false-positive risk it would
+// have against a long free-text description.
+export function inferRegion(location?: string | null): RegionKey | null {
+  const text = String(location || "").toLowerCase().trim();
+  if (!text) return null;
+
+  for (const [region, keywords] of REGION_BUCKETS) {
+    if (keywords.some((keyword) => text.includes(keyword.toLowerCase()))) {
+      return region;
+    }
+  }
+  return null;
+}
+
 export function getRingColor(status: "scored" | "loading" | "noAnalysis" | "noScore" | "error" | "insufficientData", percent: number): string {
   if (status === "error") return "#f59e0b"; // amber — computation failed, distinct from a real "not a match" verdict
   if (status !== "scored") return "#5f648a";

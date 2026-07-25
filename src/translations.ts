@@ -424,11 +424,18 @@ plan: {
 
   industry: "Industry",
   seniorityLevel: "Seniority Level",
+  region: "Region",
   minSalary: "Min Salary",
   minMatch: "Min Match",
 
   allIndustries: "All Industries",
   allLevels: "All Levels",
+  allRegions: "All Regions",
+
+  north: "North",
+  center: "Center",
+  south: "South",
+  sharon: "Sharon",
 
   entry: "Entry Level",
   mid: "Mid Level",
@@ -512,6 +519,7 @@ plan: {
   contentCreation: "Content Creation",
 
   media: "Media",
+  design: "Design",
   journalism: "Journalism",
   photography: "Photography",
   videoEditing: "Video Editing",
@@ -1858,11 +1866,18 @@ jobMatches: {
 
   industry: "المجال",
   seniorityLevel: "المستوى الوظيفي",
+  region: "المنطقة",
   minSalary: "الحد الأدنى للراتب",
   minMatch: "أقل نسبة تطابق",
 
   allIndustries: "كل المجالات",
   allLevels: "كل المستويات",
+  allRegions: "كل المناطق",
+
+  north: "الشمال",
+  center: "المركز",
+  south: "الجنوب",
+  sharon: "الشارون",
 
   entry: "مبتدئ",
   mid: "متوسط",
@@ -1928,6 +1943,7 @@ jobMatches: {
   socialMedia: "سوشال ميديا",
 
   media: "إعلام",
+  design: "تصميم",
   photography: "تصوير",
   videoEditing: "مونتاج",
   fashion: "موضة",
@@ -3275,11 +3291,18 @@ companyApplicationsPage: {
 
   industry: "תחום",
   seniorityLevel: "רמת ניסיון",
+  region: "אזור",
   minSalary: "שכר מינימלי",
   minMatch: "התאמה מינימלית",
 
   allIndustries: "כל התחומים",
   allLevels: "כל הרמות",
+  allRegions: "כל האזורים",
+
+  north: "צפון",
+  center: "מרכז",
+  south: "דרום",
+  sharon: "שרון",
 
   entry: "מתחיל",
   mid: "בינוני",
@@ -3345,6 +3368,7 @@ companyApplicationsPage: {
   socialMedia: "רשתות חברתיות",
 
   media: "מדיה",
+  design: "עיצוב",
   photography: "צילום",
   videoEditing: "עריכת וידאו",
   fashion: "אופנה",

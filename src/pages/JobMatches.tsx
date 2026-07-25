@@ -28,7 +28,9 @@ import {
   inferIndustry as sharedInferIndustry,
   inferLevel as sharedInferLevel,
   inferExperience as sharedInferExperience,
+  inferRegion,
   INDUSTRY_KEYS,
+  REGION_KEYS,
 } from "../utils/jobInference";
 import { formatSalary } from "../utils/formatSalary";
 import { apiFetch, apiFetchWithRetry } from "../utils/api";
@@ -62,6 +64,7 @@ type Job = {
   level: string;
   status: string;
   industry?: string;
+  region?: string | null;
   type?: string;
   about?: string;
   requirementsText?: string;
@@ -104,6 +107,7 @@ function JobMatches() {
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [industry, setIndustry] = useState("");
   const [seniority, setSeniority] = useState("");
+  const [region, setRegion] = useState("");
   const [minSalary, setMinSalary] = useState(0);
   const [minMatch, setMinMatch] = useState(0);
   const [showSavedJobs, setShowSavedJobs] = useState(false);
@@ -178,9 +182,11 @@ function JobMatches() {
 
   const [industryOpen, setIndustryOpen] = useState(false);
   const [seniorityOpen, setSeniorityOpen] = useState(false);
+  const [regionOpen, setRegionOpen] = useState(false);
 
   const industryRef = useRef<HTMLDivElement>(null);
   const seniorityRef = useRef<HTMLDivElement>(null);
+  const regionRef = useRef<HTMLDivElement>(null);
 
   const { language } = useLanguage();
   const { user } = useAuth();
@@ -223,6 +229,7 @@ function JobMatches() {
       level: inferLevel(backendJob),
       status: "Active",
       industry: inferIndustry(backendJob),
+      region: inferRegion(backendJob.location),
       type: backendJob.type || "Full-time",
       about: backendJob.description || "",
       requirementsText: backendJob.requirements || "",
@@ -294,6 +301,10 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
 
   const seniorityOptions = ["allLevels", "entry", "mid", "senior", "lead"];
 
+  // Same "only offer values the inferrer can actually return" rule as industryOptions above -
+  // see utils/jobInference.ts's REGION_KEYS.
+  const regionOptions = ["allRegions", ...REGION_KEYS];
+
   useEffect(() => {
     const titleFromNav = location.state?.selectedJobTitle;
     if (!titleFromNav || jobs.length === 0) return;
@@ -317,6 +328,10 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
 
       if (seniorityRef.current && !seniorityRef.current.contains(target)) {
         setSeniorityOpen(false);
+      }
+
+      if (regionRef.current && !regionRef.current.contains(target)) {
+        setRegionOpen(false);
       }
     };
 
@@ -481,15 +496,18 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
       const matchesIndustry = !industry || job.industry === industry;
       const matchesLevel =
         !seniority || job.level.toLowerCase() === seniority.toLowerCase();
+      // A remote job isn't tied to any one region, so it stays visible no matter which region
+      // is selected - only an on-site job actually gets narrowed down by this filter.
+      const matchesRegion = !region || job.remote || job.region === region;
       const jobSalary = extractSalaryNumber(job.salary);
       // minSalary is the slider value in thousands (label reads "$Xk"), while
       // extractSalaryNumber returns the raw dollar figure - comparing them directly
       // made this filter pass almost everything regardless of slider position.
       const matchesSalary = jobSalary === 0 ? true : jobSalary >= minSalary * 1000;
 
-      return matchesIndustry && matchesLevel && matchesSalary;
+      return matchesIndustry && matchesLevel && matchesRegion && matchesSalary;
     });
-  }, [jobs, industry, seniority, minSalary]);
+  }, [jobs, industry, seniority, region, minSalary]);
 
   // Splits filteredJobs into the two listing sections when matchYouFilter is ON: hides a
   // genuinely-unrelated, non-vocational job (excludedFromListing) from BOTH entirely, then routes
@@ -715,6 +733,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
   const activeFiltersCount =
     (industry ? 1 : 0) +
     (seniority ? 1 : 0) +
+    (region ? 1 : 0) +
     (minSalary !== 0 ? 1 : 0) +
     (minMatch !== 0 ? 1 : 0) +
     (matchYouFilter ? 0 : 1);
@@ -1223,6 +1242,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                       onClick={() => {
                         setIndustry("");
                         setSeniority("");
+                        setRegion("");
                         setMinSalary(0);
                         setMinMatch(0);
                         setMatchYouFilter(true);
@@ -1271,7 +1291,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                   <>
                     <div className="my-5 h-px bg-white/10" />
 
-                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-5">
                       <div ref={industryRef} className="relative overflow-visible">
                         <label
                           className={`mb-3 flex items-center gap-2 text-[15px] text-[#d7dbf7] ${
@@ -1287,6 +1307,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                           onClick={() => {
                             setIndustryOpen((prev) => !prev);
                             setSeniorityOpen(false);
+                            setRegionOpen(false);
                           }}
                           className={`flex h-[48px] w-full items-center justify-between rounded-[12px] border border-white/10 bg-[#2a2f68] px-4 text-[15px] text-[#d7dbf7] outline-none transition hover:bg-[#313776] ${
                             isRTL ? "flex-row-reverse text-right" : "text-left"
@@ -1353,6 +1374,7 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                           onClick={() => {
                             setSeniorityOpen((prev) => !prev);
                             setIndustryOpen(false);
+                            setRegionOpen(false);
                           }}
                           className={`flex h-[48px] w-full items-center justify-between rounded-[12px] border border-white/10 bg-[#2a2f68] px-4 text-[15px] text-[#d7dbf7] outline-none transition hover:bg-[#313776] ${
                             isRTL ? "flex-row-reverse text-right" : "text-left"
@@ -1387,6 +1409,73 @@ const industryOptions = ["allIndustries", ...INDUSTRY_KEYS];
                                   onClick={() => {
                                     setSeniority(item === "allLevels" ? "" : item);
                                     setSeniorityOpen(false);
+                                  }}
+                                  className={`block w-full px-4 py-3 text-[14px] text-[#1f1f1f] transition ${
+                                    isRTL ? "text-right" : "text-left"
+                                  } ${
+                                    isSelected
+                                      ? "bg-[#ececec] font-medium"
+                                      : "bg-transparent hover:bg-[#ececec]"
+                                  }`}
+                                >
+                                  {t.jobMatches[item]}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div ref={regionRef} className="relative overflow-visible">
+                        <label
+                          className={`mb-3 flex items-center gap-2 text-[15px] text-[#d7dbf7] ${
+                            isRTL ? "flex-row-reverse justify-end" : ""
+                          }`}
+                        >
+                          <MapPin size={17} />
+                          <span>{t.jobMatches.region}</span>
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRegionOpen((prev) => !prev);
+                            setIndustryOpen(false);
+                            setSeniorityOpen(false);
+                          }}
+                          className={`flex h-[48px] w-full items-center justify-between rounded-[12px] border border-white/10 bg-[#2a2f68] px-4 text-[15px] text-[#d7dbf7] outline-none transition hover:bg-[#313776] ${
+                            isRTL ? "flex-row-reverse text-right" : "text-left"
+                          }`}
+                        >
+                          <span className="truncate">
+                            {region ? t.jobMatches[region] : t.jobMatches.allRegions}
+                          </span>
+
+                          <ChevronDown
+                            size={18}
+                            className={`shrink-0 text-[#8d94bd] transition ${
+                              regionOpen ? "rotate-180" : ""
+                            }`}
+                          />
+                        </button>
+
+                        <div
+                          className={`${dropdownBase} ${
+                            regionOpen ? dropdownAnimationOpen : dropdownAnimationClosed
+                          }`}
+                        >
+                          <div className="max-h-[330px] overflow-y-auto py-1">
+                            {regionOptions.map((item) => {
+                              const isSelected =
+                                (item === "allRegions" && !region) || region === item;
+
+                              return (
+                                <button
+                                  key={item}
+                                  type="button"
+                                  onClick={() => {
+                                    setRegion(item === "allRegions" ? "" : item);
+                                    setRegionOpen(false);
                                   }}
                                   className={`block w-full px-4 py-3 text-[14px] text-[#1f1f1f] transition ${
                                     isRTL ? "text-right" : "text-left"
