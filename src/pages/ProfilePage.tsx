@@ -360,7 +360,7 @@ function ProfilePage() {
 
                 <button
                   type="button"
-                  onClick={() => navigate("/payment")}
+                  onClick={() => (user?.premium ? navigate("/payment") : setShowPremiumModal(true))}
                   className={`inline-flex shrink-0 items-center gap-3 rounded-[16px] bg-gradient-to-r from-[#a855f7] to-[#7f4cff] px-6 py-3 text-[15px] font-bold text-white transition hover:opacity-90`}
                 >
                   <Crown size={18} />

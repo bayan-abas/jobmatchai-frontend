@@ -22,6 +22,66 @@ function ResetPasswordPage() {
   const [fieldErrors, setFieldErrors] = useState<{ newPassword?: string; confirmPassword?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const content = {
+    en: {
+      note: "Secure Password Recovery",
+      title: "Choose a new password.",
+      subtitle:
+        "This link is valid for a limited time. Once you set a new password you'll be able to sign in right away.",
+      formTitle: "Reset Your Password",
+      formSubtitle: "Enter a new password for your account.",
+      newPasswordLabel: "New Password",
+      newPasswordPlaceholder: "New password",
+      confirmPasswordLabel: "Confirm New Password",
+      confirmPasswordPlaceholder: "Confirm new password",
+      submitBtn: "Reset Password",
+      successTitle: "Password Updated",
+      successText: "Your password has been reset. You can now sign in with your new password.",
+      errInvalidLink: "This reset link is invalid or has expired.",
+      errTooShort: "Password must be at least 6 characters.",
+      errNeedsLetterNumber: "Password must contain both letters and numbers.",
+      errMismatch: "Passwords do not match.",
+    },
+    ar: {
+      note: "استرداد آمن لكلمة المرور",
+      title: "اختر كلمة مرور جديدة.",
+      subtitle: "هذا الرابط صالح لفترة محدودة. بمجرد تعيين كلمة مرور جديدة، ستتمكن من تسجيل الدخول فوراً.",
+      formTitle: "إعادة تعيين كلمة المرور",
+      formSubtitle: "أدخل كلمة مرور جديدة لحسابك.",
+      newPasswordLabel: "كلمة المرور الجديدة",
+      newPasswordPlaceholder: "كلمة المرور الجديدة",
+      confirmPasswordLabel: "تأكيد كلمة المرور الجديدة",
+      confirmPasswordPlaceholder: "تأكيد كلمة المرور الجديدة",
+      submitBtn: "إعادة تعيين كلمة المرور",
+      successTitle: "تم تحديث كلمة المرور",
+      successText: "تم إعادة تعيين كلمة المرور الخاصة بك. يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.",
+      errInvalidLink: "رابط إعادة التعيين هذا غير صالح أو منتهي الصلاحية.",
+      errTooShort: "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل.",
+      errNeedsLetterNumber: "يجب أن تحتوي كلمة المرور على أحرف وأرقام.",
+      errMismatch: "كلمتا المرور غير متطابقتين.",
+    },
+    he: {
+      note: "שחזור סיסמה מאובטח",
+      title: "בחר סיסמה חדשה.",
+      subtitle: "הקישור תקף לזמן מוגבל. לאחר הגדרת סיסמה חדשה תוכל להתחבר מיד.",
+      formTitle: "איפוס סיסמה",
+      formSubtitle: "הזן סיסמה חדשה עבור החשבון שלך.",
+      newPasswordLabel: "סיסמה חדשה",
+      newPasswordPlaceholder: "סיסמה חדשה",
+      confirmPasswordLabel: "אימות סיסמה חדשה",
+      confirmPasswordPlaceholder: "אימות סיסמה חדשה",
+      submitBtn: "איפוס סיסמה",
+      successTitle: "הסיסמה עודכנה",
+      successText: "הסיסמה שלך אופסה. כעת תוכל להתחבר עם הסיסמה החדשה.",
+      errInvalidLink: "קישור האיפוס אינו תקין או שפג תוקפו.",
+      errTooShort: "הסיסמה חייבת להכיל לפחות 6 תווים.",
+      errNeedsLetterNumber: "הסיסמה חייבת להכיל גם אותיות וגם ספרות.",
+      errMismatch: "הסיסמאות אינן תואמות.",
+    },
+  };
+
+  const c = content[language];
+
   // מאמת את הסיסמה החדשה ושולח אותה לשרת יחד עם הטוקן מהלינק כדי לעדכן את הסיסמה בפועל
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,22 +91,22 @@ function ResetPasswordPage() {
     setFieldErrors({});
 
     if (!token) {
-      toast.error("This reset link is invalid or has expired.");
+      toast.error(c.errInvalidLink);
       return;
     }
 
     if (newPassword.length < 6) {
-      setFieldErrors({ newPassword: "Password must be at least 6 characters." });
+      setFieldErrors({ newPassword: c.errTooShort });
       return;
     }
 
     if (!/[A-Za-z]/.test(newPassword) || !/\d/.test(newPassword)) {
-      setFieldErrors({ newPassword: "Password must contain both letters and numbers." });
+      setFieldErrors({ newPassword: c.errNeedsLetterNumber });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setFieldErrors({ confirmPassword: "Passwords do not match." });
+      setFieldErrors({ confirmPassword: c.errMismatch });
       return;
     }
 
@@ -79,13 +139,13 @@ function ResetPasswordPage() {
               <div>
                 <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-medium text-cyan-300">
                   <ShieldCheck size={16} />
-                  Secure Password Recovery
+                  {c.note}
                 </div>
                 <h1 className="max-w-md text-4xl font-extrabold leading-tight text-white">
-                  Choose a new password.
+                  {c.title}
                 </h1>
                 <p className="mt-5 max-w-lg text-[16px] leading-7 text-white/70">
-                  This link is valid for a limited time. Once you set a new password you'll be able to sign in right away.
+                  {c.subtitle}
                 </p>
               </div>
             </div>
@@ -123,17 +183,17 @@ function ResetPasswordPage() {
             {!submitted ? (
               <>
                 <div className="mb-8">
-                  <h2 className="text-3xl font-extrabold text-white">Reset Your Password</h2>
-                  <p className="mt-2 text-white/60">Enter a new password for your account.</p>
+                  <h2 className="text-3xl font-extrabold text-white">{c.formTitle}</h2>
+                  <p className="mt-2 text-white/60">{c.formSubtitle}</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-                  <FormField label="New Password" htmlFor="reset-new-password" error={fieldErrors.newPassword}>
+                  <FormField label={c.newPasswordLabel} htmlFor="reset-new-password" error={fieldErrors.newPassword}>
                     <Input
                       id="reset-new-password"
                       type="password"
                       icon={<Lock size={18} />}
-                      placeholder="New password"
+                      placeholder={c.newPasswordPlaceholder}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       disabled={isSubmitting}
@@ -142,7 +202,7 @@ function ResetPasswordPage() {
                   </FormField>
 
                   <FormField
-                    label="Confirm New Password"
+                    label={c.confirmPasswordLabel}
                     htmlFor="reset-confirm-password"
                     error={fieldErrors.confirmPassword}
                   >
@@ -150,7 +210,7 @@ function ResetPasswordPage() {
                       id="reset-confirm-password"
                       type="password"
                       icon={<Lock size={18} />}
-                      placeholder="Confirm new password"
+                      placeholder={c.confirmPasswordPlaceholder}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       disabled={isSubmitting}
@@ -159,7 +219,7 @@ function ResetPasswordPage() {
                   </FormField>
 
                   <Button type="submit" fullWidth loading={isSubmitting}>
-                    Reset Password
+                    {c.submitBtn}
                   </Button>
                 </form>
               </>
@@ -168,9 +228,9 @@ function ResetPasswordPage() {
                 <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-success-500/15">
                   <CheckCircle2 size={40} className="text-success-400" />
                 </div>
-                <h2 className="text-2xl font-extrabold text-white">Password Updated</h2>
+                <h2 className="text-2xl font-extrabold text-white">{c.successTitle}</h2>
                 <p className="mt-3 max-w-sm text-white/60">
-                  Your password has been reset. You can now sign in with your new password.
+                  {c.successText}
                 </p>
                 <Button className="mt-8" onClick={() => navigate("/login")}>
                   {t?.common?.login || "Sign In"}

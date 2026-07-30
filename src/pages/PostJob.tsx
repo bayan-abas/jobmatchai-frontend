@@ -49,11 +49,6 @@ function PostJob() {
     setSkills(skills.filter((skill) => skill !== skillToRemove));
   };
 
-  // TODO אין עדיין API לטיוטות בפועל - כרגע רק מציג הודעה בלי לשמור שום דבר
-  const handleSaveDraft = () => {
-    toast.info(p.jobSavedAsDraft);
-  };
-
   // ממיר מחרוזת שדה מספרי אופציונלי למספר, ומחזיר null אם השדה ריק או לא תקין
   const parseOptionalNumber = (value: string): number | null => {
     if (!value.trim()) return null;
@@ -439,15 +434,6 @@ function PostJob() {
               isRTL ? "sm:justify-start" : ""
             }`}
           >
-            <button
-              type="button"
-              onClick={handleSaveDraft}
-              disabled={isSubmitting}
-              className="inline-flex h-14 items-center justify-center rounded-[14px] bg-white px-8 text-[16px] font-bold text-[#2a265f] shadow-[0_10px_24px_rgba(255,255,255,0.12)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {p.saveAsDraft}
-            </button>
-
             <Button
               type="button"
               variant="primary"

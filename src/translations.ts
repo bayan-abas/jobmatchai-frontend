@@ -1350,6 +1350,9 @@ plan: {
         "Get unlimited applications and unlock advanced AI-powered career tools",
       orderSummary: "Order Summary",
       activatedPlan: "Premium Activated!",
+      successTitle: "Payment Successful!",
+      successText:
+        "Your Premium subscription is now active. Enjoy unlimited applications and advanced AI-powered career tools.",
       goToDashboard: "Go to Dashboard",
       premiumMonthly: "Premium Monthly",
       billedMonthly: "Billed monthly",
@@ -2779,6 +2782,9 @@ companyApplicationsPage: {
       subtitle: "احصل على تقديمات غير محدودة وافتح أدوات ذكاء اصطناعي متقدمة",
       orderSummary: "ملخص الطلب",
       activatedPlan: "تم تفعيل بريميوم!",
+      successTitle: "تم الدفع بنجاح!",
+      successText:
+        "اشتراك بريميوم الخاص بك مفعّل الآن. استمتع بتقديمات غير محدودة وأدوات ذكاء اصطناعي متقدمة لمسيرتك المهنية.",
       goToDashboard: "الذهاب إلى لوحة التحكم",
       premiumMonthly: "بريميوم شهري",
       billedMonthly: "يتم الدفع شهريًا",
@@ -4207,6 +4213,9 @@ companyApplicationsPage: {
         "קבל הגשות ללא הגבלה ופתח כלי קריירה מתקדמים מבוססי AI",
       orderSummary: "סיכום הזמנה",
       activatedPlan: "פרימיום הופעל!",
+      successTitle: "התשלום בוצע בהצלחה!",
+      successText:
+        "מנוי הפרימיום שלך פעיל כעת. תיהנה מהגשות ללא הגבלה וכלים מתקדמים מבוססי AI לקריירה שלך.",
       goToDashboard: "מעבר ללוח הבקרה",
       premiumMonthly: "פרימיום חודשי",
       billedMonthly: "חיוב חודשי",
