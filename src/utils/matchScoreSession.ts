@@ -300,7 +300,9 @@ export function updateSessionMatchEntry(
   const existing = readBucket(email, kind, cvIdentity);
   const bucket: CacheBucket = existing ?? { cvIdentity, hasAnalysis: true, entries: {} };
   bucket.hasAnalysis = true;
-  bucket.entries = { ...bucket.entries, [jobId]: entry };
+  const previous = bucket.entries[jobId];
+  // ממזג עם הערך הקיים בקאש כדי לא לאבד שדות (כמו generalVocationalRole) שהקריאה הנוכחית לא סיפקה
+  bucket.entries = { ...bucket.entries, [jobId]: previous ? { ...previous, ...entry } : entry };
   writeBucket(email, kind, bucket);
 }
 

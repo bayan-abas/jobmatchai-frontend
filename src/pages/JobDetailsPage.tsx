@@ -88,6 +88,7 @@ type MatchDetail = {
   recommendation: string | null;
   shouldApply: boolean | null;
   fieldRelated: boolean | null;
+  generalVocationalRole?: boolean;
   skillsMatchPercent: number | null;
   experienceMatchPercent: number | null;
   educationMatchPercent: number | null;
@@ -314,6 +315,7 @@ function JobDetailsPage() {
               missingRequiredSkills: data.missingRequiredSkills,
               missingPreferredSkills: data.missingPreferredSkills,
               fieldRelated: true,
+              generalVocationalRole: data.generalVocationalRole === true,
             });
           });
         }
